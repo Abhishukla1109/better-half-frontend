@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BetterHalf - What brings you here?</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@800&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-surface": "#1b1c1a",
+                    "on-primary": "#ffffff",
+                    "secondary-container": "#d8e2df",
+                    "error": "#ba1a1a",
+                    "error-container": "#ffdad6",
+                    "surface-container": "#efeeea",
+                    "on-secondary": "#ffffff",
+                    "outline": "#707975",
+                    "surface": "#fbf9f5",
+                    "outline-variant": "#bfc9c4",
+                    "surface-container-highest": "#e4e2de",
+                    "inverse-surface": "#30312e",
+                    "surface-tint": "#296959",
+                    "on-tertiary-container": "#ffad8d",
+                    "primary": "#004034",
+                    "inverse-on-surface": "#f2f0ed",
+                    "secondary": "#57605e",
+                    "surface-bright": "#fbf9f5",
+                    "on-primary-fixed": "#002019",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-dim": "#dbdad6",
+                    "on-background": "#1b1c1a",
+                    "surface-container-low": "#f5f3ef",
+                    "on-secondary-container": "#5b6562",
+                    "on-error": "#ffffff",
+                    "primary-fixed-dim": "#93d3c0",
+                    "secondary-fixed-dim": "#bfc9c6",
+                    "surface-variant": "#e4e2de",
+                    "secondary-fixed": "#dbe5e2",
+                    "on-secondary-fixed-variant": "#3f4947",
+                    "inverse-primary": "#93d3c0",
+                    "on-tertiary-fixed": "#370e00",
+                    "tertiary": "#662100",
+                    "on-tertiary": "#ffffff",
+                    "primary-fixed": "#aff0db",
+                    "primary-container": "#15594a",
+                    "on-tertiary-fixed-variant": "#7f2b00",
+                    "on-primary-container": "#8eceba",
+                    "on-secondary-fixed": "#141d1c",
+                    "on-primary-fixed-variant": "#065042",
+                    "background": "#fbf9f5",
+                    "tertiary-fixed": "#ffdbce",
+                    "tertiary-fixed-dim": "#ffb599",
+                    "on-error-container": "#93000a",
+                    "tertiary-container": "#8b3203",
+                    "surface-container-high": "#eae8e4",
+                    "on-surface-variant": "#3f4945"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Public Sans"],
+                    "label": ["Public Sans"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Public Sans', sans-serif;
+            background-color: #FAF8F4;
+        }
+        h1, h2, h3 {
+            font-family: 'Manrope', sans-serif;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface flex justify-center min-h-screen">
+<main class="w-full max-w-[430px] flex flex-col min-h-screen relative overflow-hidden bg-surface">
+<!-- Header -->
+<header class="flex justify-between items-center px-6 py-6 w-full">
+<button aria-label="Go back" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-teal-50 transition-colors">
+<span class="material-symbols-outlined text-primary" data-icon="arrow_back">arrow_back</span>
+</button>
+<span class="text-sm font-semibold tracking-widest text-on-surface-variant uppercase">Step 2 of 4</span>
+<div class="w-10"></div> <!-- Spacer for centering -->
+</header>
+<!-- Content Canvas -->
+<div class="flex-grow px-6 pt-4 pb-24 overflow-y-auto">
+<!-- Headline Cluster -->
+<div class="mb-10">
+<h1 class="text-4xl font-extrabold text-primary leading-[1.1] tracking-tight mb-3">
+                    What brings you here?
+                </h1>
+<p class="text-on-surface-variant text-lg leading-relaxed">
+                    Your words, not our categories. Hindi, Hinglish, English — all fine.
+                </p>
+</div>
+<!-- AI Listening Indicator -->
+<div class="flex items-center gap-2 mb-4 px-1">
+<div class="relative flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-fixed opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+</div>
+<span class="text-xs font-bold tracking-widest uppercase text-primary/80">✦ AI is listening…</span>
+</div>
+<!-- Free Text Input Area -->
+<div class="relative mb-12">
+<textarea class="w-full p-6 text-xl bg-surface-container-low border-none rounded-2xl placeholder:text-on-surface-variant/40 focus:ring-0 focus:bg-surface-container-lowest transition-all shadow-sm" placeholder="e.g. Always tired, no energy, gut issues, not sure what to eat…" rows="5"></textarea>
+<div class="absolute bottom-4 right-4 text-on-surface-variant/20">
+<span class="material-symbols-outlined" data-icon="edit_note">edit_note</span>
+</div>
+</div>
+<!-- Suggestion Tags Section -->
+<div class="space-y-6">
+<!-- Nutrition Row -->
+<div>
+<h3 class="text-[10px] font-bold tracking-[0.2em] uppercase text-on-surface-variant/60 mb-3 px-1">Nutrition Focus</h3>
+<div class="flex flex-wrap gap-2">
+<button class="px-4 py-2.5 rounded-full border border-primary/20 text-primary text-sm font-semibold hover:bg-primary-fixed/30 transition-all active:scale-95">Not eating right</button>
+<button class="px-4 py-2.5 rounded-full border border-primary/20 text-primary text-sm font-semibold hover:bg-primary-fixed/30 transition-all active:scale-95">Protein intake</button>
+<button class="px-4 py-2.5 rounded-full border border-primary/20 text-primary text-sm font-semibold hover:bg-primary-fixed/30 transition-all active:scale-95">Gut / digestion</button>
+<button class="px-4 py-2.5 rounded-full border border-primary/20 text-primary text-sm font-semibold hover:bg-primary-fixed/30 transition-all active:scale-95">Weight management</button>
+</div>
+</div>
+<!-- Symptom Row -->
+<div>
+<h3 class="text-[10px] font-bold tracking-[0.2em] uppercase text-on-surface-variant/60 mb-3 px-1">Symptoms &amp; Vitality</h3>
+<div class="flex flex-wrap gap-2">
+<button class="px-4 py-2.5 rounded-full border border-primary/20 text-primary text-sm font-semibold hover:bg-primary-fixed/30 transition-all active:scale-95">Low energy</button>
+<button class="px-4 py-2.5 rounded-full border border-primary/20 text-primary text-sm font-semibold hover:bg-primary-fixed/30 transition-all active:scale-95">Hormones / PCOS</button>
+<button class="px-4 py-2.5 rounded-full border border-primary/20 text-primary text-sm font-semibold hover:bg-primary-fixed/30 transition-all active:scale-95">Hair &amp; skin</button>
+<button class="px-4 py-2.5 rounded-full border border-primary/20 text-primary text-sm font-semibold hover:bg-primary-fixed/30 transition-all active:scale-95">Sleep problems</button>
+<button class="px-4 py-2.5 rounded-full border border-primary/20 text-primary text-sm font-semibold hover:bg-primary-fixed/30 transition-all active:scale-95">Stress / anxiety</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Sticky Footer CTA -->
+<div class="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-surface via-surface to-transparent flex flex-col items-center gap-4">
+<button class="w-full bg-primary text-on-primary py-5 rounded-2xl font-bold text-lg shadow-xl shadow-primary/10 active:scale-[0.98] transition-all">
+                Continue
+            </button>
+<button class="text-on-surface-variant font-medium text-sm hover:text-primary transition-colors py-2">
+                Skip for now
+            </button>
+</div>
+<!-- Decorative Background Element (Tonal Architecture) -->
+<div class="absolute -top-24 -right-24 w-64 h-64 bg-primary-fixed/10 rounded-full blur-[80px] pointer-events-none"></div>
+<div class="absolute top-1/2 -left-32 w-64 h-64 bg-tertiary-fixed/10 rounded-full blur-[80px] pointer-events-none"></div>
+</main>
+</body></html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BetterHalf — The AI that truly knows your body</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@800&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface": "#1b1c1a",
+                        "on-primary": "#ffffff",
+                        "secondary-container": "#d8e2df",
+                        "error": "#ba1a1a",
+                        "error-container": "#ffdad6",
+                        "surface-container": "#efeeea",
+                        "on-secondary": "#ffffff",
+                        "outline": "#707975",
+                        "surface": "#fbf9f5",
+                        "outline-variant": "#bfc9c4",
+                        "surface-container-highest": "#e4e2de",
+                        "inverse-surface": "#30312e",
+                        "surface-tint": "#296959",
+                        "on-tertiary-container": "#ffad8d",
+                        "primary": "#004034",
+                        "inverse-on-surface": "#f2f0ed",
+                        "secondary": "#57605e",
+                        "surface-bright": "#fbf9f5",
+                        "on-primary-fixed": "#002019",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-dim": "#dbdad6",
+                        "on-background": "#1b1c1a",
+                        "surface-container-low": "#f5f3ef",
+                        "on-secondary-container": "#5b6562",
+                        "on-error": "#ffffff",
+                        "primary-fixed-dim": "#93d3c0",
+                        "secondary-fixed-dim": "#bfc9c6",
+                        "surface-variant": "#e4e2de",
+                        "secondary-fixed": "#dbe5e2",
+                        "on-secondary-fixed-variant": "#3f4947",
+                        "inverse-primary": "#93d3c0",
+                        "on-tertiary-fixed": "#370e00",
+                        "tertiary": "#662100",
+                        "on-tertiary": "#ffffff",
+                        "primary-fixed": "#aff0db",
+                        "primary-container": "#15594a",
+                        "on-tertiary-fixed-variant": "#7f2b00",
+                        "on-primary-container": "#8eceba",
+                        "on-secondary-fixed": "#141d1c",
+                        "on-primary-fixed-variant": "#065042",
+                        "background": "#fbf9f5",
+                        "tertiary-fixed": "#ffdbce",
+                        "tertiary-fixed-dim": "#ffb599",
+                        "on-error-container": "#93000a",
+                        "tertiary-container": "#8b3203",
+                        "surface-container-high": "#eae8e4",
+                        "on-surface-variant": "#3f4945"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Public Sans"],
+                        "label": ["Public Sans"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Public Sans', sans-serif; }
+        h1, h2, h3 { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hero-gradient {
+            background: linear-gradient(180deg, #15594A 0%, #004034 100%);
+        }
+        .glass-card {
+            background: rgba(235, 245, 242, 0.08);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface min-h-screen flex justify-center items-start">
+<!-- Mobile Container (Max-width 430px as requested) -->
+<main class="w-full max-w-[430px] min-h-screen hero-gradient flex flex-col relative overflow-hidden">
+<!-- Background Decoration (Tonal Architecture) -->
+<div class="absolute top-[-10%] right-[-20%] w-[300px] h-[300px] rounded-full bg-primary-container/30 blur-[80px]"></div>
+<div class="absolute bottom-[20%] left-[-10%] w-[250px] h-[250px] rounded-full bg-primary/40 blur-[100px]"></div>
+<!-- Content Shell -->
+<div class="relative z-10 flex flex-col min-h-screen px-8 pt-16 pb-12">
+<!-- Logo Section -->
+<div class="mb-12">
+<span class="text-2xl font-extrabold tracking-tight text-white">BetterHalf</span>
+</div>
+<!-- Hero Text Section -->
+<div class="flex-grow flex flex-col justify-center">
+<h1 class="text-5xl font-extrabold text-white leading-[1.1] tracking-tight mb-6">
+                    The AI that truly knows your body.
+                </h1>
+<p class="text-lg text-primary-fixed leading-relaxed opacity-90 mb-10 max-w-[320px]">
+                    Personalised health protocols — powered by 6.5M real Indian health journeys.
+                </p>
+<!-- Trust Block (Asymmetric Bento-ish Layout) -->
+<div class="grid grid-cols-2 gap-3 mb-12">
+<div class="glass-card rounded-xl p-4 flex flex-col gap-2">
+<span class="material-symbols-outlined text-primary-fixed" data-icon="groups">groups</span>
+<div>
+<p class="text-white font-bold text-lg leading-none">6.5M</p>
+<p class="text-primary-fixed/70 text-xs uppercase tracking-widest font-medium">Users</p>
+</div>
+</div>
+<div class="glass-card rounded-xl p-4 flex flex-col gap-2">
+<span class="material-symbols-outlined text-primary-fixed" data-icon="stethoscope">stethoscope</span>
+<div>
+<p class="text-white font-bold text-lg leading-none">150+</p>
+<p class="text-primary-fixed/70 text-xs uppercase tracking-widest font-medium">Doctors</p>
+</div>
+</div>
+<div class="glass-card rounded-xl p-4 col-span-2 flex items-center gap-4">
+<span class="material-symbols-outlined text-primary-fixed" data-icon="history">history</span>
+<div>
+<p class="text-white font-bold text-lg leading-none">5 Years</p>
+<p class="text-primary-fixed/70 text-xs uppercase tracking-widest font-medium">Real Clinical Data</p>
+</div>
+</div>
+</div>
+<!-- Testimonial (AI Insight Style) -->
+<div class="bg-primary-fixed/10 border-l-2 border-primary-fixed/30 p-6 rounded-r-2xl mb-12 relative">
+<span class="material-symbols-outlined absolute top-4 right-4 text-primary-fixed/40 text-xl" data-icon="format_quote" style="font-variation-settings: 'FILL' 1;">format_quote</span>
+<p class="text-primary-fixed text-sm italic leading-relaxed">
+                        "BetterHalf felt like it actually understood my gut issues without me having to explain the clinical terms."
+                    </p>
+</div>
+</div>
+<!-- CTA Section -->
+<div class="flex flex-col gap-4 mt-auto">
+<button class="w-full bg-primary-fixed hover:bg-white text-on-primary-fixed font-bold py-5 px-8 rounded-xl flex justify-between items-center transition-all duration-300 group shadow-lg shadow-black/10">
+<span class="text-lg">Start my health journey</span>
+<span class="material-symbols-outlined group-hover:translate-x-1 transition-transform" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<button class="w-full bg-transparent border border-white/20 hover:bg-white/5 text-white font-semibold py-5 px-8 rounded-xl transition-all duration-300">
+                    Explore products first
+                </button>
+</div>
+<!-- Footer Note -->
+<footer class="mt-10 text-center">
+<p class="text-[10px] text-primary-fixed/40 uppercase tracking-[0.2em] font-medium">
+                    Powered by Mosaic Wellness
+                </p>
+</footer>
+</div>
+<!-- Decorative Image Overlay (Subtle Gradient Map Effect) -->
+<div class="absolute inset-0 z-0 pointer-events-none opacity-20 mix-blend-overlay">
+<img alt="" class="w-full h-full object-cover" data-alt="abstract close-up of microscopic cellular structures with soft glowing teal and green light bokeh" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAu-0RQJsut744N21hF0Y-3RZG4wEoePLNkCiFVkzT_wRtcL9YSNefdvNwFF4r_RMxbTLiPQ59XAoPNml5tO7gd89JAy9spDo2pO-Is9RTZa9MoaubcqmL72xECCiDlfzbLjjLauwfBOqbvgAvHxdBi80qErKwH5F1hwxW__iCVCaGmguS-gg_Xg86vu_lijdVUDp92gknFB3REG9YIyVXz7EfUriOOSJuLeZygfIuBlBpCfoyGNCWdKh7TwKmg0k8NwnRm8r9-t-0"/>
+</div>
+</main>
+<!-- Shared Components are suppressed for this landing screen as per "Destination Rule" & "Shell Visibility" mandate for Transactional/Splash screens -->
+</body></html>

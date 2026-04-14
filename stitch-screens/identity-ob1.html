@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BetterHalf — Identity</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@800&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-surface": "#1b1c1a",
+                    "on-primary": "#ffffff",
+                    "secondary-container": "#d8e2df",
+                    "error": "#ba1a1a",
+                    "error-container": "#ffdad6",
+                    "surface-container": "#efeeea",
+                    "on-secondary": "#ffffff",
+                    "outline": "#707975",
+                    "surface": "#fbf9f5",
+                    "outline-variant": "#bfc9c4",
+                    "surface-container-highest": "#e4e2de",
+                    "inverse-surface": "#30312e",
+                    "surface-tint": "#296959",
+                    "on-tertiary-container": "#ffad8d",
+                    "primary": "#004034",
+                    "inverse-on-surface": "#f2f0ed",
+                    "secondary": "#57605e",
+                    "surface-bright": "#fbf9f5",
+                    "on-primary-fixed": "#002019",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-dim": "#dbdad6",
+                    "on-background": "#1b1c1a",
+                    "surface-container-low": "#f5f3ef",
+                    "on-secondary-container": "#5b6562",
+                    "on-error": "#ffffff",
+                    "primary-fixed-dim": "#93d3c0",
+                    "secondary-fixed-dim": "#bfc9c6",
+                    "surface-variant": "#e4e2de",
+                    "secondary-fixed": "#dbe5e2",
+                    "on-secondary-fixed-variant": "#3f4947",
+                    "inverse-primary": "#93d3c0",
+                    "on-tertiary-fixed": "#370e00",
+                    "tertiary": "#662100",
+                    "on-tertiary": "#ffffff",
+                    "primary-fixed": "#aff0db",
+                    "primary-container": "#15594a",
+                    "on-tertiary-fixed-variant": "#7f2b00",
+                    "on-primary-container": "#8eceba",
+                    "on-secondary-fixed": "#141d1c",
+                    "on-primary-fixed-variant": "#065042",
+                    "background": "#fbf9f5",
+                    "tertiary-fixed": "#ffdbce",
+                    "tertiary-fixed-dim": "#ffb599",
+                    "on-error-container": "#93000a",
+                    "tertiary-container": "#8b3203",
+                    "surface-container-high": "#eae8e4",
+                    "on-surface-variant": "#3f4945"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Public Sans"],
+                    "label": ["Public Sans"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Public Sans', sans-serif; }
+        h1, h2, h3 { font-family: 'Manrope', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen flex justify-center">
+<div class="w-full max-w-[430px] bg-surface flex flex-col min-h-screen relative overflow-x-hidden">
+<!-- Header / TopAppBar (Transactional - Shell Suppressed per Protocol) -->
+<header class="flex justify-between items-center w-full px-6 py-6 bg-surface">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-primary" data-icon="arrow_back">arrow_back</span>
+</button>
+<span class="text-sm font-semibold tracking-wider text-on-surface-variant uppercase">Step 1 of 4</span>
+<div class="w-10"></div> <!-- Spacer for symmetry -->
+</header>
+<main class="px-6 pb-24 flex-grow">
+<!-- Headline -->
+<h1 class="text-3xl font-[800] leading-tight tracking-tight text-primary mt-4 mb-6">
+                Who are we building this for, [Name]?
+            </h1>
+<!-- AI Signal Bar (Glassmorphism layer) -->
+<div class="bg-primary-container rounded-xl p-4 mb-8 flex items-center gap-3 shadow-lg shadow-primary-container/10">
+<span class="material-symbols-outlined text-primary-fixed" data-icon="auto_awesome" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<p class="text-sm text-on-primary-container font-medium leading-relaxed">
+                    ✦ AI pre-seeding from 6.5M profiles — we already have a head start
+                </p>
+</div>
+<!-- Selection 1: Biological Sex -->
+<section class="mb-10">
+<label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4 px-1">Biological Sex</label>
+<div class="space-y-3">
+<button class="w-full text-left p-5 rounded-xl bg-surface-container-lowest flex justify-between items-center group hover:bg-primary-fixed transition-all duration-200 shadow-sm">
+<span class="text-lg font-semibold text-primary">Male</span>
+<span class="material-symbols-outlined text-primary opacity-0 group-hover:opacity-100 transition-opacity" data-icon="check_circle">check_circle</span>
+</button>
+<button class="w-full text-left p-5 rounded-xl bg-surface-container-lowest flex justify-between items-center group hover:bg-primary-fixed transition-all duration-200 shadow-sm border-2 border-primary">
+<span class="text-lg font-semibold text-primary">Female</span>
+<span class="material-symbols-outlined text-primary" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</button>
+<button class="w-full text-left p-5 rounded-xl bg-surface-container-lowest flex justify-between items-center group hover:bg-primary-fixed transition-all duration-200 shadow-sm">
+<span class="text-lg font-semibold text-primary">Prefer not to say</span>
+<span class="material-symbols-outlined text-primary opacity-0 group-hover:opacity-100 transition-opacity" data-icon="check_circle">check_circle</span>
+</button>
+</div>
+</section>
+<!-- Selection 2: Life Stage -->
+<section class="mb-10">
+<label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4 px-1">Life Stage</label>
+<div class="flex flex-wrap gap-3">
+<button class="px-5 py-3 rounded-full bg-surface-container-low text-primary font-semibold hover:bg-primary-fixed transition-colors">Student</button>
+<button class="px-5 py-3 rounded-full bg-primary text-on-primary font-semibold shadow-md">Working Professional</button>
+<button class="px-5 py-3 rounded-full bg-surface-container-low text-primary font-semibold hover:bg-primary-fixed transition-colors">Parent</button>
+<button class="px-5 py-3 rounded-full bg-surface-container-low text-primary font-semibold hover:bg-primary-fixed transition-colors">Senior</button>
+</div>
+</section>
+<!-- Selection 3: Age Range -->
+<section class="mb-12">
+<label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4 px-1">Age Range</label>
+<div class="overflow-x-auto no-scrollbar -mx-6 px-6">
+<div class="flex gap-3 pb-2">
+<button class="flex-shrink-0 px-6 py-3 rounded-full bg-surface-container-low text-primary font-semibold hover:bg-primary-fixed transition-colors">18–24</button>
+<button class="flex-shrink-0 px-6 py-3 rounded-full bg-surface-container-low text-primary font-semibold hover:bg-primary-fixed transition-colors">25–34</button>
+<button class="flex-shrink-0 px-6 py-3 rounded-full bg-primary text-on-primary font-semibold shadow-md">35–44</button>
+<button class="flex-shrink-0 px-6 py-3 rounded-full bg-surface-container-low text-primary font-semibold hover:bg-primary-fixed transition-colors">45–59</button>
+<button class="flex-shrink-0 px-6 py-3 rounded-full bg-surface-container-low text-primary font-semibold hover:bg-primary-fixed transition-colors">60+</button>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer Actions (Docked) -->
+<div class="sticky bottom-0 left-0 w-full p-6 bg-surface/80 backdrop-blur-md flex flex-col items-center gap-4">
+<button class="w-full py-4 bg-primary text-on-primary rounded-xl font-bold text-lg shadow-xl shadow-primary/20 hover:scale-[0.98] transition-transform">
+                Continue
+            </button>
+<button class="text-primary font-semibold text-sm hover:underline underline-offset-4 decoration-primary/30 transition-all">
+                Skip for now
+            </button>
+</div>
+</div>
+<!-- Layout Style Overrides/Specifics -->
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</body></html>

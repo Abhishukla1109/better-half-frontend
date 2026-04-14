@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BetterHalf - Welcome</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@800&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface": "#1b1c1a",
+                        "on-primary": "#ffffff",
+                        "secondary-container": "#d8e2df",
+                        "error": "#ba1a1a",
+                        "error-container": "#ffdad6",
+                        "surface-container": "#efeeea",
+                        "on-secondary": "#ffffff",
+                        "outline": "#707975",
+                        "surface": "#fbf9f5",
+                        "outline-variant": "#bfc9c4",
+                        "surface-container-highest": "#e4e2de",
+                        "inverse-surface": "#30312e",
+                        "surface-tint": "#296959",
+                        "on-tertiary-container": "#ffad8d",
+                        "primary": "#004034",
+                        "inverse-on-surface": "#f2f0ed",
+                        "secondary": "#57605e",
+                        "surface-bright": "#fbf9f5",
+                        "on-primary-fixed": "#002019",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-dim": "#dbdad6",
+                        "on-background": "#1b1c1a",
+                        "surface-container-low": "#f5f3ef",
+                        "on-secondary-container": "#5b6562",
+                        "on-error": "#ffffff",
+                        "primary-fixed-dim": "#93d3c0",
+                        "secondary-fixed-dim": "#bfc9c6",
+                        "surface-variant": "#e4e2de",
+                        "secondary-fixed": "#dbe5e2",
+                        "on-secondary-fixed-variant": "#3f4947",
+                        "inverse-primary": "#93d3c0",
+                        "on-tertiary-fixed": "#370e00",
+                        "tertiary": "#662100",
+                        "on-tertiary": "#ffffff",
+                        "primary-fixed": "#aff0db",
+                        "primary-container": "#15594a",
+                        "on-tertiary-fixed-variant": "#7f2b00",
+                        "on-primary-container": "#8eceba",
+                        "on-secondary-fixed": "#141d1c",
+                        "on-primary-fixed-variant": "#065042",
+                        "background": "#fbf9f5",
+                        "tertiary-fixed": "#ffdbce",
+                        "tertiary-fixed-dim": "#ffb599",
+                        "on-error-container": "#93000a",
+                        "tertiary-container": "#8b3203",
+                        "surface-container-high": "#eae8e4",
+                        "on-surface-variant": "#3f4945"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Public Sans"],
+                        "label": ["Public Sans"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Public Sans', sans-serif;
+            background-color: #fbf9f5;
+        }
+        h1, h2, h3 {
+            font-family: 'Manrope', sans-serif;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="flex items-center justify-center min-h-screen p-4 text-on-surface">
+<!-- Auth Canvas -->
+<main class="w-full max-w-[430px] min-h-[800px] flex flex-col bg-surface overflow-hidden">
+<!-- Header (TopAppBar Mapping) -->
+<header class="flex justify-between items-center w-full px-6 py-4 bg-[#FAF8F4] dark:bg-slate-950">
+<button aria-label="Go back" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-colors">
+<span class="material-symbols-outlined text-teal-900 dark:text-teal-400" data-icon="arrow_back">arrow_back</span>
+</button>
+<div class="flex-1"></div>
+</header>
+<!-- Content Section -->
+<section class="flex-1 px-8 pt-12 pb-8 flex flex-col">
+<!-- Hero Illustration/Element -->
+<div class="mb-10 w-24 h-24 bg-primary-fixed rounded-3xl flex items-center justify-center relative">
+<span class="material-symbols-outlined text-on-primary-fixed text-4xl" data-icon="shield_person">shield_person</span>
+<div class="absolute -right-2 -bottom-2 w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary" data-icon="verified_user" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+</div>
+</div>
+<!-- Headlines -->
+<div class="space-y-4 mb-12">
+<h1 class="text-[32px] font-[800] leading-tight tracking-tight text-primary">
+                    Let’s get you started.
+                </h1>
+<p class="text-body-lg text-on-surface-variant leading-relaxed max-w-[280px]">
+                    Enter your phone number to continue.
+                </p>
+</div>
+<!-- Input Group -->
+<div class="space-y-6">
+<div class="group">
+<label class="block text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant mb-2 px-1" for="phone">
+                        Phone Number
+                    </label>
+<div class="relative flex items-center bg-surface-container-low rounded-xl p-1 focus-within:bg-surface-container-lowest transition-all duration-300">
+<div class="flex items-center gap-2 px-4 py-3 border-r border-outline-variant/20">
+<img alt="India Flag" class="w-5 h-auto rounded-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-YhnXI9glmLPX9GKP5abL02whfvnZJsuiqtR1-rO_O2rjrvplpWEBEKJOMdGzt5z6I7ufk-fAhf2fhcpoy-wP3DmFU-83vf3CUD_KLVQEda-xy68n5yQdVMK8tl1En6k8yBbxLoLJRMyCxmX3ESe4Hy3HbpJ1fs9P02CSpgNaBCw8jqIQ_i95UOxsYw41dD4G1fglgoX0jbO25SUqttf7G8zD7kWLDr75QekdO_C-vfPnvZt3oAvpmiHb1hCZTuw4TOgslDOoliU"/>
+<span class="text-on-surface font-semibold text-lg">+91</span>
+</div>
+<input class="flex-1 bg-transparent border-none focus:ring-0 text-lg font-medium px-4 placeholder:text-outline-variant/60" id="phone" placeholder="00000 00000" type="tel"/>
+</div>
+<div class="h-0.5 w-0 group-focus-within:w-full bg-primary transition-all duration-500 rounded-full mt-1"></div>
+</div>
+<!-- Primary CTA -->
+<button class="w-full bg-primary text-on-primary font-semibold py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-primary/10 hover:brightness-110 active:scale-[0.98] transition-all duration-200">
+<span>Send OTP</span>
+<span class="material-symbols-outlined text-[20px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+<!-- Divider -->
+<div class="my-10 flex items-center gap-4">
+<div class="flex-1 h-[1px] bg-outline-variant/20"></div>
+<span class="text-[12px] font-medium uppercase tracking-widest text-outline-variant">or</span>
+<div class="flex-1 h-[1px] bg-outline-variant/20"></div>
+</div>
+<!-- Social Auth -->
+<div class="space-y-4">
+<button class="w-full bg-surface-container-lowest border border-outline-variant/10 text-on-surface font-semibold py-4 rounded-xl flex items-center justify-center gap-3 shadow-sm hover:bg-surface-container-low transition-all duration-200">
+<img alt="Google Logo" class="w-5 h-5" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKGvVQrPN50Ltwd83cw1dOX275HDov0tT-vuR9nPzRxZRcdVm_uZhXClY-LUc0deBW22mBYiL9i1HK6Yx2y-Ub60g7WgA8diaOypJKzg5yuhgy3Cp8zA-t6hWdhRNkyy7gWEjumopBL_emch2svPTLywWY0OMipENyF31UiOr4EzI0MorQ2BZmq6MVhJOD0cLLcStoH5JCP1_fjC7JJV58k9ll-Srjq3fNAK8EYxoBbC-xF-PYtkoHx8KfOunBjDWEoMp4_YXVKdg"/>
+<span>Continue with Google</span>
+</button>
+</div>
+<!-- Tonal Footer Info -->
+<div class="mt-auto pt-12 text-center">
+<p class="text-[13px] text-on-surface-variant/70 px-4 leading-relaxed">
+                    By continuing, you agree to our 
+                    <a class="text-primary font-semibold hover:underline" href="#">Terms of Service</a> 
+                    and 
+                    <a class="text-primary font-semibold hover:underline" href="#">Privacy Policy</a>.
+                </p>
+</div>
+</section>
+<!-- Decorative Subtle Texture -->
+<div class="absolute top-0 right-0 -z-10 w-64 h-64 bg-primary-fixed/20 blur-[80px] rounded-full translate-x-1/2 -translate-y-1/2"></div>
+<div class="absolute bottom-0 left-0 -z-10 w-96 h-96 bg-tertiary-fixed/10 blur-[100px] rounded-full -translate-x-1/2 translate-y-1/2"></div>
+</main>
+</body></html>
