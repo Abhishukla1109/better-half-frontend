@@ -78,15 +78,23 @@ export default function SupplementCard({ supplements, dayCount, onAction, delay 
                     </button>
                   </div>
                 ) : (
-                  <span className={`text-xs font-semibold px-4 min-h-[44px] flex items-center rounded-xl ${
-                    state === "taken"
-                      ? "bg-primary-fixed/15 text-primary-container"
-                      : state === "ran_out"
-                      ? "bg-tertiary-fixed/15 text-tertiary-container"
-                      : "bg-surface-container-low text-on-surface-variant"
-                  }`}>
+                  <button
+                    onClick={() => setCompleted((prev) => {
+                      const next = { ...prev };
+                      delete next[sup.name];
+                      return next;
+                    })}
+                    className={`text-xs font-semibold px-4 min-h-[44px] flex items-center gap-2 rounded-xl cursor-pointer hover:opacity-80 transition-opacity ${
+                      state === "taken"
+                        ? "bg-primary-fixed/15 text-primary-container"
+                        : state === "ran_out"
+                        ? "bg-tertiary-fixed/15 text-tertiary-container"
+                        : "bg-surface-container-low text-on-surface-variant"
+                    }`}
+                  >
                     {state === "taken" ? "Taken" : state === "ran_out" ? "Ran out" : "Missed"}
-                  </span>
+                    <span className="text-[10px] font-normal opacity-50">Edit</span>
+                  </button>
                 )}
               </div>
             </div>

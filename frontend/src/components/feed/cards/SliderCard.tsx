@@ -90,7 +90,10 @@ export default function SliderCard({
             </button>
           </>
         ) : (
-          <div className="flex items-center gap-2 py-2 animate-fade-in-up">
+          <button
+            onClick={() => setSubmitted(false)}
+            className="flex items-center gap-2 py-2 cursor-pointer hover:opacity-80 transition-opacity animate-fade-in-up"
+          >
             <div className="flex gap-0.5">
               {Array.from({ length: steps }, (_, i) => (
                 <div
@@ -102,7 +105,8 @@ export default function SliderCard({
               ))}
             </div>
             <span className="text-xs text-on-surface-variant/50 ml-2">Logged: {value}/{steps}</span>
-          </div>
+            <span className="text-[10px] text-primary-container/50 ml-1">Edit</span>
+          </button>
         )}
       </div>
     </div>

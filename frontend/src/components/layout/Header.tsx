@@ -1,10 +1,41 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import { Bell, User } from "lucide-react";
 
 export default function Header() {
+  const [visible, setVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      const delta = currentY - lastScrollY.current;
+
+      if (currentY < 10) {
+        // Always show at top
+        setVisible(true);
+      } else if (delta > 5) {
+        // Scrolling down
+        setVisible(false);
+      } else if (delta < -5) {
+        // Scrolling up
+        setVisible(true);
+      }
+
+      lastScrollY.current = currentY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <header className="glass-header fixed top-0 left-0 right-0 z-40 lg:left-[240px] xl:left-[280px]">
+    <header
+      className="glass-header fixed left-0 right-0 z-40 lg:left-[240px] xl:left-[280px] transition-transform duration-300 ease-out"
+      style={{ transform: visible ? "translateY(0)" : "translateY(-100%)" }}
+      data-header-visible={visible}
+    >
       <div className="max-w-4xl mx-auto flex items-center justify-between h-12 px-4">
         {/* Logo */}
         <span className="text-base font-extrabold tracking-tight text-primary font-[family-name:var(--font-manrope)]">

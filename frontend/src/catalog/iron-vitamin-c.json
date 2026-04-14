@@ -1,0 +1,104 @@
+{
+  "slug": "iron-vitamin-c",
+  "name": "Iron + Vitamin C Complex",
+  "subtitle": "60 capsules · 30 day supply",
+  "brand": "Be Bodywise",
+  "brandCode": "BB",
+  "brandColor": "#9B2C5E",
+  "price": 449,
+  "originalPrice": 499,
+  "discount": 10,
+  "rating": 4.7,
+  "reviewCount": 892,
+  "unitsSold": "1,20,000+",
+  "heroImages": [
+    "/images/products/iron-1.jpg",
+    "/images/products/iron-2.jpg"
+  ],
+  "packs": [
+    {
+      "label": "30 days",
+      "price": 449,
+      "active": true
+    },
+    {
+      "label": "90 days",
+      "price": 1199,
+      "badge": "Save 11%"
+    }
+  ],
+  "benefits": [
+    {
+      "icon": "droplets",
+      "title": "Iron Absorption",
+      "desc": "Vitamin C increases iron absorption by up to 67%"
+    },
+    {
+      "icon": "zap",
+      "title": "Energy Levels",
+      "desc": "Combats fatigue from iron deficiency"
+    },
+    {
+      "icon": "heart",
+      "title": "Blood Health",
+      "desc": "Supports healthy haemoglobin levels"
+    },
+    {
+      "icon": "shield",
+      "title": "Immunity",
+      "desc": "Vitamin C strengthens immune response"
+    }
+  ],
+  "badges": [
+    "NABL Certified",
+    "Doctor Recommended",
+    "Third-party Lab Tested",
+    "Non-GMO"
+  ],
+  "ingredients": "Ferrous Bisglycinate (iron) 21mg, Vitamin C (ascorbic acid) 80mg, Folic Acid 200mcg, Vitamin B12 1mcg. Vegetarian capsule shell.",
+  "howToUse": "Take 2 capsules daily with breakfast. Do not take with tea or coffee — tannins reduce iron absorption. Best taken with a citrus fruit or juice for maximum absorption.",
+  "aiContext": {
+    "title": "Why AI recommends this for you",
+    "points": [
+      "Vegetarian diets are 40% more likely to have iron gaps — this formulation is designed for plant-based absorption",
+      "Your energy check-ins suggest a pattern consistent with low iron",
+      "Ferrous bisglycinate is 3× more bioavailable than standard ferrous sulphate"
+    ]
+  },
+  "cohort": {
+    "percentage": 81,
+    "days": 28,
+    "users": "34,200"
+  },
+  "protocolFit": "Add to Morning protocol",
+  "reviews": [
+    {
+      "rating": 5,
+      "text": "My energy levels have completely changed in 3 weeks. No more afternoon crashes.",
+      "author": "Sneha",
+      "age": 26,
+      "verified": true
+    },
+    {
+      "rating": 5,
+      "text": "Doctor recommended this exact combination. Happy to find it in one capsule.",
+      "author": "Ananya",
+      "age": 33,
+      "verified": true
+    }
+  ],
+  "category": "Energy",
+  "tags": [
+    "iron",
+    "vitamin-c",
+    "energy",
+    "anaemia",
+    "fatigue",
+    "women"
+  ],
+  "forGender": "unisex",
+  "dietCompatible": [
+    "vegetarian",
+    "vegan"
+  ]
+}

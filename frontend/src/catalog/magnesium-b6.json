@@ -1,0 +1,104 @@
+{
+  "slug": "magnesium-b6",
+  "name": "Magnesium Bisglycinate + B6",
+  "subtitle": "60 capsules · 30 day supply",
+  "brand": "Root Labs",
+  "brandCode": "RL",
+  "brandColor": "#7B5028",
+  "price": 349,
+  "originalPrice": 449,
+  "discount": 22,
+  "rating": 4.6,
+  "reviewCount": 534,
+  "unitsSold": "67,000+",
+  "heroImages": [
+    "/images/products/magnesium-1.jpg",
+    "/images/products/magnesium-2.jpg"
+  ],
+  "packs": [
+    {
+      "label": "30 days",
+      "price": 349,
+      "active": true
+    },
+    {
+      "label": "90 days",
+      "price": 899,
+      "badge": "Save 14%"
+    }
+  ],
+  "benefits": [
+    {
+      "icon": "moon",
+      "title": "Deep Sleep",
+      "desc": "Activates the parasympathetic nervous system"
+    },
+    {
+      "icon": "brain",
+      "title": "Calm Mind",
+      "desc": "Reduces anxiety and mental restlessness"
+    },
+    {
+      "icon": "heart",
+      "title": "Muscle Relaxation",
+      "desc": "Eases cramps, tension, and tightness"
+    },
+    {
+      "icon": "zap",
+      "title": "Energy Metabolism",
+      "desc": "B6 converts food into cellular energy"
+    }
+  ],
+  "badges": [
+    "Bisglycinate Form",
+    "NABL Certified",
+    "Third-party Lab Tested",
+    "No Laxative Effect"
+  ],
+  "ingredients": "Magnesium Bisglycinate 400mg (providing 80mg elemental magnesium), Pyridoxine HCl (Vitamin B6) 10mg. Bisglycinate form is 4× more bioavailable than magnesium oxide and does not cause digestive discomfort.",
+  "howToUse": "Take 2 capsules 30 minutes before bed with warm water. For daytime stress relief, take 1 capsule in the morning and 1 before bed. Do not exceed 2 capsules per day.",
+  "aiContext": {
+    "title": "Why AI recommends this for you",
+    "points": [
+      "Your sleep check-ins show a pattern of poor onset — magnesium activates GABA receptors that initiate sleep",
+      "Bisglycinate form won't cause the digestive issues that cheaper magnesium oxide does",
+      "B6 enhances magnesium absorption and supports melatonin production"
+    ]
+  },
+  "cohort": {
+    "percentage": 76,
+    "days": 14,
+    "users": "15,800"
+  },
+  "protocolFit": "Add to Evening protocol",
+  "reviews": [
+    {
+      "rating": 5,
+      "text": "Falling asleep in 15 minutes now instead of an hour. Game changer.",
+      "author": "Nisha",
+      "age": 28,
+      "verified": true
+    },
+    {
+      "rating": 4,
+      "text": "No stomach issues like with other magnesium supplements. Gentle but effective.",
+      "author": "Rohit",
+      "age": 35,
+      "verified": true
+    }
+  ],
+  "category": "Sleep",
+  "tags": [
+    "sleep",
+    "magnesium",
+    "relaxation",
+    "anxiety",
+    "cramps",
+    "stress"
+  ],
+  "forGender": "unisex",
+  "dietCompatible": [
+    "vegetarian",
+    "vegan"
+  ]
+}

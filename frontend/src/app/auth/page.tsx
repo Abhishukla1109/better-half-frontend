@@ -79,7 +79,7 @@ export default function AuthPage() {
 
           {/* Primary CTA */}
           <Link
-            href="/onboarding/identity"
+            href="/home"
             className="w-full bg-primary text-on-primary font-semibold py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-primary/10 hover:brightness-110 active:scale-[0.98] transition-all duration-200"
           >
             <span>Send OTP</span>
