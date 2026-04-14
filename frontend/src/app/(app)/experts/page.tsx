@@ -77,7 +77,7 @@ export default function ExpertsPage() {
                     <span className="text-xs text-on-surface-variant">Next: {doc.nextSlot}</span>
                   </div>
                 </div>
-                <button className="px-4 py-2 rounded-xl bg-primary-container text-xs font-semibold text-on-primary-container cursor-pointer hover:bg-primary transition-colors duration-200 shrink-0">
+                <button className="px-4 py-2 rounded-xl bg-primary-container text-xs font-semibold text-white cursor-pointer hover:bg-primary transition-colors duration-200 shrink-0">
                   &#8377;{doc.price}
                 </button>
               </div>

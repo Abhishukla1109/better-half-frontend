@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { getConcernImage } from "@/data/images";
 
 interface ConcernCardProps {
   onSelect: (concerns: string[]) => void;
@@ -90,20 +91,40 @@ export default function ConcernCard({ onSelect, onTextSubmit, maxSelections = 4 
             {concerns.map((label) => {
               const isSelected = picked.includes(label);
               const isDisabled = !isSelected && picked.length >= maxSelections;
+              const img = getConcernImage(label);
               return (
                 <button
                   key={label}
                   onClick={() => toggleChip(label)}
                   disabled={isDisabled}
-                  className={`chip-option flex items-center gap-2 min-h-[44px] px-4 py-3 rounded-xl text-sm font-medium cursor-pointer text-left transition-all duration-200 ${
+                  className={`chip-option relative flex items-end min-h-[72px] rounded-xl overflow-hidden cursor-pointer text-left transition-all duration-200 ${
                     isSelected
-                      ? "bg-primary-container text-on-primary-container border border-primary-container"
+                      ? "ring-2 ring-primary-container"
                       : isDisabled
-                      ? "bg-surface-container-low border border-outline-variant/10 text-on-surface-variant/30 cursor-not-allowed"
-                      : "bg-surface-container-low border border-outline-variant/15 text-on-surface hover:bg-primary-fixed/15 hover:border-primary-container/25"
+                      ? "opacity-40 cursor-not-allowed"
+                      : "ring-1 ring-outline-variant/10 hover:ring-primary-container/40"
                   }`}
                 >
-                  {label}
+                  {/* Background image or fallback */}
+                  {img ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={img} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                    </>
+                  ) : (
+                    <div className="absolute inset-0 bg-surface-container-low" />
+                  )}
+                  <span className={`relative z-10 px-3 pb-2.5 text-[13px] font-semibold leading-tight ${
+                    img ? "text-white" : isSelected ? "text-primary-container" : "text-on-surface"
+                  }`}>
+                    {label}
+                  </span>
+                  {isSelected && (
+                    <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-primary-container flex items-center justify-center z-10">
+                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                    </div>
+                  )}
                 </button>
               );
             })}
@@ -113,7 +134,7 @@ export default function ConcernCard({ onSelect, onTextSubmit, maxSelections = 4 
           {picked.length > 0 && (
             <button
               onClick={handleSubmit}
-              className="mt-4 w-full py-3 rounded-xl bg-primary-container text-sm font-semibold text-on-primary-container cursor-pointer hover:bg-primary transition-colors duration-200 animate-fade-in-up"
+              className="mt-4 w-full py-3 rounded-xl bg-primary-container text-sm font-semibold text-white cursor-pointer hover:bg-primary transition-colors duration-200 animate-fade-in-up"
             >
               Continue with {picked.length} concern{picked.length > 1 ? "s" : ""}
             </button>

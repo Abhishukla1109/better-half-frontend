@@ -68,7 +68,7 @@ export default function ExpertCard({
         </div>
 
         {/* Book CTA */}
-        <button className="mt-3 w-full py-2.5 rounded-xl bg-primary-container text-sm font-semibold text-on-primary-container cursor-pointer hover:bg-primary transition-colors duration-200">
+        <button className="mt-3 w-full py-2.5 rounded-xl bg-primary-container text-sm font-semibold text-white cursor-pointer hover:bg-primary transition-colors duration-200">
           Book &middot; &#8377;{price} &middot; {duration}
         </button>
       </div>

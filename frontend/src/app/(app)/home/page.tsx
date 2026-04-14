@@ -2,7 +2,10 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Sparkles, ShoppingCart, ChevronRight, Check, Lock, X, Utensils, Pill, Stethoscope, Brain, Activity, Droplets, ClipboardList, ArrowLeft } from "lucide-react";
+import { Sparkles, ShoppingCart, ChevronRight, Check, Lock, X, Utensils, Pill, Stethoscope, Brain, Activity, Droplets, ClipboardList, ArrowLeft, CircleCheck } from "lucide-react";
+import { getTreatmentTypesForConcern } from "@/data/treatment-types";
+import type { TreatmentType, TreatmentProduct } from "@/data/treatment-types";
+import TreatmentTypeSheet from "@/components/feed/TreatmentTypeSheet";
 import GreetingCard from "@/components/feed/cards/GreetingCard";
 import ConcernCard from "@/components/feed/cards/ConcernCard";
 import InsightCard from "@/components/feed/cards/InsightCard";
@@ -153,7 +156,7 @@ const protocolBuckets: ProtocolBucket[] = [
       {
         key: "previousTreatment",
         question: "Have you tried anything for this before?",
-        reason: "Knowing what didn\u2019t work helps the AI avoid repeating it.",
+        reason: "Knowing what didn't work helps the AI avoid repeating it.",
         options: [
           { label: "Yes, supplements", value: "supplements" },
           { label: "Yes, prescription", value: "prescription" },
@@ -170,7 +173,7 @@ const protocolBuckets: ProtocolBucket[] = [
     questions: [
       {
         key: "sleep",
-        question: "How\u2019s your sleep been generally?",
+        question: "How's your sleep been generally?",
         reason: "Sleep quality directly affects how your body uses supplements.",
         options: [
           { label: "Rarely good", value: "poor" },
@@ -195,8 +198,8 @@ const protocolBuckets: ProtocolBucket[] = [
         reason: "Hydration directly affects supplement absorption and gut health.",
         options: [
           { label: "< 1 litre", value: "low" },
-          { label: "1\u20132 litres", value: "moderate" },
-          { label: "2\u20133 litres", value: "good" },
+          { label: "1–2 litres", value: "moderate" },
+          { label: "2–3 litres", value: "good" },
           { label: "3+ litres", value: "high" },
         ],
       },
@@ -230,6 +233,7 @@ const allBucketQuestions = protocolBuckets.flatMap((b) => b.questions);
 const depthPerQuestion = 60 / Math.max(allBucketQuestions.length, 1); // 10% base + up to 70% from questions, 20% from external
 
 export default function HomePage() {
+  const [showSplash, setShowSplash] = useState(true);
   const [level, setLevel] = useState<ProfileLevel>("L0");
   const [profile, setProfile] = useState<Partial<UserProfile>>({});
   const [userMessages, setUserMessages] = useState<string[]>([]);
@@ -237,7 +241,10 @@ export default function HomePage() {
   const [protocolReady, setProtocolReady] = useState(false);
   const [hasSupply, setHasSupply] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [answeredHistory, setAnsweredHistory] = useState<string[]>([]); // tracks order of answered keys for back nav
+  const [answeredHistory, setAnsweredHistory] = useState<string[]>([]);
+  // Treatment type selections: typeId → { product, status }
+  const [typeSelections, setTypeSelections] = useState<Record<string, { product: TreatmentProduct; status: "plan" | "using" | "other" }>>({});
+  const [activeTypeSheet, setActiveTypeSheet] = useState<TreatmentType | null>(null);
 
   const name = "Vikas";
   const feedRef = useRef<HTMLDivElement>(null);
@@ -347,8 +354,26 @@ export default function HomePage() {
     }
   }, []);
 
+  const handleTypeAddToPlan = useCallback((typeId: string, product: TreatmentProduct) => {
+    setTypeSelections((prev) => ({ ...prev, [typeId]: { product, status: "plan" } }));
+    setActiveTypeSheet(null);
+  }, []);
+
+  const handleTypeAlreadyUsing = useCallback((typeId: string, product: TreatmentProduct) => {
+    setTypeSelections((prev) => ({ ...prev, [typeId]: { product, status: "using" } }));
+    setHasSupply(true);
+    setActiveTypeSheet(null);
+  }, []);
+
+  const handleTypeUsingOther = useCallback((typeId: string) => {
+    setTypeSelections((prev) => ({ ...prev, [typeId]: { product: { id: "other", name: "Custom", brand: "", size: "", price: 0, slug: "", image: "", tags: [] }, status: "other" } }));
+    setActiveTypeSheet(null);
+  }, []);
+
   const concern = profile.concern || "";
   const protocol = protocolSuggestions[concern];
+  const treatmentTypes = getTreatmentTypesForConcern(concern);
+  const allTypesSelected = treatmentTypes.length > 0 && treatmentTypes.every((t) => typeSelections[t.id]);
 
   /* ═══════════════════════════════════════════════════════
      L3: PROFILED HOME — completely different screen
@@ -409,10 +434,12 @@ export default function HomePage() {
 
     return (
       <div ref={feedRef}>
-        {/* ── Sticky Protocol Depth Bar (z-[60] to stay above bottom sheet) ── */}
+        {/* ── Protocol Depth Bar ── */}
         <div
-          className="sticky z-[60] px-4 py-3 bg-surface/95 backdrop-blur-sm transition-all duration-300 ease-out"
-          style={{ top: sheetOpen ? "0px" : headerVisible ? "48px" : "0px" }}
+          className={`px-4 py-3 bg-surface/95 backdrop-blur-sm transition-all duration-300 ease-out ${
+            sheetOpen ? "sticky z-[60]" : "relative z-10"
+          }`}
+          style={{ top: sheetOpen ? "0px" : undefined }}
         >
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-semibold text-on-surface-variant">Protocol Depth</span>
@@ -445,50 +472,110 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* ── Recommended Treatment Plan ── */}
+        {/* ── Treatment Plan ── */}
         <div className="mb-3 animate-fade-in-up" style={{ animationDelay: "150ms" }}>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50 mb-2 px-1">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50 mb-3 px-1">
             Your treatment plan
           </p>
-          <div className="space-y-2">
-            {protocol.supplements.map((s) => (
-              <Link
-                key={s.slug}
-                href={`/product/${s.slug}`}
-                className="feed-card p-4 flex items-center gap-3 cursor-pointer hover:shadow-md transition-shadow group"
-              >
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-container/15 to-primary-fixed/10 flex items-center justify-center shrink-0">
-                  <span className="text-lg font-bold text-primary-container/40 font-[family-name:var(--font-manrope)]">
-                    {s.name.charAt(0)}
+
+          {/* Thumbnails row */}
+          <div className="flex gap-2.5 overflow-x-auto hide-scrollbar pb-2 pt-1 -mx-4 px-4">
+            {treatmentTypes.map((t) => {
+              const selection = typeSelections[t.id];
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTypeSheet(t)}
+                  className="shrink-0 flex flex-col items-center gap-1 cursor-pointer group"
+                >
+                  <div className={`relative w-12 h-12 rounded-xl overflow-hidden transition-all duration-200 ${
+                    selection
+                      ? "border-2 border-primary-container"
+                      : "border border-outline-variant/15 group-hover:border-primary-container/30"
+                  }`}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={selection?.product.image || t.image}
+                      alt={selection ? selection.product.name : t.label}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <span className={`text-[9px] font-semibold leading-tight text-center ${
+                    selection ? "text-primary-container" : "text-on-surface-variant/50"
+                  }`}>
+                    {t.label}
                   </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-on-surface">{s.name}</p>
-                  <p className="text-xs text-on-surface-variant">{s.brand} &middot; {s.timing}</p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-on-surface-variant/30 group-hover:text-primary-container transition-colors shrink-0" strokeWidth={1.5} />
-              </Link>
-            ))}
+                </button>
+              );
+            })}
           </div>
 
-          {!hasSupply && (
-            <div className="flex gap-2 mt-3">
-              <Link
-                href="/explore"
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary-container text-sm font-semibold text-on-primary-container cursor-pointer hover:bg-primary transition-colors"
-              >
-                <ShoppingCart className="w-4 h-4" strokeWidth={2} />
-                Get your protocol
-              </Link>
-              <button
-                onClick={() => setHasSupply(true)}
-                className="px-4 py-3 rounded-xl bg-surface-container-low text-sm font-medium text-on-surface-variant cursor-pointer hover:bg-surface-container-high transition-colors"
-              >
-                I already have these
-              </button>
-            </div>
+          {/* Type tiles */}
+          <div className="space-y-1.5 mt-2">
+            {treatmentTypes.map((t) => {
+              const selection = typeSelections[t.id];
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTypeSheet(t)}
+                  className={`w-full text-left rounded-xl overflow-hidden cursor-pointer transition-all duration-200 ${
+                    selection
+                      ? "feed-card border border-primary-container/15"
+                      : "feed-card hover:shadow-md"
+                  }`}
+                >
+                  <div className="flex items-center justify-between px-3.5 py-3">
+                    <div className="min-w-0 flex-1">
+                      {selection ? (
+                        <>
+                          <p className="text-[13px] font-semibold text-primary-container leading-tight">{selection.product.name}</p>
+                          <p className="text-[10px] text-on-surface-variant/50">
+                            {selection.status === "plan" ? "Added to plan" : selection.status === "using" ? "Already using" : "Using other"}
+                            {selection.product.price > 0 && ` · ₹${selection.product.price}`}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-[13px] font-semibold text-on-surface">Choose your {t.label}</p>
+                      )}
+                    </div>
+                    <ChevronRight className={`w-4 h-4 shrink-0 ${
+                      selection ? "text-primary-container/40" : "text-on-surface-variant/30"
+                    }`} strokeWidth={1.5} />
+                  </div>
+
+                  {/* Why needed — flush edge-to-edge, no icon, no side padding */}
+                  {!selection && (
+                    <div className="px-3.5 pb-3 -mt-0.5">
+                      <p className="text-[11px] text-on-surface-variant/50 leading-snug">{t.whyNeeded}</p>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Start my treatment — only when all types selected */}
+          {allTypesSelected && (
+            <Link
+              href="/explore"
+              className="mt-2.5 w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary-container text-sm font-semibold text-white cursor-pointer hover:bg-primary transition-colors animate-fade-in-up"
+            >
+              <ShoppingCart className="w-4 h-4" strokeWidth={2} />
+              Start my treatment
+            </Link>
           )}
         </div>
+
+        {/* ── Treatment Type Bottom Sheet ── */}
+        {activeTypeSheet && (
+          <TreatmentTypeSheet
+            type={activeTypeSheet}
+            onClose={() => setActiveTypeSheet(null)}
+            onAddToPlan={handleTypeAddToPlan}
+            onAlreadyUsing={handleTypeAlreadyUsing}
+            onUsingOther={handleTypeUsingOther}
+          />
+        )}
 
         {/* ── Supplement Logging (only if user has supply) ── */}
         {hasSupply && (
@@ -568,7 +655,7 @@ export default function HomePage() {
             {nextQuestion && (
               <button
                 onClick={() => setSheetOpen(true)}
-                className="mt-4 w-full py-3 rounded-xl bg-primary-container text-sm font-semibold text-on-primary-container cursor-pointer hover:bg-primary transition-colors duration-200"
+                className="mt-4 w-full py-3 rounded-xl bg-primary-container text-sm font-semibold text-white cursor-pointer hover:bg-primary transition-colors duration-200"
               >
                 Complete your protocol
               </button>
@@ -594,7 +681,7 @@ export default function HomePage() {
                 { icon: Pill, text: "Medicine & Supplements protocol designed for your specific gaps" },
                 { icon: Stethoscope, text: "Health Coach for ongoing assistance and support" },
                 { icon: Activity, text: "Health & Progress Monitoring with weekly visual tracking" },
-                { icon: Brain, text: "AI Model trained around your needs \u2014 instant actionable insights and answers to every concern" },
+                { icon: Brain, text: "AI Model trained around your needs — instant actionable insights and answers to every concern" },
                 { icon: Stethoscope, text: "Access to medical experts who have in-depth knowledge about you" },
               ].map(({ icon: Icon, text }, i) => (
                 <div key={i} className="flex items-start gap-2.5">
@@ -639,7 +726,7 @@ export default function HomePage() {
 
         <FeedInput
           onSend={handleFeedInput}
-          placeholder="Tell me anything \u2014 symptoms, questions, how you\u2019re feeling..."
+          placeholder="Something on your mind?"
         />
         </div>
 
@@ -704,7 +791,7 @@ export default function HomePage() {
                               setTimeout(() => setSheetOpen(false), 400);
                             }
                           }}
-                          className="w-full flex items-center justify-between px-5 py-4 rounded-2xl bg-surface-container-low border border-outline-variant/10 text-sm font-medium text-on-surface hover:bg-primary-fixed/15 hover:border-primary-container/25 cursor-pointer transition-all duration-200 active:scale-[0.98]"
+                          className="w-full flex items-center justify-between px-5 py-4 rounded-2xl bg-surface-container-low border border-outline-variant/10 text-sm font-medium text-on-surface hover:border-primary-container/40 cursor-pointer transition-all duration-200 active:scale-[0.98]"
                         >
                           <span>{opt.label}</span>
                           <ChevronRight className="w-4 h-4 text-on-surface-variant/30" strokeWidth={1.5} />
@@ -732,7 +819,7 @@ export default function HomePage() {
                     </p>
                     <button
                       onClick={() => setSheetOpen(false)}
-                      className="mt-6 px-8 py-3 rounded-xl bg-primary-container text-sm font-semibold text-on-primary-container cursor-pointer hover:bg-primary transition-colors"
+                      className="mt-6 px-8 py-3 rounded-xl bg-primary-container text-sm font-semibold text-white cursor-pointer hover:bg-primary transition-colors"
                     >
                       Done
                     </button>
@@ -747,6 +834,41 @@ export default function HomePage() {
   }
 
   /* ═══════════════════════════════════════════════════════
+     SPLASH SCREEN — first-time welcome
+     ═══════════════════════════════════════════════════════ */
+  if (showSplash) {
+    return (
+      <div
+        className="fixed inset-0 z-[70] flex flex-col items-center justify-center bg-surface splash-exit"
+        onAnimationEnd={(e) => {
+          if (e.animationName === "splashExit") setShowSplash(false);
+        }}
+      >
+        {/* Ambient glow */}
+        <div className="absolute w-72 h-72 rounded-full bg-primary-container/10 splash-glow" />
+
+        {/* Logo mark */}
+        <div className="relative flex items-center justify-center w-16 h-16 rounded-2xl bg-primary-container/15 mb-8 splash-text-1">
+          <Sparkles className="w-7 h-7 text-primary-container" strokeWidth={1.5} />
+        </div>
+
+        {/* Welcome text */}
+        <h1 className="text-2xl font-extrabold text-primary text-center leading-snug tracking-tight font-[family-name:var(--font-manrope)] splash-text-1 px-8">
+          Welcome, {name}.
+        </h1>
+        <p className="text-base text-on-surface-variant text-center mt-3 max-w-xs leading-relaxed splash-text-2 px-8">
+          Let&apos;s start your personalised health journey.
+        </p>
+
+        {/* Subtle brand footer */}
+        <p className="absolute bottom-8 text-[10px] text-on-surface-variant/30 uppercase tracking-widest splash-text-2">
+          BetterHalf
+        </p>
+      </div>
+    );
+  }
+
+  /* ═══════════════════════════════════════════════════════
      L0 → L2: ONBOARDING CONVERSATION
      ═══════════════════════════════════════════════════════ */
   return (
@@ -756,7 +878,7 @@ export default function HomePage() {
         {/* L0: Greeting + concern */}
         <GreetingCard
           name={name}
-          contextLine="I work best the more I know about you. No forms \u2014 just a conversation."
+          contextLine="I work best the more I know about you. No forms — just a conversation."
         />
         <ConcernCard onSelect={handleConcernSelect} onTextSubmit={handleConcernText} />
 
@@ -769,7 +891,7 @@ export default function HomePage() {
           <>
             <div id="card-sex">
               <ProfilingCard
-                question="Quick one \u2014 are you male, female, or prefer not to say?"
+                question="Quick one — are you male, female, or prefer not to say?"
                 reason="This helps me calibrate recommendations accurately."
                 options={[
                   { label: "Male", value: "male" },
@@ -788,9 +910,9 @@ export default function HomePage() {
                   question="And roughly how old are you?"
                   reason="This helps me calibrate recommendations for your life stage."
                   options={[
-                    { label: "18\u201324", value: "18-24" },
-                    { label: "25\u201334", value: "25-34" },
-                    { label: "35\u201344", value: "35-44" },
+                    { label: "18–24", value: "18-24" },
+                    { label: "25–34", value: "25-34" },
+                    { label: "35–44", value: "35-44" },
                     { label: "45+", value: "45+" },
                   ]}
                   onSelect={handleAgeSelect}
@@ -854,7 +976,7 @@ export default function HomePage() {
                 <div className="flex gap-2 px-1 animate-fade-in-up" style={{ animationDelay: "200ms" }}>
                   <button
                     onClick={handleAcceptProtocol}
-                    className="flex-1 py-3 rounded-xl bg-primary-container text-sm font-semibold text-on-primary-container cursor-pointer hover:bg-primary transition-colors duration-200"
+                    className="flex-1 py-3 rounded-xl bg-primary-container text-sm font-semibold text-white cursor-pointer hover:bg-primary transition-colors duration-200"
                   >
                     Yes, start here
                   </button>
@@ -867,8 +989,6 @@ export default function HomePage() {
           </>
         )}
       </div>
-
-      <FeedInput onSend={handleFeedInput} />
     </div>
   );
 }

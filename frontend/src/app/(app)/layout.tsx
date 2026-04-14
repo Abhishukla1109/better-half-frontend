@@ -7,12 +7,12 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-dvh bg-surface">
+    <div className="flex min-h-dvh bg-surface overflow-x-hidden">
       <BottomNav />
       <Header />
       {/* Main content: offset for header top + sidebar on desktop + bottom nav on mobile */}
-      <main className="flex-1 pt-12 pb-[136px] lg:pb-0 lg:pt-12 lg:ml-[240px] xl:ml-[280px]">
-        <div className="max-w-lg mx-auto">
+      <main className="flex-1 pt-12 pb-[68px] lg:pb-0 lg:pt-12 lg:ml-[240px] xl:ml-[280px]">
+        <div className="max-w-2xl mx-auto w-full">
           {children}
         </div>
       </main>

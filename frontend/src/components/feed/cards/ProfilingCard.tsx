@@ -65,7 +65,7 @@ export default function ProfilingCard({
               <button
                 key={opt.value}
                 onClick={() => handleSelect(opt.value)}
-                className="chip-option min-h-[44px] px-4 py-2.5 rounded-xl bg-surface-container-low border border-outline-variant/15 text-sm font-medium text-on-surface hover:bg-primary-fixed/15 hover:border-primary-container/25 cursor-pointer text-left transition-colors duration-200"
+                className="chip-option min-h-[44px] px-4 py-2.5 rounded-xl bg-surface-container-low border border-outline-variant/15 text-sm font-medium text-on-surface hover:border-primary-container/40 cursor-pointer text-left transition-colors duration-200"
               >
                 {opt.label}
               </button>

@@ -1,64 +1,112 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
-import { Star, Sparkles, SlidersHorizontal } from "lucide-react";
-import { products, getCategories, getBrands } from "@/data/products";
+import { Star, Plus, Minus, Sparkles } from "lucide-react";
+import { products, getCategories } from "@/data/products";
 import type { ProductConfig } from "@/data/products";
+import { getProductImage } from "@/data/images";
 
-const categories = getCategories();
-const brands = getBrands();
+const categories = ["For You", "All", ...getCategories()];
 
-function ProductCard({ product }: { product: ProductConfig }) {
+/* ── Product Card ── */
+function ProductCard({ product, onQtyChange }: { product: ProductConfig; onQtyChange: (slug: string, qty: number) => void }) {
+  const [qty, setQty] = useState(0);
+
+  const handleAdd = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const next = qty + 1;
+    setQty(next);
+    onQtyChange(product.slug, next);
+  };
+
+  const handleRemove = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const next = Math.max(0, qty - 1);
+    setQty(next);
+    onQtyChange(product.slug, next);
+  };
+
   return (
     <Link
       href={`/product/${product.slug}`}
-      className="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer group"
+      className="flex flex-col bg-surface-container-lowest rounded-xl overflow-hidden border border-outline-variant/8 hover:border-primary-container/20 transition-all duration-200 cursor-pointer group"
     >
       {/* Image */}
-      <div className="aspect-square bg-gradient-to-br from-surface-container-low/80 to-surface-container-lowest flex items-center justify-center relative overflow-hidden">
-        <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-2xl bg-gradient-to-br from-primary-container/15 to-primary-fixed/10 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
-          <span className="text-3xl lg:text-4xl font-extrabold text-primary-container/25 font-[family-name:var(--font-manrope)]">
-            {product.name.charAt(0)}
-          </span>
-        </div>
-        {/* Discount badge */}
-        {product.discount > 0 && (
-          <span className="absolute top-2 left-2 text-[10px] font-bold text-on-primary-container bg-primary-container/90 px-2 py-0.5 rounded-full">
-            {product.discount}% off
-          </span>
+      <div className="relative bg-surface-container-low/30 flex items-center justify-center py-4">
+        {getProductImage(product.slug) ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={getProductImage(product.slug)}
+            alt={product.name}
+            className="w-16 h-16 object-cover rounded-xl group-hover:scale-[1.03] transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-14 h-14 rounded-xl bg-surface-container-lowest flex items-center justify-center group-hover:scale-[1.03] transition-transform duration-300 shadow-sm">
+            <span className="text-xl font-extrabold text-primary-container/30 font-[family-name:var(--font-manrope)]">
+              {product.name.charAt(0)}
+            </span>
+          </div>
         )}
-        {/* Brand badge */}
-        <span
-          className="absolute top-2 right-2 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
-          style={{ backgroundColor: product.brandColor + "15", color: product.brandColor }}
-        >
-          {product.brandCode}
-        </span>
+
+        {/* Qty control */}
+        <div className="absolute top-1.5 right-1.5">
+          {qty === 0 ? (
+            <button
+              onClick={handleAdd}
+              className="flex items-center justify-center w-6 h-6 rounded-md bg-surface-container-lowest border border-outline-variant/15 hover:border-primary-container/40 transition-all duration-200 cursor-pointer active:scale-90"
+              aria-label="Add to cart"
+            >
+              <Plus className="w-3.5 h-3.5 text-on-surface-variant" strokeWidth={2} />
+            </button>
+          ) : (
+            <div className="flex items-center bg-primary-container rounded-md overflow-hidden animate-fade-in-up" style={{ animationDuration: "150ms" }}>
+              <button
+                onClick={handleRemove}
+                className="flex items-center justify-center w-6 h-6 cursor-pointer hover:bg-primary transition-colors active:scale-90"
+                aria-label="Decrease quantity"
+              >
+                <Minus className="w-3 h-3 text-white" strokeWidth={2.5} />
+              </button>
+              <span className="text-[10px] font-bold text-white w-4 text-center">{qty}</span>
+              <button
+                onClick={handleAdd}
+                className="flex items-center justify-center w-6 h-6 cursor-pointer hover:bg-primary transition-colors active:scale-90"
+                aria-label="Increase quantity"
+              >
+                <Plus className="w-3 h-3 text-white" strokeWidth={2.5} />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Info */}
-      <div className="p-3 lg:p-4">
-        <p className="text-sm font-semibold text-on-surface leading-snug line-clamp-2">
+      <div className="px-2 pb-2 pt-1.5 flex flex-col flex-1 overflow-hidden">
+        <p className="text-[12px] font-semibold text-on-surface leading-[1.25] line-clamp-2 break-words">
           {product.name}
         </p>
-        <p className="text-[11px] text-on-surface-variant mt-0.5">{product.subtitle}</p>
+        <p className="text-[9px] text-on-surface-variant/50 mt-0.5 truncate">
+          {product.subtitle}
+        </p>
 
-        {/* Rating */}
-        <div className="flex items-center gap-1 mt-1.5">
-          <Star className="w-3 h-3 text-tertiary-container fill-tertiary-container" strokeWidth={0} />
-          <span className="text-xs font-semibold text-on-surface">{product.rating}</span>
-          <span className="text-[10px] text-on-surface-variant">({product.reviewCount})</span>
-        </div>
-
-        {/* Price */}
-        <div className="flex items-baseline gap-1.5 mt-1.5">
-          <span className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
-            &#8377;{product.price}
-          </span>
-          {product.originalPrice > product.price && (
-            <span className="text-[11px] text-on-surface-variant/50 line-through">
-              &#8377;{product.originalPrice}
+        {/* Price row */}
+        <div className="flex items-center justify-between mt-auto pt-1.5">
+          <div className="flex items-baseline gap-1 min-w-0">
+            <span className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
+              &#8377;{product.price}
+            </span>
+            {product.originalPrice > product.price && (
+              <span className="text-[8px] text-on-surface-variant/35 line-through">
+                &#8377;{product.originalPrice}
+              </span>
+            )}
+          </div>
+          {product.discount > 0 && (
+            <span className="text-[9px] font-semibold text-primary-container">
+              {product.discount}%off
             </span>
           )}
         </div>
@@ -67,114 +115,106 @@ function ProductCard({ product }: { product: ProductConfig }) {
   );
 }
 
+/* ── Explore Page ── */
 export default function ExplorePage() {
-  const [activeCategory, setActiveCategory] = useState<string | null>("for-you");
-  const [activeBrand, setActiveBrand] = useState<string | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
+  const [activeCategory, setActiveCategory] = useState("For You");
+  const [cart, setCart] = useState<Record<string, number>>({});
 
-  const filtered = products.filter((p) => {
-    if (activeCategory && activeCategory !== "for-you" && p.category !== activeCategory) return false;
-    if (activeBrand && p.brandCode !== activeBrand) return false;
-    return true;
-  });
+  const handleQtyChange = useCallback((slug: string, qty: number) => {
+    setCart((prev) => {
+      const next = { ...prev };
+      if (qty <= 0) { delete next[slug]; } else { next[slug] = qty; }
+      return next;
+    });
+  }, []);
+
+  const filtered = activeCategory === "For You" || activeCategory === "All"
+    ? products
+    : products.filter((p) => p.category === activeCategory);
+
+  const cartCount = Object.values(cart).reduce((a, b) => a + b, 0);
 
   return (
-    <div className="px-4 pt-6 lg:pt-8 lg:px-6 pb-24">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-1">
-        <Sparkles className="w-4 h-4 text-primary-container" strokeWidth={1.5} />
-        <span className="text-[11px] font-semibold text-primary-container uppercase tracking-wider">
-          AI-curated for you
-        </span>
-      </div>
-      <h1 className="text-2xl lg:text-3xl font-extrabold text-primary tracking-tight font-[family-name:var(--font-manrope)]">
-        Explore
-      </h1>
-      <p className="text-sm text-on-surface-variant mt-1 mb-5">
-        {products.length} products across {brands.length} brands
-      </p>
-
-      {/* Category filters */}
-      <div className="flex items-center gap-2 mb-2 -mx-4 px-4">
-        <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1 flex-1 min-w-0">
-          <button
-            onClick={() => { setActiveCategory("for-you"); setActiveBrand(null); }}
-            className={`shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
-              activeCategory === "for-you"
-                ? "bg-primary-container text-on-primary-container"
-                : "bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high"
-            }`}
-          >
-            <Sparkles className="w-3 h-3" strokeWidth={1.5} />
-            For You
-          </button>
-          {categories.map((cat) => (
+    <div className="flex h-[calc(100dvh-68px-48px)] lg:h-[calc(100dvh-48px)]">
+      {/* ── Left sidebar: category list ── */}
+      <nav className="w-[72px] shrink-0 bg-surface-container-low/50 border-r border-outline-variant/8 overflow-y-auto hide-scrollbar py-2">
+        {categories.map((cat) => {
+          const isActive = activeCategory === cat;
+          return (
             <button
               key={cat}
-              onClick={() => setActiveCategory(activeCategory === cat ? "for-you" : cat)}
-              className={`shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
-                activeCategory === cat
-                  ? "bg-primary-container text-on-primary-container"
-                  : "bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high"
+              onClick={() => setActiveCategory(cat)}
+              className={`w-full flex flex-col items-center gap-1 py-3 px-1 text-center cursor-pointer transition-colors relative ${
+                isActive
+                  ? "bg-surface-container-lowest"
+                  : "hover:bg-surface-container-lowest/50"
               }`}
             >
-              {cat}
+              {/* Active indicator */}
+              {isActive && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-primary-container rounded-r-full" />
+              )}
+
+              {/* Category icon placeholder */}
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                isActive ? "bg-primary-container/15" : "bg-surface-container-high/50"
+              }`}>
+                {cat === "For You" ? (
+                  <Sparkles className={`w-4 h-4 ${isActive ? "text-primary-container" : "text-on-surface-variant/50"}`} strokeWidth={1.5} />
+                ) : (
+                  <span className={`text-xs font-bold ${isActive ? "text-primary-container" : "text-on-surface-variant/40"}`}>
+                    {cat.charAt(0)}
+                  </span>
+                )}
+              </div>
+
+              <span className={`text-[9px] leading-tight font-medium ${
+                isActive ? "text-primary-container" : "text-on-surface-variant/60"
+              }`}>
+                {cat}
+              </span>
             </button>
+          );
+        })}
+      </nav>
+
+      {/* ── Right: product grid ── */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        {/* Category header */}
+        <div className="px-3 pt-4 pb-2">
+          <h1 className="text-lg font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)]">
+            {activeCategory}
+          </h1>
+          <p className="text-[11px] text-on-surface-variant/50 mt-0.5">
+            {filtered.length} product{filtered.length !== 1 ? "s" : ""}
+          </p>
+        </div>
+
+        {/* Grid */}
+        <div className="px-2 pb-4 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+          {filtered.map((p) => (
+            <ProductCard key={p.slug} product={p} onQtyChange={handleQtyChange} />
           ))}
         </div>
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`shrink-0 flex items-center justify-center w-9 h-9 rounded-full transition-colors cursor-pointer ${
-            showFilters || activeBrand
-              ? "bg-primary-container text-on-primary-container"
-              : "bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high"
-          }`}
-          aria-label="Toggle filters"
-        >
-          <SlidersHorizontal className="w-4 h-4" strokeWidth={1.5} />
-        </button>
+
+        {filtered.length === 0 && (
+          <div className="text-center py-16 px-4">
+            <p className="text-sm text-on-surface-variant">No products in this category yet.</p>
+          </div>
+        )}
       </div>
 
-      {/* Brand filters (collapsible) */}
-      {showFilters && (
-        <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-3 mb-4 -mx-4 px-4">
-          {brands.map((b) => (
-            <button
-              key={b.code}
-              onClick={() => setActiveBrand(activeBrand === b.code ? null : b.code)}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors cursor-pointer border ${
-                activeBrand === b.code
-                  ? "border-current"
-                  : "border-transparent"
-              }`}
-              style={{
-                backgroundColor: (activeBrand === b.code ? b.color + "20" : b.color + "08"),
-                color: b.color,
-              }}
-            >
-              {b.name}
+      {/* ── Cart bar (shows when items in cart) ── */}
+      {cartCount > 0 && (
+        <div className="fixed bottom-[68px] lg:bottom-0 left-0 right-0 z-30 px-4 pb-2 lg:left-[240px] xl:left-[280px] animate-fade-in-up">
+          <div className="max-w-2xl mx-auto bg-primary-container rounded-2xl px-5 py-3 flex items-center justify-between shadow-lg shadow-primary/10">
+            <div>
+              <p className="text-sm font-bold text-white">{cartCount} item{cartCount !== 1 ? "s" : ""} in cart</p>
+            </div>
+            <button className="px-4 py-2 rounded-xl bg-white text-sm font-semibold text-primary-container cursor-pointer hover:bg-primary-fixed transition-colors">
+              View Cart
             </button>
-          ))}
-        </div>
-      )}
-
-      {/* Product grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-4">
-        {filtered.map((p) => (
-          <ProductCard key={p.slug} product={p} />
-        ))}
-      </div>
-
-      {/* Empty state */}
-      {filtered.length === 0 && (
-        <div className="text-center py-16">
-          <p className="text-sm text-on-surface-variant">No products match this filter.</p>
-          <button
-            onClick={() => { setActiveCategory(null); setActiveBrand(null); }}
-            className="mt-2 text-sm font-semibold text-primary-container cursor-pointer"
-          >
-            Clear filters
-          </button>
+          </div>
         </div>
       )}
     </div>

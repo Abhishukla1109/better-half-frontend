@@ -8,7 +8,7 @@ interface FeedInputProps {
   placeholder?: string;
 }
 
-export default function FeedInput({ onSend, placeholder = "What\u2019s on your mind?" }: FeedInputProps) {
+export default function FeedInput({ onSend, placeholder = "What's on your mind?" }: FeedInputProps) {
   const [value, setValue] = useState("");
 
   const handleSubmit = () => {

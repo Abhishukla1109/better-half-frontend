@@ -29,6 +29,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { getProductBySlug } from "@/data/products";
+import { getProductImage } from "@/data/images";
 
 /* ── Icon resolver: maps string names from JSON config to Lucide components ── */
 const iconMap: Record<string, LucideIcon> = {
@@ -129,17 +130,20 @@ function StarRating({ rating, count }: { rating: number; count: number }) {
 /* ── Hero Image with Parallax ── */
 function HeroImage({
   productName,
+  productSlug,
   unitsSold,
   imageCount,
   activeImage,
   setActiveImage,
 }: {
   productName: string;
+  productSlug: string;
   unitsSold: string;
   imageCount: number;
   activeImage: number;
   setActiveImage: (i: number) => void;
 }) {
+  const heroImg = getProductImage(productSlug);
   const { ref: parallaxRef, offset } = useParallax(0.3);
 
   return (
@@ -150,11 +154,16 @@ function HeroImage({
           className="absolute inset-0 bg-gradient-to-b from-surface-container-low/50 to-surface-container-lowest flex items-center justify-center will-change-transform"
           style={{ transform: `translateY(${-offset}px) scale(${1 + offset * 0.001})` }}
         >
-          <div className="w-64 h-64 lg:w-80 lg:h-80 rounded-3xl bg-gradient-to-br from-primary-container/20 to-primary-fixed/10 flex items-center justify-center transition-transform duration-700">
-            <span className="text-6xl lg:text-8xl font-extrabold text-primary-container/30 font-[family-name:var(--font-manrope)]">
-              {productName.charAt(0)}
-            </span>
-          </div>
+          {heroImg ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={heroImg} alt={productName} className="w-64 h-64 lg:w-80 lg:h-80 object-cover rounded-3xl transition-transform duration-700" />
+          ) : (
+            <div className="w-64 h-64 lg:w-80 lg:h-80 rounded-3xl bg-gradient-to-br from-primary-container/20 to-primary-fixed/10 flex items-center justify-center transition-transform duration-700">
+              <span className="text-6xl lg:text-8xl font-extrabold text-primary-container/30 font-[family-name:var(--font-manrope)]">
+                {productName.charAt(0)}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Units sold badge */}
@@ -240,7 +249,7 @@ export default function ProductPage({
         {/* ── LEFT: Sticky image column (desktop) ── */}
         <div className="lg:sticky lg:top-14 lg:self-start lg:h-[calc(100dvh-3.5rem)] lg:flex lg:items-center lg:p-8 xl:p-12">
           <div className="w-full">
-            <HeroImage productName={product.name} unitsSold={product.unitsSold} imageCount={product.heroImages.length} activeImage={activeImage} setActiveImage={setActiveImage} />
+            <HeroImage productName={product.name} productSlug={product.slug} unitsSold={product.unitsSold} imageCount={product.heroImages.length} activeImage={activeImage} setActiveImage={setActiveImage} />
           </div>
         </div>
 
@@ -324,8 +333,8 @@ export default function ProductPage({
                     onClick={() => setSelectedVariant(i)}
                     className={`px-4 min-h-[44px] rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
                       selectedVariant === i
-                        ? "bg-primary-container text-on-primary-container"
-                        : "bg-surface-container-low text-on-surface border border-outline-variant/10 hover:border-primary-container/25"
+                        ? "bg-primary-fixed/15 text-primary-container border border-primary-container"
+                        : "bg-surface-container-low text-on-surface border border-outline-variant/10 hover:border-primary-container/40"
                     }`}
                   >
                     {v.label}
@@ -347,8 +356,8 @@ export default function ProductPage({
                     onClick={() => setSelectedPack(i)}
                     className={`relative px-5 min-h-[44px] rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
                       selectedPack === i
-                        ? "bg-primary-container text-on-primary-container"
-                        : "bg-surface-container-low text-on-surface border border-outline-variant/10 hover:border-primary-container/25"
+                        ? "bg-primary-fixed/15 text-primary-container border border-primary-container"
+                        : "bg-surface-container-low text-on-surface border border-outline-variant/10 hover:border-primary-container/40"
                     }`}
                   >
                     {p.label}
@@ -388,7 +397,7 @@ export default function ProductPage({
               </div>
 
               {/* Desktop inline CTA */}
-              <button className="hidden lg:flex flex-1 items-center justify-center gap-2 min-h-[48px] rounded-2xl bg-primary-container text-sm font-bold text-on-primary-container cursor-pointer hover:bg-primary transition-colors duration-200 active:scale-[0.98]">
+              <button className="hidden lg:flex flex-1 items-center justify-center gap-2 min-h-[48px] rounded-2xl bg-primary-container text-sm font-bold text-white cursor-pointer hover:bg-primary transition-colors duration-200 active:scale-[0.98]">
                 <ShoppingCart className="w-4 h-4" strokeWidth={2} />
                 Add to Cart · &#8377;{currentPrice * qty}
               </button>
@@ -506,7 +515,7 @@ export default function ProductPage({
                 <p className="text-sm font-semibold text-on-surface">Not sure if this is right for you?</p>
                 <p className="text-xs text-on-surface-variant">Free consult with a nutritionist</p>
               </div>
-              <button className="px-4 py-2 rounded-xl bg-primary-container text-xs font-semibold text-on-primary-container cursor-pointer hover:bg-primary transition-colors shrink-0">
+              <button className="px-4 py-2 rounded-xl bg-primary-container text-xs font-semibold text-white cursor-pointer hover:bg-primary transition-colors shrink-0">
                 Book
               </button>
             </div>
@@ -527,7 +536,7 @@ export default function ProductPage({
               </p>
             )}
           </div>
-          <button className="flex-1 flex items-center justify-center gap-2 min-h-[48px] rounded-2xl bg-primary-container text-sm font-bold text-on-primary-container cursor-pointer hover:bg-primary transition-colors duration-200 active:scale-[0.98]">
+          <button className="flex-1 flex items-center justify-center gap-2 min-h-[48px] rounded-2xl bg-primary-container text-sm font-bold text-white cursor-pointer hover:bg-primary transition-colors duration-200 active:scale-[0.98]">
             <ShoppingCart className="w-4 h-4" strokeWidth={2} />
             Add to Cart
           </button>

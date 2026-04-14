@@ -49,7 +49,7 @@ export default function NudgeCard({
             <button
               key={opt.value}
               onClick={() => handleSelect(opt.value)}
-              className="chip-option px-4 py-2.5 rounded-xl bg-surface-container-low border border-outline-variant/15 text-sm font-medium text-on-surface hover:bg-primary-fixed/15 hover:border-primary-container/25 cursor-pointer transition-colors duration-200"
+              className="chip-option px-4 py-2.5 rounded-xl bg-surface-container-low border border-outline-variant/15 text-sm font-medium text-on-surface hover:border-primary-container/40 cursor-pointer transition-colors duration-200"
             >
               {opt.label}
             </button>
