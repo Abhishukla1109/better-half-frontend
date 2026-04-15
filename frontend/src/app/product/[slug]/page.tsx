@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { use } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -199,6 +199,8 @@ export default function ProductPage({
 }) {
   const { slug } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const fromTreatment = searchParams.get("from") === "treatment";
   const product = getProductBySlug(slug);
 
   useEffect(() => {
@@ -397,9 +399,12 @@ export default function ProductPage({
               </div>
 
               {/* Desktop inline CTA */}
-              <button className="hidden lg:flex flex-1 items-center justify-center gap-2 min-h-[48px] rounded-2xl bg-primary-container text-sm font-bold text-white cursor-pointer hover:bg-primary transition-colors duration-200 active:scale-[0.98]">
+              <button
+                onClick={fromTreatment ? () => router.back() : undefined}
+                className="hidden lg:flex flex-1 items-center justify-center gap-2 min-h-[48px] rounded-2xl bg-primary-container text-sm font-bold text-white cursor-pointer hover:bg-primary transition-colors duration-200 active:scale-[0.98]"
+              >
                 <ShoppingCart className="w-4 h-4" strokeWidth={2} />
-                Add to Cart · &#8377;{currentPrice * qty}
+                {fromTreatment ? "Choose product" : `Add to Cart · \u20B9${currentPrice * qty}`}
               </button>
             </div>
           </section>
@@ -536,9 +541,12 @@ export default function ProductPage({
               </p>
             )}
           </div>
-          <button className="flex-1 flex items-center justify-center gap-2 min-h-[48px] rounded-2xl bg-primary-container text-sm font-bold text-white cursor-pointer hover:bg-primary transition-colors duration-200 active:scale-[0.98]">
+          <button
+            onClick={fromTreatment ? () => router.back() : undefined}
+            className="flex-1 flex items-center justify-center gap-2 min-h-[48px] rounded-2xl bg-primary-container text-sm font-bold text-white cursor-pointer hover:bg-primary transition-colors duration-200 active:scale-[0.98]"
+          >
             <ShoppingCart className="w-4 h-4" strokeWidth={2} />
-            Add to Cart
+            {fromTreatment ? "Choose product" : "Add to Cart"}
           </button>
         </div>
       </div>

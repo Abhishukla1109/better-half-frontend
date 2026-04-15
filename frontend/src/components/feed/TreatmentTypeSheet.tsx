@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { X } from "lucide-react";
 import type { TreatmentType, TreatmentProduct } from "@/data/treatment-types";
 
@@ -20,12 +21,27 @@ export default function TreatmentTypeSheet({
   onUsingOther,
 }: TreatmentTypeSheetProps) {
   const [selectedId, setSelectedId] = useState(type.defaultProductId);
-  const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [showOtherInput, setShowOtherInput] = useState(false);
   const [otherProduct, setOtherProduct] = useState("");
   const [otherDuration, setOtherDuration] = useState("");
+  const [transitioning, setTransitioning] = useState(false);
 
-  // Lock body scroll
+  // Reset state when type changes (build plan auto-advance)
+  const prevTypeId = useRef(type.id);
+  useEffect(() => {
+    if (prevTypeId.current !== type.id) {
+      setTransitioning(true);
+      setTimeout(() => {
+        setSelectedId(type.defaultProductId);
+        setShowOtherInput(false);
+        setOtherProduct("");
+        setOtherDuration("");
+        prevTypeId.current = type.id;
+        setTransitioning(false);
+      }, 150);
+    }
+  }, [type.id, type.defaultProductId]);
+
   useEffect(() => {
     document.body.style.overflow = "hidden";
     const header = document.querySelector("[data-header-visible]") as HTMLElement;
@@ -37,23 +53,7 @@ export default function TreatmentTypeSheet({
     };
   }, []);
 
-  const toggleFilter = (value: string) => {
-    setActiveFilters((prev) =>
-      prev.includes(value) ? prev.filter((f) => f !== value) : [...prev, value]
-    );
-  };
-
-  const filteredProducts = activeFilters.length === 0
-    ? type.products
-    : type.products.filter((p) => activeFilters.some((f) => p.tags.includes(f)));
-
   const selectedProduct = type.products.find((p) => p.id === selectedId) || type.products[0];
-
-  const handleSubmitOther = () => {
-    if (otherProduct.trim()) {
-      onUsingOther(type.id);
-    }
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end">
@@ -70,8 +70,8 @@ export default function TreatmentTypeSheet({
         style={{ animationDuration: "250ms", maxHeight: "70dvh" }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-4 pb-2 shrink-0">
-          <div>
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 shrink-0 border-b border-outline-variant/8">
+          <div className={`transition-opacity duration-150 ${transitioning ? "opacity-0" : "opacity-100"}`}>
             <p className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
               Choose your {type.label}
             </p>
@@ -86,62 +86,72 @@ export default function TreatmentTypeSheet({
           </button>
         </div>
 
-        {/* Filters */}
-        <div className="flex gap-1.5 px-5 pb-3 overflow-x-auto hide-scrollbar shrink-0">
-          {type.filters.map((f) => (
-            <button
-              key={f.value}
-              onClick={() => toggleFilter(f.value)}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors cursor-pointer ${
-                activeFilters.includes(f.value)
-                  ? "bg-primary-fixed/15 text-primary-container border border-primary-container"
-                  : "bg-surface-container-low text-on-surface-variant border border-transparent hover:border-primary-container/40"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-
         {/* Product list */}
-        <div className="flex-1 overflow-y-auto px-5 min-h-0">
+        <div className={`flex-1 overflow-y-auto min-h-0 transition-opacity duration-150 ${transitioning ? "opacity-0" : "opacity-100"}`}>
           {!showOtherInput ? (
-            <div className="space-y-1.5 pb-2">
-              {filteredProducts.map((p) => {
+            <div className="px-4 py-3 space-y-2">
+              {type.products.slice(0, 4).map((p) => {
                 const isSelected = p.id === selectedId;
+                const discount = p.mrp > p.price ? Math.round(((p.mrp - p.price) / p.mrp) * 100) : 0;
                 return (
                   <button
                     key={p.id}
                     onClick={() => setSelectedId(p.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left cursor-pointer transition-all duration-200 ${
+                    className={`w-full flex items-start gap-3 p-3 rounded-xl text-left cursor-pointer transition-all duration-200 ${
                       isSelected
-                        ? "bg-primary-fixed/15 border border-primary-container"
-                        : "bg-surface-container-low border border-transparent hover:border-primary-container/40"
+                        ? "bg-primary-fixed/10 border border-primary-container"
+                        : "bg-surface-container-lowest border border-outline-variant/8 hover:border-primary-container/40"
                     }`}
                   >
-                    {/* Info */}
+                    {/* Thumbnail */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={p.image}
+                      alt={p.name}
+                      className="w-14 h-14 rounded-lg object-cover shrink-0"
+                    />
+
+                    {/* Details */}
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium leading-tight ${isSelected ? "text-primary-container" : "text-on-surface"}`}>
+                      <p className={`text-[13px] font-semibold leading-tight ${isSelected ? "text-primary-container" : "text-on-surface"}`}>
                         {p.name}
                       </p>
-                      <p className="text-[10px] text-on-surface-variant/50 mt-0.5">{p.brand} &middot; {p.size}</p>
+                      <p className="text-[10px] text-on-surface-variant/60 mt-0.5 leading-snug">
+                        {p.usp}
+                      </p>
+
+                      {/* Price row */}
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <span className={`text-sm font-bold ${isSelected ? "text-primary-container" : "text-on-surface"}`}>
+                          &#8377;{p.price}
+                        </span>
+                        {p.mrp > p.price && (
+                          <>
+                            <span className="text-[10px] text-on-surface-variant/35 line-through">
+                              &#8377;{p.mrp}
+                            </span>
+                            <span className="text-[9px] font-semibold text-primary-container">
+                              {discount}% off
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Price */}
-                    <span className={`text-sm font-bold shrink-0 ${isSelected ? "text-primary-container" : "text-on-surface"}`}>
-                      &#8377;{p.price}
-                    </span>
+                    {/* Know more */}
+                    <Link
+                      href={`/product/${p.slug}?from=treatment&typeId=${type.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-[10px] font-semibold text-primary-container/70 hover:text-primary-container mt-1 shrink-0 underline underline-offset-2"
+                    >
+                      Know more
+                    </Link>
                   </button>
                 );
               })}
-
-              {filteredProducts.length === 0 && (
-                <p className="text-sm text-on-surface-variant/50 text-center py-6">No products match these filters</p>
-              )}
             </div>
           ) : (
-            /* "I'm taking something else" input */
-            <div className="py-4 animate-fade-in-up">
+            <div className="px-5 py-4 animate-fade-in-up">
               <p className="text-sm font-semibold text-on-surface mb-3">What are you currently using?</p>
               <input
                 type="text"
@@ -169,7 +179,7 @@ export default function TreatmentTypeSheet({
               </div>
               {otherProduct.trim() && otherDuration && (
                 <button
-                  onClick={handleSubmitOther}
+                  onClick={() => onUsingOther(type.id)}
                   className="mt-4 w-full py-3 rounded-xl bg-primary-container text-sm font-semibold text-white cursor-pointer hover:bg-primary transition-colors animate-fade-in-up"
                 >
                   Save

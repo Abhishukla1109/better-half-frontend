@@ -232,6 +232,42 @@ const protocolBuckets: ProtocolBucket[] = [
 const allBucketQuestions = protocolBuckets.flatMap((b) => b.questions);
 const depthPerQuestion = 60 / Math.max(allBucketQuestions.length, 1); // 10% base + up to 70% from questions, 20% from external
 
+/* ── Shuffling Hint: cycles through unselected types' whyNeeded ── */
+function ShufflingHint({ types, selections, allSelected }: {
+  types: TreatmentType[];
+  selections: Record<string, { product: TreatmentProduct; status: string }>;
+  allSelected: boolean;
+}) {
+  const unselected = types.filter((t) => !selections[t.id]);
+  const [idx, setIdx] = useState(0);
+  const [fading, setFading] = useState(false);
+
+  useEffect(() => {
+    if (unselected.length <= 1) return;
+    const interval = setInterval(() => {
+      setFading(true);
+      setTimeout(() => {
+        setIdx((prev) => (prev + 1) % unselected.length);
+        setFading(false);
+      }, 200);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [unselected.length]);
+
+  if (allSelected || unselected.length === 0) return null;
+  const current = unselected[idx % unselected.length];
+
+  return (
+    <div className="flex items-start gap-2 px-4 py-2.5 bg-primary-fixed/5 border-t border-outline-variant/8 overflow-hidden">
+      <Sparkles className="w-3.5 h-3.5 text-primary-container shrink-0 mt-0.5" strokeWidth={1.5} />
+      <p className={`text-xs text-on-surface-variant leading-snug transition-opacity duration-200 ${fading ? "opacity-0" : "opacity-100"}`}>
+        <span className="font-semibold text-primary-container">{current.label}:</span>{" "}
+        {current.whyNeeded}
+      </p>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const [showSplash, setShowSplash] = useState(true);
   const [level, setLevel] = useState<ProfileLevel>("L0");
@@ -245,6 +281,8 @@ export default function HomePage() {
   // Treatment type selections: typeId → { product, status }
   const [typeSelections, setTypeSelections] = useState<Record<string, { product: TreatmentProduct; status: "plan" | "using" | "other" }>>({});
   const [activeTypeSheet, setActiveTypeSheet] = useState<TreatmentType | null>(null);
+  const [buildPlanMode, setBuildPlanMode] = useState(false);
+  const [hintIndex, setHintIndex] = useState(0);
 
   const name = "Vikas";
   const feedRef = useRef<HTMLDivElement>(null);
@@ -354,21 +392,40 @@ export default function HomePage() {
     }
   }, []);
 
+  // Auto-advance: after selecting a type, open the next unselected one
+  const advanceToNext = useCallback((justSelectedId: string) => {
+    if (!buildPlanMode) {
+      setActiveTypeSheet(null);
+      return;
+    }
+    const types = getTreatmentTypesForConcern(profile.concern || "");
+    const justIdx = types.findIndex((t) => t.id === justSelectedId);
+    const next = types.find((t, i) => i > justIdx && !typeSelections[t.id] && t.id !== justSelectedId)
+      || types.find((t) => !typeSelections[t.id] && t.id !== justSelectedId);
+    if (next) {
+      // Swap content in-place — sheet stays mounted, no close/reopen
+      setActiveTypeSheet(next);
+    } else {
+      setActiveTypeSheet(null);
+      setBuildPlanMode(false);
+    }
+  }, [buildPlanMode, profile.concern, typeSelections]);
+
   const handleTypeAddToPlan = useCallback((typeId: string, product: TreatmentProduct) => {
     setTypeSelections((prev) => ({ ...prev, [typeId]: { product, status: "plan" } }));
-    setActiveTypeSheet(null);
-  }, []);
+    advanceToNext(typeId);
+  }, [advanceToNext]);
 
   const handleTypeAlreadyUsing = useCallback((typeId: string, product: TreatmentProduct) => {
     setTypeSelections((prev) => ({ ...prev, [typeId]: { product, status: "using" } }));
     setHasSupply(true);
-    setActiveTypeSheet(null);
-  }, []);
+    advanceToNext(typeId);
+  }, [advanceToNext]);
 
   const handleTypeUsingOther = useCallback((typeId: string) => {
-    setTypeSelections((prev) => ({ ...prev, [typeId]: { product: { id: "other", name: "Custom", brand: "", size: "", price: 0, slug: "", image: "", tags: [] }, status: "other" } }));
-    setActiveTypeSheet(null);
-  }, []);
+    setTypeSelections((prev) => ({ ...prev, [typeId]: { product: { id: "other", name: "Custom", brand: "", size: "", price: 0, mrp: 0, usp: "", slug: "", image: "", tags: [] }, status: "other" } }));
+    advanceToNext(typeId);
+  }, [advanceToNext]);
 
   const concern = profile.concern || "";
   const protocol = protocolSuggestions[concern];
@@ -473,98 +530,174 @@ export default function HomePage() {
         </div>
 
         {/* ── Treatment Plan ── */}
-        <div className="mb-3 animate-fade-in-up" style={{ animationDelay: "150ms" }}>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50 mb-3 px-1">
-            Your treatment plan
-          </p>
+        {(() => {
+          const selectedCount = treatmentTypes.filter((t) => typeSelections[t.id]).length;
+          const totalPrice = treatmentTypes.reduce((sum, t) => {
+            const sel = typeSelections[t.id];
+            return sum + (sel?.product.price || 0);
+          }, 0);
+          const totalMrp = treatmentTypes.reduce((sum, t) => {
+            const sel = typeSelections[t.id];
+            return sum + (sel?.product.mrp || 0);
+          }, 0);
 
-          {/* Thumbnails row */}
-          <div className="flex gap-2.5 overflow-x-auto hide-scrollbar pb-2 pt-1 -mx-4 px-4">
-            {treatmentTypes.map((t) => {
-              const selection = typeSelections[t.id];
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setActiveTypeSheet(t)}
-                  className="shrink-0 flex flex-col items-center gap-1 cursor-pointer group"
-                >
-                  <div className={`relative w-12 h-12 rounded-xl overflow-hidden transition-all duration-200 ${
-                    selection
-                      ? "border-2 border-primary-container"
-                      : "border border-outline-variant/15 group-hover:border-primary-container/30"
-                  }`}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={selection?.product.image || t.image}
-                      alt={selection ? selection.product.name : t.label}
-                      className="w-full h-full object-cover"
-                    />
+          return (
+            <div className="mb-4 animate-fade-in-up rounded-2xl bg-surface-container-lowest border border-outline-variant/10 overflow-hidden shadow-sm" style={{ animationDelay: "150ms" }}>
+              {/* ── Header band ── */}
+              <div className="bg-gradient-to-r from-primary-container to-primary px-4 py-3.5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-sm font-extrabold text-white font-[family-name:var(--font-manrope)]">
+                      Your Treatment Plan
+                    </h2>
+                    <p className="text-[11px] text-white/60 mt-0.5">
+                      Personalised for your profile
+                    </p>
                   </div>
-                  <span className={`text-[9px] font-semibold leading-tight text-center ${
-                    selection ? "text-primary-container" : "text-on-surface-variant/50"
-                  }`}>
-                    {t.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+                  {/* Progress ring */}
+                  <div className="relative w-10 h-10">
+                    <svg className="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
+                      <circle cx="18" cy="18" r="15.5" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="3" />
+                      <circle cx="18" cy="18" r="15.5" fill="none" stroke="white" strokeWidth="3"
+                        strokeDasharray={`${(selectedCount / treatmentTypes.length) * 97.4} 97.4`}
+                        strokeLinecap="round"
+                        className="transition-all duration-700 ease-out"
+                      />
+                    </svg>
+                    <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">
+                      {selectedCount}/{treatmentTypes.length}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-          {/* Type tiles */}
-          <div className="space-y-1.5 mt-2">
-            {treatmentTypes.map((t) => {
-              const selection = typeSelections[t.id];
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setActiveTypeSheet(t)}
-                  className={`w-full text-left rounded-xl overflow-hidden cursor-pointer transition-all duration-200 ${
-                    selection
-                      ? "feed-card border border-primary-container/15"
-                      : "feed-card hover:shadow-md"
-                  }`}
-                >
-                  <div className="flex items-center justify-between px-3.5 py-3">
-                    <div className="min-w-0 flex-1">
-                      {selection ? (
-                        <>
-                          <p className="text-[13px] font-semibold text-primary-container leading-tight">{selection.product.name}</p>
-                          <p className="text-[10px] text-on-surface-variant/50">
-                            {selection.status === "plan" ? "Added to plan" : selection.status === "using" ? "Already using" : "Using other"}
-                            {selection.product.price > 0 && ` · ₹${selection.product.price}`}
-                          </p>
-                        </>
-                      ) : (
-                        <p className="text-[13px] font-semibold text-on-surface">Choose your {t.label}</p>
+              {/* ── Product items — connected list inside the widget ── */}
+              <div className="divide-y divide-outline-variant/8">
+                {treatmentTypes.map((t, idx) => {
+                  const selection = typeSelections[t.id];
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => setActiveTypeSheet(t)}
+                      className="w-full text-left cursor-pointer hover:bg-surface-container-low/40 transition-colors duration-150"
+                    >
+                      <div className="flex items-start gap-3 px-4 py-3.5">
+                        {/* Step number / check */}
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold mt-0.5 ${
+                          selection
+                            ? "bg-primary-container text-white"
+                            : "bg-surface-container-high text-on-surface-variant"
+                        }`}>
+                          {selection ? <Check className="w-3.5 h-3.5" strokeWidth={3} /> : idx + 1}
+                        </div>
+
+                        {/* Thumbnail */}
+                        <div className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={selection?.product.image || t.image}
+                            alt={t.label}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          {selection ? (
+                            <>
+                              <p className="text-sm font-semibold text-on-surface leading-snug">{selection.product.name}</p>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="text-sm font-bold text-on-surface">₹{selection.product.price}</span>
+                                {selection.product.mrp > selection.product.price && (
+                                  <span className="text-xs text-on-surface-variant line-through">₹{selection.product.mrp}</span>
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-sm font-semibold text-on-surface">Choose your {t.label}</p>
+                              <p className="text-xs text-on-surface-variant mt-0.5">{t.timing}</p>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Select CTA */}
+                        {!selection ? (
+                          <span className="text-xs font-semibold text-primary-container shrink-0 mt-0.5">Select</span>
+                        ) : (
+                          <span className="text-xs text-on-surface-variant shrink-0 mt-0.5">Change</span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* ── Shuffling hint — cycles through unselected types ── */}
+              <ShufflingHint types={treatmentTypes} selections={typeSelections} allSelected={allTypesSelected} />
+
+              {/* ── Footer: price + CTA — always visible ── */}
+              <div className="px-4 py-3.5 bg-surface-container-low/30 border-t border-outline-variant/8">
+                {selectedCount > 0 ? (
+                  <>
+                    {/* Price line */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-lg font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
+                          ₹{totalPrice}
+                        </span>
+                        {totalMrp > totalPrice && (
+                          <>
+                            <span className="text-sm text-on-surface-variant line-through">₹{totalMrp}</span>
+                            <span className="text-xs font-semibold text-primary-container bg-primary-fixed/15 px-1.5 py-0.5 rounded">
+                              Save ₹{totalMrp - totalPrice}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      {!allTypesSelected && (
+                        <span className="text-xs text-on-surface-variant">
+                          {treatmentTypes.length - selectedCount} remaining
+                        </span>
                       )}
                     </div>
-                    <ChevronRight className={`w-4 h-4 shrink-0 ${
-                      selection ? "text-primary-container/40" : "text-on-surface-variant/30"
-                    }`} strokeWidth={1.5} />
-                  </div>
 
-                  {/* Why needed — flush edge-to-edge, no icon, no side padding */}
-                  {!selection && (
-                    <div className="px-3.5 pb-3 -mt-0.5">
-                      <p className="text-[11px] text-on-surface-variant/50 leading-snug">{t.whyNeeded}</p>
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+                    {allTypesSelected ? (
+                      <Link
+                        href="/explore"
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary-container text-sm font-bold text-white cursor-pointer hover:bg-primary transition-colors"
+                      >
+                        <ShoppingCart className="w-4 h-4" strokeWidth={2} />
+                        Start my treatment
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          const next = treatmentTypes.find((t) => !typeSelections[t.id]);
+                          if (next) setActiveTypeSheet(next);
+                        }}
+                        className="w-full py-3 rounded-xl bg-primary-container text-sm font-semibold text-white cursor-pointer hover:bg-primary transition-colors"
+                      >
+                        Continue · {selectedCount} of {treatmentTypes.length} selected
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <button
+                    onClick={() => { setBuildPlanMode(true); setActiveTypeSheet(treatmentTypes[0]); }}
+                    className="w-full py-3 rounded-xl bg-primary-container text-sm font-semibold text-white cursor-pointer hover:bg-primary transition-colors"
+                  >
+                    Build your plan
+                  </button>
+                )}
 
-          {/* Start my treatment — only when all types selected */}
-          {allTypesSelected && (
-            <Link
-              href="/explore"
-              className="mt-2.5 w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary-container text-sm font-semibold text-white cursor-pointer hover:bg-primary transition-colors animate-fade-in-up"
-            >
-              <ShoppingCart className="w-4 h-4" strokeWidth={2} />
-              Start my treatment
-            </Link>
-          )}
-        </div>
+                <p className="text-[11px] text-on-surface-variant text-center mt-2">
+                  Free shipping · Cancel anytime · Doctor-approved
+                </p>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── Treatment Type Bottom Sheet ── */}
         {activeTypeSheet && (
