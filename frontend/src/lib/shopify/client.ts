@@ -1,19 +1,55 @@
-import { createStorefrontApiClient } from '@shopify/storefront-api-client';
+// Shopify Storefront API — server-side only.
+// Uses a private Storefront token (SHOPIFY_STOREFRONT_PRIVATE_TOKEN).
+// All calls go through Next.js API routes — this file never runs in the browser.
 
-// Credentials validated at runtime, not at module load, so build doesn't fail with placeholders
-const storeDomain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN ?? 'placeholder.myshopify.com';
-const accessToken = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN ?? 'placeholder';
+const storeUrl = (process.env.NEXT_PUBLIC_SHOPIFY_STORE_URL ?? "").replace(/\/$/, "");
+const storefrontToken = process.env.SHOPIFY_STOREFRONT_PRIVATE_TOKEN ?? "";
+const API_VERSION = "2025-01";
 
-export const shopifyClient = createStorefrontApiClient({
-  storeDomain,
-  apiVersion: '2025-07',
-  publicAccessToken: accessToken,
-});
+/** True when both the store URL and private Storefront token are set. */
+export function isShopifyConfigured(): boolean {
+  return Boolean(storeUrl && storefrontToken);
+}
 
-export async function shopifyFetch<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
-  const { data, errors } = await shopifyClient.request(query, { variables });
-  if (errors) {
-    throw new Error(errors.message || 'Shopify API error');
+export class ShopifyNotConfiguredError extends Error {
+  constructor() {
+    super(
+      "Shopify Storefront API not configured. " +
+        "Add SHOPIFY_STOREFRONT_PRIVATE_TOKEN to .env.local.",
+    );
+    this.name = "ShopifyNotConfiguredError";
   }
-  return data as T;
+}
+
+export async function shopifyFetch<T>(
+  query: string,
+  variables?: Record<string, unknown>,
+): Promise<T> {
+  if (!isShopifyConfigured()) {
+    throw new ShopifyNotConfiguredError();
+  }
+
+  const endpoint = `${storeUrl}/api/${API_VERSION}/graphql.json`;
+
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Shopify-Storefront-Private-Token": storefrontToken,
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Shopify API ${res.status}: ${body.slice(0, 200)}`);
+  }
+
+  const json = await res.json();
+
+  if (json.errors?.length) {
+    throw new Error(json.errors[0].message);
+  }
+
+  return json.data as T;
 }

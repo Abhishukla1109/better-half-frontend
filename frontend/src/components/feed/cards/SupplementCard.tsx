@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Check, X, AlertTriangle, ShoppingCart } from "lucide-react";
+import { shopifyStoreUrl } from "@/lib/shopify-url";
 
 interface Supplement {
   name: string;
@@ -136,10 +137,15 @@ export default function SupplementCard({ supplements, dayCount, onAction, delay 
 
         {/* Reorder CTA when low */}
         {supplyLevel <= 25 && (
-          <button className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-tertiary-container/15 text-sm font-semibold text-tertiary-container cursor-pointer hover:bg-tertiary-container/25 transition-colors animate-fade-in-up">
+          <a
+            href={shopifyStoreUrl() || '#'}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-tertiary-container/15 text-sm font-semibold text-tertiary-container cursor-pointer hover:bg-tertiary-container/25 transition-colors animate-fade-in-up"
+          >
             <ShoppingCart className="w-4 h-4" strokeWidth={1.5} />
             Reorder now
-          </button>
+          </a>
         )}
       </div>
     </div>

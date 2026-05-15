@@ -2,32 +2,51 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
-import { Star, Plus, Minus, Sparkles } from "lucide-react";
+import { ShoppingBag, Sparkles, Check, Loader2, AlertCircle } from "lucide-react";
 import { products, getCategories } from "@/data/products";
 import type { ProductConfig } from "@/data/products";
 import { getProductImage } from "@/data/images";
+import { useCart } from "@/context/CartContext";
+import { resolveVariantId } from "@/lib/shopify/variant-resolver";
 
 const categories = ["For You", "All", ...getCategories()];
 
 /* ── Product Card ── */
-function ProductCard({ product, onQtyChange }: { product: ProductConfig; onQtyChange: (slug: string, qty: number) => void }) {
-  const [qty, setQty] = useState(0);
+function ProductCard({ product }: { product: ProductConfig }) {
+  const { addItem } = useCart();
+  const [cartState, setCartState] = useState<"idle" | "loading" | "done" | "error">("idle");
 
-  const handleAdd = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const next = qty + 1;
-    setQty(next);
-    onQtyChange(product.slug, next);
-  };
+  const handleAddToCart = useCallback(
+    async (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (cartState !== "idle") return;
 
-  const handleRemove = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const next = Math.max(0, qty - 1);
-    setQty(next);
-    onQtyChange(product.slug, next);
-  };
+      setCartState("loading");
+      try {
+        const variantId = await resolveVariantId(product.slug);
+        if (!variantId) throw new Error("No variant found");
+        await addItem(variantId, 1);
+        setCartState("done");
+      } catch {
+        setCartState("error");
+      } finally {
+        setTimeout(() => setCartState("idle"), 2000);
+      }
+    },
+    [addItem, cartState, product.slug],
+  );
+
+  const cartIcon =
+    cartState === "loading" ? (
+      <Loader2 className="w-3.5 h-3.5 animate-spin text-on-surface-variant" strokeWidth={2} />
+    ) : cartState === "done" ? (
+      <Check className="w-3.5 h-3.5 text-green-600" strokeWidth={2.5} />
+    ) : cartState === "error" ? (
+      <AlertCircle className="w-3.5 h-3.5 text-red-500" strokeWidth={2} />
+    ) : (
+      <ShoppingBag className="w-3.5 h-3.5 text-on-surface-variant group-hover/btn:text-white transition-colors" strokeWidth={2} />
+    );
 
   return (
     <Link
@@ -51,35 +70,16 @@ function ProductCard({ product, onQtyChange }: { product: ProductConfig; onQtyCh
           </div>
         )}
 
-        {/* Qty control */}
+        {/* Add to cart button */}
         <div className="absolute top-1.5 right-1.5">
-          {qty === 0 ? (
-            <button
-              onClick={handleAdd}
-              className="flex items-center justify-center w-6 h-6 rounded-md bg-surface-container-lowest border border-outline-variant/15 hover:border-primary-container/40 transition-all duration-200 cursor-pointer active:scale-90"
-              aria-label="Add to cart"
-            >
-              <Plus className="w-3.5 h-3.5 text-on-surface-variant" strokeWidth={2} />
-            </button>
-          ) : (
-            <div className="flex items-center bg-primary-container rounded-md overflow-hidden animate-fade-in-up" style={{ animationDuration: "150ms" }}>
-              <button
-                onClick={handleRemove}
-                className="flex items-center justify-center w-6 h-6 cursor-pointer hover:bg-primary transition-colors active:scale-90"
-                aria-label="Decrease quantity"
-              >
-                <Minus className="w-3 h-3 text-white" strokeWidth={2.5} />
-              </button>
-              <span className="text-[10px] font-bold text-white w-4 text-center">{qty}</span>
-              <button
-                onClick={handleAdd}
-                className="flex items-center justify-center w-6 h-6 cursor-pointer hover:bg-primary transition-colors active:scale-90"
-                aria-label="Increase quantity"
-              >
-                <Plus className="w-3 h-3 text-white" strokeWidth={2.5} />
-              </button>
-            </div>
-          )}
+          <button
+            onClick={handleAddToCart}
+            disabled={cartState !== "idle"}
+            className="flex items-center justify-center w-6 h-6 rounded-md bg-surface-container-lowest border border-outline-variant/15 hover:bg-primary-container hover:border-primary-container transition-all duration-200 cursor-pointer active:scale-90 disabled:cursor-default group/btn"
+            aria-label={`Add ${product.name} to cart`}
+          >
+            {cartIcon}
+          </button>
         </div>
       </div>
 
@@ -118,21 +118,10 @@ function ProductCard({ product, onQtyChange }: { product: ProductConfig; onQtyCh
 /* ── Explore Page ── */
 export default function ExplorePage() {
   const [activeCategory, setActiveCategory] = useState("For You");
-  const [cart, setCart] = useState<Record<string, number>>({});
-
-  const handleQtyChange = useCallback((slug: string, qty: number) => {
-    setCart((prev) => {
-      const next = { ...prev };
-      if (qty <= 0) { delete next[slug]; } else { next[slug] = qty; }
-      return next;
-    });
-  }, []);
 
   const filtered = activeCategory === "For You" || activeCategory === "All"
     ? products
     : products.filter((p) => p.category === activeCategory);
-
-  const cartCount = Object.values(cart).reduce((a, b) => a + b, 0);
 
   return (
     <div className="flex h-[calc(100dvh-68px-48px)] lg:h-[calc(100dvh-48px)]">
@@ -155,7 +144,7 @@ export default function ExplorePage() {
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-primary-container rounded-r-full" />
               )}
 
-              {/* Category icon placeholder */}
+              {/* Category icon */}
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                 isActive ? "bg-primary-container/15" : "bg-surface-container-high/50"
               }`}>
@@ -193,7 +182,7 @@ export default function ExplorePage() {
         {/* Grid */}
         <div className="px-2 pb-4 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
           {filtered.map((p) => (
-            <ProductCard key={p.slug} product={p} onQtyChange={handleQtyChange} />
+            <ProductCard key={p.slug} product={p} />
           ))}
         </div>
 
@@ -203,20 +192,6 @@ export default function ExplorePage() {
           </div>
         )}
       </div>
-
-      {/* ── Cart bar (shows when items in cart) ── */}
-      {cartCount > 0 && (
-        <div className="fixed bottom-[68px] lg:bottom-0 left-0 right-0 z-30 px-4 pb-2 lg:left-[240px] xl:left-[280px] animate-fade-in-up">
-          <div className="max-w-2xl mx-auto bg-primary-container rounded-2xl px-5 py-3 flex items-center justify-between shadow-lg shadow-primary/10">
-            <div>
-              <p className="text-sm font-bold text-white">{cartCount} item{cartCount !== 1 ? "s" : ""} in cart</p>
-            </div>
-            <button className="px-4 py-2 rounded-xl bg-white text-sm font-semibold text-primary-container cursor-pointer hover:bg-primary-fixed transition-colors">
-              View Cart
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope, Public_Sans } from "next/font/google";
 import "./globals.css";
+import { CartProvider } from "@/context/CartContext";
+import CartDrawer from "@/components/cart/CartDrawer";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -54,7 +56,10 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-dvh bg-surface text-on-surface" suppressHydrationWarning>
-        {children}
+        <CartProvider>
+          <CartDrawer />
+          {children}
+        </CartProvider>
       </body>
     </html>
   );

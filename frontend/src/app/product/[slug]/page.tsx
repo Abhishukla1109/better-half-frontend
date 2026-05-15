@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { use } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -26,10 +26,16 @@ import {
   Droplets,
   TrendingUp,
   CheckCircle,
+  Loader2,
+  AlertCircle,
   type LucideIcon,
 } from "lucide-react";
 import { getProductBySlug } from "@/data/products";
 import { getProductImage } from "@/data/images";
+import { useCart } from "@/context/CartContext";
+import { getProductByHandle } from "@/lib/shopify/api";
+import { shopifyHandleMap } from "@/lib/shopify-handle-map";
+import { knownHandles } from "@/lib/ai/product-handles";
 
 /* ── Icon resolver: maps string names from JSON config to Lucide components ── */
 const iconMap: Record<string, LucideIcon> = {
@@ -203,6 +209,14 @@ export default function ProductPage({
   const fromTreatment = searchParams.get("from") === "treatment";
   const product = getProductBySlug(slug);
 
+  const [selectedVariant, setSelectedVariant] = useState(0);
+  const [selectedPack, setSelectedPack] = useState(0);
+  const [qty, setQty] = useState(1);
+  const [activeImage, setActiveImage] = useState(0);
+  const [cartState, setCartState] = useState<"idle" | "loading" | "done" | "error">("idle");
+
+  const { addItem } = useCart();
+
   useEffect(() => {
     if (!product) {
       router.replace("/explore");
@@ -211,12 +225,29 @@ export default function ProductPage({
 
   if (!product) return null;
 
-  const [selectedVariant, setSelectedVariant] = useState(0);
-  const [selectedPack, setSelectedPack] = useState(0);
-  const [qty, setQty] = useState(1);
-  const [activeImage, setActiveImage] = useState(0);
-
   const currentPrice = product.packs[selectedPack]?.price ?? product.price;
+
+  const handleAddToCart = useCallback(async () => {
+    if (fromTreatment) { router.back(); return; }
+    if (cartState !== "idle") return;
+    setCartState("loading");
+    try {
+      const handle = shopifyHandleMap[slug] ?? knownHandles[slug] ?? slug;
+      const shopifyProduct = await getProductByHandle(handle);
+      // Pick the variant matching the selected pack index; fall back to first available
+      const variant =
+        shopifyProduct?.variants[selectedPack] ??
+        shopifyProduct?.variants.find(v => v.availableForSale) ??
+        shopifyProduct?.variants[0];
+      if (!variant?.id) throw new Error("variant not found");
+      await addItem(variant.id, qty);
+      setCartState("done");
+    } catch {
+      setCartState("error");
+    } finally {
+      setTimeout(() => setCartState("idle"), 2500);
+    }
+  }, [fromTreatment, router, cartState, slug, selectedPack, qty, addItem]);
 
   return (
     <div className="min-h-dvh bg-surface">
@@ -400,11 +431,20 @@ export default function ProductPage({
 
               {/* Desktop inline CTA */}
               <button
-                onClick={fromTreatment ? () => router.back() : undefined}
-                className="hidden lg:flex flex-1 items-center justify-center gap-2 min-h-[48px] rounded-2xl bg-primary-container text-sm font-bold text-white cursor-pointer hover:bg-primary transition-colors duration-200 active:scale-[0.98]"
+                onClick={handleAddToCart}
+                disabled={cartState !== "idle"}
+                className="hidden lg:flex flex-1 items-center justify-center gap-2 min-h-[48px] rounded-2xl bg-primary-container text-sm font-bold text-white cursor-pointer hover:bg-primary transition-colors duration-200 active:scale-[0.98] disabled:opacity-70"
               >
-                <ShoppingCart className="w-4 h-4" strokeWidth={2} />
-                {fromTreatment ? "Choose product" : `Add to Cart · \u20B9${currentPrice * qty}`}
+                {cartState === "loading" && <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />}
+                {cartState === "done" && <CheckCircle className="w-4 h-4" strokeWidth={2} />}
+                {cartState === "error" && <AlertCircle className="w-4 h-4" strokeWidth={2} />}
+                {cartState === "idle" && <ShoppingCart className="w-4 h-4" strokeWidth={2} />}
+                {fromTreatment
+                  ? "Choose product"
+                  : cartState === "loading" ? "Adding…"
+                  : cartState === "done" ? "Added to cart!"
+                  : cartState === "error" ? "Not available"
+                  : `Add to Cart · ₹${currentPrice * qty}`}
               </button>
             </div>
           </section>
@@ -542,11 +582,20 @@ export default function ProductPage({
             )}
           </div>
           <button
-            onClick={fromTreatment ? () => router.back() : undefined}
-            className="flex-1 flex items-center justify-center gap-2 min-h-[48px] rounded-2xl bg-primary-container text-sm font-bold text-white cursor-pointer hover:bg-primary transition-colors duration-200 active:scale-[0.98]"
+            onClick={handleAddToCart}
+            disabled={cartState !== "idle"}
+            className="flex-1 flex items-center justify-center gap-2 min-h-[48px] rounded-2xl bg-primary-container text-sm font-bold text-white cursor-pointer hover:bg-primary transition-colors duration-200 active:scale-[0.98] disabled:opacity-70"
           >
-            <ShoppingCart className="w-4 h-4" strokeWidth={2} />
-            {fromTreatment ? "Choose product" : "Add to Cart"}
+            {cartState === "loading" && <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />}
+            {cartState === "done" && <CheckCircle className="w-4 h-4" strokeWidth={2} />}
+            {cartState === "error" && <AlertCircle className="w-4 h-4" strokeWidth={2} />}
+            {cartState === "idle" && <ShoppingCart className="w-4 h-4" strokeWidth={2} />}
+            {fromTreatment
+              ? "Choose product"
+              : cartState === "loading" ? "Adding…"
+              : cartState === "done" ? "Added!"
+              : cartState === "error" ? "Not available"
+              : "Add to Cart"}
           </button>
         </div>
       </div>

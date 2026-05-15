@@ -1,7 +1,6 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { createCart, addToCart, updateCartLine, removeCartLine, getCart } from '@/lib/shopify/api';
 import type { Cart } from '@/lib/shopify/types';
 
 const CART_ID_KEY = 'bh_cart_id';
@@ -20,19 +19,30 @@ interface CartContextValue {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
+async function cartApi(action: string, params: Record<string, unknown>): Promise<Cart | null> {
+  const res = await fetch('/api/cart', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, ...params }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({})) as { error?: string };
+    throw new Error(err.error ?? `Cart ${action} failed (${res.status})`);
+  }
+  return res.json() as Promise<Cart | null>;
+}
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<Cart | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Restore cart from localStorage on mount
   useEffect(() => {
     const stored = localStorage.getItem(CART_ID_KEY);
-    if (stored) {
-      getCart(stored)
-        .then(c => { if (c) setCart(c); })
-        .catch(() => localStorage.removeItem(CART_ID_KEY));
-    }
+    if (!stored) return;
+    cartApi('get', { cartId: stored })
+      .then(c => { if (c) setCart(c); })
+      .catch(() => localStorage.removeItem(CART_ID_KEY));
   }, []);
 
   const openCart = useCallback(() => setIsOpen(true), []);
@@ -41,14 +51,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const addItem = useCallback(async (variantId: string, quantity = 1) => {
     setIsLoading(true);
     try {
-      let updated: Cart;
+      let updated: Cart | null;
       if (cart?.id) {
-        updated = await addToCart(cart.id, variantId, quantity);
+        updated = await cartApi('add', { cartId: cart.id, variantId, quantity });
       } else {
-        updated = await createCart(variantId, quantity);
-        localStorage.setItem(CART_ID_KEY, updated.id);
+        updated = await cartApi('create', { variantId, quantity });
+        if (updated) localStorage.setItem(CART_ID_KEY, updated.id);
       }
-      setCart(updated);
+      if (updated) setCart(updated);
       setIsOpen(true);
     } finally {
       setIsLoading(false);
@@ -59,8 +69,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (!cart) return;
     setIsLoading(true);
     try {
-      const updated = await updateCartLine(cart.id, lineId, quantity);
-      setCart(updated);
+      const updated = await cartApi('update', { cartId: cart.id, lineId, quantity });
+      if (updated) setCart(updated);
     } finally {
       setIsLoading(false);
     }
@@ -70,8 +80,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (!cart) return;
     setIsLoading(true);
     try {
-      const updated = await removeCartLine(cart.id, lineId);
-      setCart(updated);
+      const updated = await cartApi('remove', { cartId: cart.id, lineId });
+      if (updated) setCart(updated);
     } finally {
       setIsLoading(false);
     }

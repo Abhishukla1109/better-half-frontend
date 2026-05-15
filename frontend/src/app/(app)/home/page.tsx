@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Sparkles, ShoppingCart, ChevronRight, Check, Lock, X, Utensils, Pill, Stethoscope, Brain, Activity, Droplets, ClipboardList, ArrowLeft, CircleCheck } from "lucide-react";
+import { Sparkles, ShoppingCart, ChevronRight, Check, Lock, X, Utensils, Pill, Stethoscope, Brain, Activity, Droplets, ClipboardList, ArrowLeft, CircleCheck, ExternalLink } from "lucide-react";
+import { shopifyProductUrl } from "@/lib/shopify-url";
 import { getTreatmentTypesForConcern } from "@/data/treatment-types";
 import type { TreatmentType, TreatmentProduct } from "@/data/treatment-types";
 import TreatmentTypeSheet from "@/components/feed/TreatmentTypeSheet";
@@ -23,6 +25,8 @@ type ProfileLevel = "L0" | "L1" | "L2" | "L3";
 
 interface UserProfile {
   concern: string;
+  concerns?: string; // comma-separated list of all selected concerns
+  name?: string;
   sex: string;
   age: string;
   diet: string;
@@ -284,8 +288,70 @@ export default function HomePage() {
   const [buildPlanMode, setBuildPlanMode] = useState(false);
   const [hintIndex, setHintIndex] = useState(0);
 
-  const name = "Vikas";
+  // Name state
+  const [name, setName] = useState<string>("");
+  const [nameText, setNameText] = useState<string>("");
+  const [nameSubmitted, setNameSubmitted] = useState(false);
+
+  // All selected concerns (multi-select from ConcernCard)
+  const [selectedConcerns, setSelectedConcerns] = useState<string[]>([]);
+
+  // Tracks whether we've attempted to restore state — prevents saving before restore
+  const [restored, setRestored] = useState(false);
+
+  const router = useRouter();
   const feedRef = useRef<HTMLDivElement>(null);
+
+  // Restore onboarding state from sessionStorage on mount
+  useEffect(() => {
+    try {
+      const navType = (performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined)?.type;
+      const isReload = navType === "reload";
+      const hadLeft = sessionStorage.getItem("bh_home_left") === "true";
+
+      if (isReload || !hadLeft) {
+        // Fresh start or page reload: wipe all onboarding state
+        sessionStorage.removeItem("bh_onboarding_state");
+        sessionStorage.removeItem("bh_profile");
+        sessionStorage.removeItem("bh_protocol_built");
+        sessionStorage.removeItem("bh_home_left");
+      } else {
+        // Back navigation into home: restore previous step
+        const saved = sessionStorage.getItem("bh_onboarding_state");
+        if (saved) {
+          const state = JSON.parse(saved) as {
+            name?: string;
+            selectedConcerns?: string[];
+            profile?: Partial<UserProfile>;
+            level?: ProfileLevel;
+            userMessages?: string[];
+            protocolAccepted?: boolean;
+          };
+          if (state.name) { setName(state.name); setNameSubmitted(true); }
+          if (state.selectedConcerns?.length) setSelectedConcerns(state.selectedConcerns);
+          if (state.profile) setProfile(state.profile);
+          if (state.level) setLevel(state.level);
+          if (state.userMessages) setUserMessages(state.userMessages);
+          if (state.protocolAccepted) setProtocolAccepted(true);
+          if (state.level && state.level !== "L0") setNameSubmitted(true);
+          setShowSplash(false);
+        }
+      }
+    } catch {}
+    setRestored(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist onboarding state to sessionStorage after every relevant change
+  useEffect(() => {
+    if (!restored) return;
+    if (level === "L0" && selectedConcerns.length === 0) return; // nothing to save yet
+    try {
+      sessionStorage.setItem("bh_onboarding_state", JSON.stringify({
+        name, selectedConcerns, profile, level, userMessages, protocolAccepted,
+      }));
+    } catch {}
+  }, [name, selectedConcerns, profile, level, userMessages, protocolAccepted, restored]);
 
   // Protocol depth calculation
   const answeredQuestions = allBucketQuestions.filter((q) => profile[q.key]);
@@ -321,9 +387,10 @@ export default function HomePage() {
   }, []);
 
   const handleConcernSelect = useCallback((concerns: string[]) => {
-    setProfile((p) => ({ ...p, concern: concerns[0] }));
+    setSelectedConcerns(concerns);
+    setProfile((p) => ({ ...p, concern: concerns[0], concerns: concerns.join(",") }));
     setLevel("L1");
-    scrollToCard("card-sex");
+    scrollToCard("card-name");
   }, [scrollToCard]);
 
   const handleConcernText = useCallback((text: string) => {
@@ -335,8 +402,19 @@ export default function HomePage() {
     else if (lower.includes("weight") || lower.includes("fat") || lower.includes("thin")) matched = "Weight";
     else if (lower.includes("hormone") || lower.includes("pcos") || lower.includes("period")) matched = "Hormones";
     else if (lower.includes("sleep") || lower.includes("stress") || lower.includes("anxiety") || lower.includes("mind")) matched = "Sleep / mind";
-    setProfile((p) => ({ ...p, concern: matched }));
+    setSelectedConcerns([matched]);
+    setProfile((p) => ({ ...p, concern: matched, concerns: matched }));
     setLevel("L1");
+    scrollToCard("card-name");
+  }, [scrollToCard]);
+
+  const handleNameSubmit = useCallback((submittedName: string) => {
+    const trimmed = submittedName.trim();
+    if (trimmed) {
+      setName(trimmed);
+      setProfile((p) => ({ ...p, name: trimmed }));
+    }
+    setNameSubmitted(true);
     scrollToCard("card-sex");
   }, [scrollToCard]);
 
@@ -358,9 +436,22 @@ export default function HomePage() {
   }, [scrollToCard]);
 
   const handleProtocolBuilt = useCallback(() => {
-    setProtocolReady(true);
-    scrollToCard("card-protocol");
-  }, [scrollToCard]);
+    const fullProfile = {
+      ...profile,
+      concerns: selectedConcerns.join(","),
+      name: name || undefined,
+    };
+    // Save profile for the protocol page
+    sessionStorage.setItem("bh_profile", JSON.stringify(fullProfile));
+    // Save L3 home state so pressing back from /protocol shows the dashboard
+    sessionStorage.setItem("bh_onboarding_state", JSON.stringify({
+      name, selectedConcerns, profile: fullProfile, level: "L3",
+      userMessages, protocolAccepted: true,
+    }));
+    // Mark that we've navigated away from home — enables back-nav restore
+    sessionStorage.setItem("bh_home_left", "true");
+    router.push("/protocol");
+  }, [profile, selectedConcerns, name, userMessages, router]);
 
   const handleAcceptProtocol = useCallback(() => {
     setProtocolAccepted(true);
@@ -663,13 +754,32 @@ export default function HomePage() {
                     </div>
 
                     {allTypesSelected ? (
-                      <Link
-                        href="/explore"
-                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary-container text-sm font-bold text-white cursor-pointer hover:bg-primary transition-colors"
-                      >
-                        <ShoppingCart className="w-4 h-4" strokeWidth={2} />
-                        Start my treatment
-                      </Link>
+                      <div className="space-y-2">
+                        <p className="text-[11px] font-semibold text-on-surface-variant/60 text-center uppercase tracking-wider">
+                          Your protocol · ready to order
+                        </p>
+                        {treatmentTypes.map((type) => {
+                          const sel = typeSelections[type.id];
+                          if (!sel || sel.status === "other") return null;
+                          return (
+                            <a
+                              key={type.id}
+                              href={shopifyProductUrl(sel.product.slug)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-full flex items-center justify-between gap-3 py-3 px-4 rounded-xl bg-surface-container-lowest border border-outline-variant/10 hover:border-primary-container/40 transition-all active:scale-[0.99]"
+                            >
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-on-surface truncate">{sel.product.name}</p>
+                                <p className="text-xs text-on-surface-variant">&#8377;{sel.product.price}</p>
+                              </div>
+                              <span className="flex items-center gap-1 text-xs font-bold text-primary-container shrink-0">
+                                Buy <ExternalLink className="w-3 h-3" strokeWidth={2.5} />
+                              </span>
+                            </a>
+                          );
+                        })}
+                      </div>
                     ) : (
                       <button
                         onClick={() => {
@@ -987,7 +1097,7 @@ export default function HomePage() {
 
         {/* Welcome text */}
         <h1 className="text-2xl font-extrabold text-primary text-center leading-snug tracking-tight font-[family-name:var(--font-manrope)] splash-text-1 px-8">
-          Welcome, {name}.
+          Welcome{name ? `, ${name}` : ""}.
         </h1>
         <p className="text-base text-on-surface-variant text-center mt-3 max-w-xs leading-relaxed splash-text-2 px-8">
           Let&apos;s start your personalised health journey.
@@ -1019,8 +1129,58 @@ export default function HomePage() {
           <UserMessageCard message={userMessages[0]} />
         )}
 
-        {/* L1: Profiling — sex → age → diet */}
+        {/* Name card — appears after concern is selected */}
         {level !== "L0" && (
+          <div id="card-name" className="feed-card-ai p-5 animate-fade-in-up" style={{ animationDelay: "150ms" }}>
+            {nameSubmitted ? (
+              <div className="flex items-center gap-2 animate-fade-in-up flex-wrap">
+                <p className="text-sm text-on-surface-variant">I&apos;ll call you</p>
+                <span className="inline-block px-4 py-2.5 rounded-xl bg-primary-container/15 border border-primary-container/20 text-sm font-semibold text-primary-container">
+                  {name || "friend"}
+                </span>
+                <button
+                  onClick={() => setNameSubmitted(false)}
+                  className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-surface-container-low cursor-pointer transition-colors"
+                  aria-label="Edit name"
+                >
+                  <svg className="w-3.5 h-3.5 text-on-surface-variant/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-base text-on-surface leading-relaxed">What should I call you?</p>
+                <div className="mt-3 flex items-center gap-2 bg-surface-container-low rounded-xl px-4 py-3 border border-outline-variant/15">
+                  <input
+                    type="text"
+                    value={nameText}
+                    onChange={(e) => setNameText(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleNameSubmit(nameText); }}
+                    placeholder="Your name"
+                    className="flex-1 bg-transparent text-base text-on-surface placeholder:text-on-surface-variant/40 outline-none"
+                    autoFocus
+                  />
+                  {nameText.trim() && (
+                    <button
+                      onClick={() => handleNameSubmit(nameText)}
+                      className="text-sm font-semibold text-primary cursor-pointer hover:text-primary-container transition-colors"
+                    >
+                      Continue
+                    </button>
+                  )}
+                </div>
+                <button
+                  onClick={() => handleNameSubmit("")}
+                  className="mt-2 text-xs text-on-surface-variant/50 cursor-pointer hover:text-on-surface-variant transition-colors"
+                >
+                  Skip
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* L1: Profiling — sex → age → diet */}
+        {level !== "L0" && nameSubmitted && (
           <>
             <div id="card-sex">
               <ProfilingCard
