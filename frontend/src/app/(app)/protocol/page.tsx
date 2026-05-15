@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Sparkles,
   ChevronRight,
@@ -17,8 +18,10 @@ import {
 } from "lucide-react";
 import { calculateProfileDepth } from "@/lib/ai/profile-depth";
 import type { GeneratedProtocol, UserProfile } from "@/lib/ai/types";
+import { getProtocolProductImage } from "@/data/images";
 import { useCart } from "@/context/CartContext";
 import { resolveVariantId } from "@/lib/shopify/variant-resolver";
+import { shopifyHandleMap } from "@/lib/shopify-handle-map";
 
 /* ── Loading skeleton ──────────────────────────────────────── */
 function ProtocolSkeleton() {
@@ -478,38 +481,52 @@ export default function ProtocolPage() {
                 return (
                   <div
                     key={i}
-                    className="flex items-start gap-3 px-4 py-4"
+                    className="flex items-center gap-2 px-4 py-4"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-primary-container/10 flex items-center justify-center shrink-0">
-                      <Sparkles className="w-5 h-5 text-primary-container" strokeWidth={1.5} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                        <p className="text-sm font-semibold text-on-surface">{s.name}</p>
-                        {s.priority === "essential" && (
-                          <span className="text-[9px] font-bold uppercase tracking-wider text-primary-container bg-primary-container/10 px-1.5 py-0.5 rounded">
-                            Essential
-                          </span>
+                    <Link
+                      href={`/product/${shopifyHandleMap[s.id] ?? s.id}`}
+                      className="flex items-start gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-surface-container-low overflow-hidden shrink-0 flex items-center justify-center">
+                        {getProtocolProductImage(s.id) ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={getProtocolProductImage(s.id)}
+                            alt={s.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Sparkles className="w-5 h-5 text-primary-container" strokeWidth={1.5} />
                         )}
                       </div>
-                      <p className="text-xs text-on-surface-variant/60">
-                        {s.brand}
-                        {s.price > 0 && ` · ₹${s.price}`}
-                        {s.timing && ` · ${s.timing}`}
-                      </p>
-                      <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
-                        {s.reasoning}
-                      </p>
-                      {s.reasonTags && s.reasonTags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1.5">
-                          {s.reasonTags.map((tag) => (
-                            <span key={tag} className="text-[9px] font-medium text-on-surface-variant/60 bg-surface-container-high px-1.5 py-0.5 rounded-full">
-                              {tag}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                          <p className="text-sm font-semibold text-on-surface">{s.name}</p>
+                          {s.priority === "essential" && (
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-primary-container bg-primary-container/10 px-1.5 py-0.5 rounded">
+                              Essential
                             </span>
-                          ))}
+                          )}
                         </div>
-                      )}
-                    </div>
+                        <p className="text-xs text-on-surface-variant/60">
+                          {s.brand}
+                          {s.price > 0 && ` · ₹${s.price}`}
+                          {s.timing && ` · ${s.timing}`}
+                        </p>
+                        <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
+                          {s.reasoning}
+                        </p>
+                        {s.reasonTags && s.reasonTags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {s.reasonTags.map((tag) => (
+                              <span key={tag} className="text-[9px] font-medium text-on-surface-variant/60 bg-surface-container-high px-1.5 py-0.5 rounded-full">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </Link>
                     <button
                       onClick={() => handleAddSupplement(s.id)}
                       disabled={itemState === "loading"}

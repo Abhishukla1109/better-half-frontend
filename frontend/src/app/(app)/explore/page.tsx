@@ -139,12 +139,10 @@ export default function ExplorePage() {
                   : "hover:bg-surface-container-lowest/50"
               }`}
             >
-              {/* Active indicator */}
               {isActive && (
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-primary-container rounded-r-full" />
               )}
 
-              {/* Category icon */}
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                 isActive ? "bg-primary-container/15" : "bg-surface-container-high/50"
               }`}>
@@ -169,7 +167,6 @@ export default function ExplorePage() {
 
       {/* ── Right: product grid ── */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
-        {/* Category header */}
         <div className="px-3 pt-4 pb-2">
           <h1 className="text-lg font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)]">
             {activeCategory}
@@ -179,7 +176,6 @@ export default function ExplorePage() {
           </p>
         </div>
 
-        {/* Grid */}
         <div className="px-2 pb-4 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
           {filtered.map((p) => (
             <ProductCard key={p.slug} product={p} />

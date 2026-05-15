@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { use } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import {
   ArrowLeft,
   Star,
@@ -33,9 +32,7 @@ import {
 import { getProductBySlug } from "@/data/products";
 import { getProductImage } from "@/data/images";
 import { useCart } from "@/context/CartContext";
-import { getProductByHandle } from "@/lib/shopify/api";
-import { shopifyHandleMap } from "@/lib/shopify-handle-map";
-import { knownHandles } from "@/lib/ai/product-handles";
+import { resolveVariantId } from "@/lib/shopify/variant-resolver";
 
 /* ── Icon resolver: maps string names from JSON config to Lucide components ── */
 const iconMap: Record<string, LucideIcon> = {
@@ -232,35 +229,29 @@ export default function ProductPage({
     if (cartState !== "idle") return;
     setCartState("loading");
     try {
-      const handle = shopifyHandleMap[slug] ?? knownHandles[slug] ?? slug;
-      const shopifyProduct = await getProductByHandle(handle);
-      // Pick the variant matching the selected pack index; fall back to first available
-      const variant =
-        shopifyProduct?.variants[selectedPack] ??
-        shopifyProduct?.variants.find(v => v.availableForSale) ??
-        shopifyProduct?.variants[0];
-      if (!variant?.id) throw new Error("variant not found");
-      await addItem(variant.id, qty);
+      const variantId = await resolveVariantId(slug);
+      if (!variantId) throw new Error("variant not found");
+      await addItem(variantId, qty);
       setCartState("done");
     } catch {
       setCartState("error");
     } finally {
       setTimeout(() => setCartState("idle"), 2500);
     }
-  }, [fromTreatment, router, cartState, slug, selectedPack, qty, addItem]);
+  }, [fromTreatment, router, cartState, slug, qty, addItem]);
 
   return (
     <div className="min-h-dvh bg-surface">
       {/* ─── Sticky Header ─── */}
       <header className="glass-header fixed top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto flex items-center justify-between h-12 px-4">
-          <Link
-            href="/explore"
-            className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-low transition-colors"
-            aria-label="Back to catalog"
+          <button
+            onClick={() => router.back()}
+            className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-low transition-colors cursor-pointer"
+            aria-label="Go back"
           >
             <ArrowLeft className="w-5 h-5 text-on-surface" strokeWidth={1.5} />
-          </Link>
+          </button>
           <span
             className="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full"
             style={{ backgroundColor: product.brandColor + "15", color: product.brandColor }}
