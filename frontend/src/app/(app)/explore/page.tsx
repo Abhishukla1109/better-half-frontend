@@ -440,7 +440,7 @@ function ExplorePageContent() {
       </nav>
 
       {/* ── Right: content ── */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+      <div className="flex-1 overflow-y-auto overflow-x-clip">
         {/* Header */}
         <div className="px-3 pt-4 pb-2">
           <div className="flex items-start justify-between gap-2">

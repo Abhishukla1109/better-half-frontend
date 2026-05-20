@@ -478,7 +478,7 @@ export default function ProtocolPage() {
   /* ── Loading ───────────────────────────────────────────────── */
   if (loading || !protocol) {
     return (
-      <div className="min-h-dvh pb-24 overflow-x-hidden">
+      <div className="min-h-dvh pb-24 overflow-x-clip">
         <div className="sticky top-12 z-20 px-4 py-3 bg-surface/95 backdrop-blur-sm border-b border-outline-variant/10">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-xs font-semibold text-on-surface-variant">Building your protocol…</span>
@@ -494,7 +494,7 @@ export default function ProtocolPage() {
 
   /* ── Rendered protocol ─────────────────────────────────────── */
   return (
-    <div className="min-h-dvh pb-24 overflow-x-hidden">
+    <div className="min-h-dvh pb-24 overflow-x-clip">
 
       {/* Protocol sharpened dramatic overlay */}
       {showSharpen && (
