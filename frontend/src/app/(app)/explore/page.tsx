@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, ExternalLink, ArrowRight } from "lucide-react";
+import { Sparkles, ExternalLink, ArrowRight, ShoppingBag, Loader2, Check, AlertCircle } from "lucide-react";
 import { ALL_PRODUCTS, resolveSegment } from "@/lib/protocolEngine";
 import type { Product, MatchedProduct } from "@/lib/protocolEngine";
+import { useCart } from "@/context/CartContext";
+import { resolveVariantId } from "@/lib/shopify/variant-resolver";
 
 /* ── Category sidebar definitions ── */
 type CategoryDef = {
@@ -98,6 +100,28 @@ function ProductCard({
   product: Product & { matchScore?: number };
   isTopPick?: boolean;
 }) {
+  const { addItem } = useCart();
+  const [cartState, setCartState] = useState<"idle" | "loading" | "done" | "error">("idle");
+
+  const handleAddToCart = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (cartState !== "idle") return;
+      setCartState("loading");
+      try {
+        const variantId = await resolveVariantId(product.id);
+        if (!variantId) throw new Error("not found");
+        await addItem(variantId, 1);
+        setCartState("done");
+      } catch {
+        setCartState("error");
+      } finally {
+        setTimeout(() => setCartState("idle"), 2500);
+      }
+    },
+    [addItem, cartState, product.id],
+  );
+
   const discountPct =
     product.mrp > product.price
       ? Math.round((1 - product.price / product.mrp) * 100)
@@ -115,12 +139,12 @@ function ProductCard({
   };
 
   return (
-    <div
-      onClick={() => product.url && window.open(product.url, "_blank")}
-      className="flex flex-col bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant/8 hover:border-primary-container/25 transition-all duration-200 cursor-pointer active:scale-[0.98] group"
-    >
-      {/* Image area */}
-      <div className="relative w-full h-[130px] bg-surface-container-low">
+    <div className="flex flex-col bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant/8 hover:border-primary-container/25 transition-all duration-200 group">
+      {/* Image — tapping opens brand site */}
+      <div
+        onClick={() => product.url && window.open(product.url, "_blank")}
+        className="relative w-full h-[130px] bg-surface-container-low cursor-pointer"
+      >
         {product.image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -149,6 +173,11 @@ function ProductCard({
             Top pick
           </div>
         )}
+
+        {/* External link hint */}
+        <div className="absolute bottom-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <ExternalLink className="w-3 h-3 text-white drop-shadow" strokeWidth={2} />
+        </div>
       </div>
 
       {/* Content */}
@@ -169,25 +198,43 @@ function ProductCard({
           </div>
         )}
 
-        <p className="text-[11px] font-bold text-on-surface leading-snug line-clamp-2 flex-1 mb-2">
+        <p className="text-[11px] font-bold text-on-surface leading-snug line-clamp-2 flex-1 mb-2.5">
           {product.name}
         </p>
 
-        <div className="flex items-end justify-between mt-auto">
-          <div>
-            <p className="text-sm font-extrabold text-primary font-[family-name:var(--font-manrope)] leading-none">
-              &#8377;{product.price}
-            </p>
-            {product.mrp > product.price && (
-              <p className="text-[9px] text-on-surface-variant/35 line-through mt-0.5">
-                &#8377;{product.mrp}
-              </p>
-            )}
-          </div>
-          <span className="flex items-center gap-0.5 text-[10px] font-semibold text-primary-container">
-            Buy <ExternalLink className="w-2.5 h-2.5" strokeWidth={2.5} />
+        {/* Price row */}
+        <div className="flex items-baseline gap-1.5 mb-2.5">
+          <span className="text-sm font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">
+            &#8377;{product.price}
           </span>
+          {product.mrp > product.price && (
+            <span className="text-[9px] text-on-surface-variant/35 line-through">
+              &#8377;{product.mrp}
+            </span>
+          )}
         </div>
+
+        {/* Add to Cart button */}
+        <button
+          onClick={handleAddToCart}
+          disabled={cartState !== "idle"}
+          className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold transition-all duration-200 cursor-pointer active:scale-[0.97] disabled:cursor-default ${
+            cartState === "done"
+              ? "bg-green-500/15 text-green-600"
+              : cartState === "error"
+              ? "bg-red-500/10 text-red-500"
+              : "bg-primary-container text-white hover:bg-primary"
+          }`}
+        >
+          {cartState === "loading" && <Loader2 className="w-3 h-3 animate-spin" strokeWidth={2.5} />}
+          {cartState === "done" && <Check className="w-3 h-3" strokeWidth={2.5} />}
+          {cartState === "error" && <AlertCircle className="w-3 h-3" strokeWidth={2} />}
+          {cartState === "idle" && <ShoppingBag className="w-3 h-3" strokeWidth={2} />}
+          {cartState === "loading" ? "Adding…"
+            : cartState === "done" ? "Added!"
+            : cartState === "error" ? "Not available"
+            : "Add to Cart"}
+        </button>
       </div>
     </div>
   );
