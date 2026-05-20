@@ -302,56 +302,68 @@ export default function HomePage() {
   const router = useRouter();
   const feedRef = useRef<HTMLDivElement>(null);
 
-  // Restore onboarding state from sessionStorage on mount
-  useEffect(() => {
-    try {
-      const navType = (performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined)?.type;
-      const isReload = navType === "reload";
-      const hadLeft = sessionStorage.getItem("bh_home_left") === "true";
+  // Bump this whenever the saved-state shape changes — auto-clears old data
+  const STATE_VERSION = "bh_v2";
 
-      if (isReload || !hadLeft) {
-        // Fresh start or page reload: wipe all onboarding state
-        sessionStorage.removeItem("bh_onboarding_state");
-        sessionStorage.removeItem("bh_profile");
-        sessionStorage.removeItem("bh_protocol_built");
-        sessionStorage.removeItem("bh_home_left");
-      } else {
-        // Back navigation into home: restore previous step
-        const saved = sessionStorage.getItem("bh_onboarding_state");
-        if (saved) {
-          const state = JSON.parse(saved) as {
-            name?: string;
-            selectedConcerns?: string[];
-            profile?: Partial<UserProfile>;
-            level?: ProfileLevel;
-            userMessages?: string[];
-            protocolAccepted?: boolean;
-          };
-          if (state.name) { setName(state.name); setNameSubmitted(true); }
-          if (state.selectedConcerns?.length) setSelectedConcerns(state.selectedConcerns);
-          if (state.profile) setProfile(state.profile);
-          if (state.level) setLevel(state.level);
-          if (state.userMessages) setUserMessages(state.userMessages);
-          if (state.protocolAccepted) setProtocolAccepted(true);
-          if (state.level && state.level !== "L0") setNameSubmitted(true);
-          setShowSplash(false);
+  // Restore onboarding state from localStorage on mount
+  useEffect(() => {
+    // ?reset clears everything and starts fresh (used for testing / demos)
+    if (window.location.search.includes("reset")) {
+      localStorage.removeItem("bh_onboarding_state");
+      localStorage.removeItem("bh_profile");
+      localStorage.removeItem("bh_protocol_built");
+      window.history.replaceState({}, "", window.location.pathname);
+      setRestored(true);
+      return;
+    }
+
+    try {
+      const saved = localStorage.getItem("bh_onboarding_state");
+      if (saved) {
+        const state = JSON.parse(saved) as {
+          _version?: string;
+          name?: string;
+          selectedConcerns?: string[];
+          profile?: Partial<UserProfile>;
+          level?: ProfileLevel;
+          userMessages?: string[];
+          protocolAccepted?: boolean;
+        };
+
+        // Old version data — clear it silently and start fresh
+        if (state._version !== STATE_VERSION) {
+          localStorage.removeItem("bh_onboarding_state");
+          localStorage.removeItem("bh_profile");
+          localStorage.removeItem("bh_protocol_built");
+          setRestored(true);
+          return;
         }
+
+        if (state.name) { setName(state.name); setNameSubmitted(true); }
+        if (state.selectedConcerns?.length) setSelectedConcerns(state.selectedConcerns);
+        if (state.profile) setProfile(state.profile);
+        if (state.level) setLevel(state.level);
+        if (state.userMessages) setUserMessages(state.userMessages);
+        if (state.protocolAccepted) setProtocolAccepted(true);
+        if (state.level && state.level !== "L0") setNameSubmitted(true);
+        setShowSplash(false);
       }
     } catch {}
     setRestored(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Persist onboarding state to sessionStorage after every relevant change
+  // Persist onboarding state to localStorage after every relevant change
   useEffect(() => {
     if (!restored) return;
     if (level === "L0" && selectedConcerns.length === 0) return; // nothing to save yet
     try {
-      sessionStorage.setItem("bh_onboarding_state", JSON.stringify({
+      localStorage.setItem("bh_onboarding_state", JSON.stringify({
+        _version: STATE_VERSION,
         name, selectedConcerns, profile, level, userMessages, protocolAccepted,
       }));
     } catch {}
-  }, [name, selectedConcerns, profile, level, userMessages, protocolAccepted, restored]);
+  }, [name, selectedConcerns, profile, level, userMessages, protocolAccepted, restored, STATE_VERSION]);
 
   // Protocol depth calculation
   const answeredQuestions = allBucketQuestions.filter((q) => profile[q.key]);
@@ -441,15 +453,11 @@ export default function HomePage() {
       concerns: selectedConcerns.join(","),
       name: name || undefined,
     };
-    // Save profile for the protocol page
-    sessionStorage.setItem("bh_profile", JSON.stringify(fullProfile));
-    // Save L3 home state so pressing back from /protocol shows the dashboard
-    sessionStorage.setItem("bh_onboarding_state", JSON.stringify({
+    localStorage.setItem("bh_profile", JSON.stringify(fullProfile));
+    localStorage.setItem("bh_onboarding_state", JSON.stringify({
       name, selectedConcerns, profile: fullProfile, level: "L3",
       userMessages, protocolAccepted: true,
     }));
-    // Mark that we've navigated away from home — enables back-nav restore
-    sessionStorage.setItem("bh_home_left", "true");
     router.push("/protocol");
   }, [profile, selectedConcerns, name, userMessages, router]);
 
@@ -1233,6 +1241,7 @@ export default function HomePage() {
                 />
               </div>
             )}
+
           </>
         )}
 

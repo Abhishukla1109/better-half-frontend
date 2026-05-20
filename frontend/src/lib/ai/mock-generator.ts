@@ -26,6 +26,86 @@ const CONCERN_MAP: Record<string, string> = {
   "Sleep / mind": "sleep",
 };
 
+/* ── Follow-up string builder ───────────────────────────────── */
+function buildFollowUpString(profile: UserProfile): string | undefined {
+  const p = profile as Record<string, string | undefined>;
+  const parts: string[] = [];
+
+  /* ── Hair ─────────────────────────────────────────────────── */
+  if (p.hair_primary === "hair_fall") parts.push("hair fall thinning shedding");
+  if (p.hair_primary === "thinning") parts.push("thinning density breakage");
+  if (p.hair_primary === "receding") parts.push("receding hairline dht hair fall");
+  if (p.hair_primary === "dandruff") parts.push("dandruff scalp itchy oily");
+  if (p.hair_primary === "beard") parts.push("beard growth testosterone");
+  if (p.hair_primary === "greying") parts.push("greying premature");
+  if (p.hair_illness === "yes") parts.push("hair fall recovery post-illness");
+  if (p.scalp_type === "oily") parts.push("oily scalp dandruff");
+
+  /* ── Skin ─────────────────────────────────────────────────── */
+  if (p.skin_primary === "acne") parts.push("acne spots pimples oily breakouts");
+  if (p.skin_primary === "oily") parts.push("oily sebum niacinamide acne");
+  if (p.skin_primary === "dullness") parts.push("dullness glow aging collagen brightening");
+  if (p.skin_primary === "pigmentation") parts.push("pigmentation dullness niacinamide tone");
+  if (p.skin_primary === "redness") parts.push("redness sensitive inflammation");
+  if (p.skin_primary === "dark_circles") parts.push("dark circles fatigue sleep");
+  if (p.acne_stress_link === "always") parts.push("stress acne cortisol hormonal");
+  if (p.acne_diet_link === "yes") parts.push("acne gut diet inflammation");
+
+  /* ── Weight ───────────────────────────────────────────────── */
+  if (p.weight_goal === "lose") parts.push("weight loss fat metabolism");
+  if (p.weight_goal === "gain") parts.push("muscle protein body composition");
+  if (p.weight_goal === "both") parts.push("body composition fat muscle protein");
+  if (p.activity_level === "athlete") parts.push("performance recovery protein endurance");
+  if (p.activity_level === "sedentary") parts.push("sedentary metabolism energy");
+  if (p.fat_distribution === "belly") parts.push("belly fat cortisol metabolism");
+  if (p.cravings === "high") parts.push("cravings blood sugar energy");
+
+  /* ── Energy / Gut ─────────────────────────────────────────── */
+  if (p.energy_pattern === "consistently_low") parts.push("fatigue energy b12 iron");
+  if (p.energy_pattern === "afternoon_crash") parts.push("energy crash afternoon b12");
+  if (p.gut_symptom === "bloating") parts.push("bloating gut probiotic digestive");
+  if (p.gut_symptom === "acidity") parts.push("acidity gut digestive");
+  if (p.gut_symptom === "constipation") parts.push("constipation gut fiber probiotic");
+  if (p.fatigue_on_waking === "often") parts.push("fatigue sleep recovery energy");
+
+  /* ── Sleep / Mind ─────────────────────────────────────────── */
+  if (p.sleep_hours === "very_low" || p.sleep_hours === "low") parts.push("sleep insomnia poor sleep");
+  if (p.wake_feeling === "exhausted") parts.push("sleep fatigue recovery exhaustion");
+  if (p.sleep_quality === "poor") parts.push("sleep quality fatigue");
+  if (p.overthinking === "often") parts.push("stress anxiety sleep overthinking");
+  if (p.screen_bedtime === "high") parts.push("sleep hygiene stimulation");
+
+  /* ── Hormones (male) ──────────────────────────────────────── */
+  if (p.hormone_symptom === "libido") parts.push("libido testosterone drive");
+  if (p.hormone_symptom === "motivation") parts.push("motivation drive energy testosterone");
+  if (p.hormone_symptom === "muscle") parts.push("muscle recovery testosterone strength");
+  if (p.hormone_symptom === "belly_fat") parts.push("belly fat cortisol testosterone");
+  if (p.hormone_symptom === "mood") parts.push("mood stress cortisol hormonal");
+  if (p.libido_change === "much_lower") parts.push("libido testosterone");
+  if (p.belly_fat_change === "yes") parts.push("belly fat cortisol metabolism");
+  if (p.mood_shift === "yes") parts.push("mood stress cortisol");
+  if (p.recovery_time === "much_longer") parts.push("recovery muscle testosterone fatigue");
+
+  /* ── Shared signals ───────────────────────────────────────── */
+  if (p.stress_level === "high") parts.push("stress cortisol anxiety");
+  if (p.sleep_quality === "poor") parts.push("sleep fatigue");
+  if (p.protein_meals === "low") parts.push("protein deficiency nutrition");
+  if (p.caffeine_intake === "high") parts.push("caffeine energy adrenal");
+
+  /* ── Female hormones ──────────────────────────────────────── */
+  if (p.postpartum_status === "yes") parts.push("postpartum breastfeeding");
+  if (p.hormonal_concern_f === "cramps_pms") parts.push("pms cramps hormonal period");
+  if (p.hormonal_concern_f === "irregular_periods") parts.push("irregular periods hormonal");
+  if (p.hormonal_concern_f === "acne_mood") parts.push("hormonal acne mood");
+  if (p.hormonal_concern_f === "low_energy") parts.push("low energy fatigue");
+  if (p.period_regularity === "irregular" || p.period_regularity === "very_irregular") parts.push("irregular period hormonal");
+  if (p.pms_severity === "severe") parts.push("severe pms cramps hormonal");
+  if (p.pms_severity === "moderate") parts.push("pms cramps hormonal");
+  if (p.cycle_energy_impact === "high") parts.push("energy fatigue cycle hormonal");
+
+  return parts.length ? parts.join(" ") : undefined;
+}
+
 /* Parse comma-separated concerns string or fall back to single concern */
 function parseConcerns(profile: UserProfile): string[] {
   const raw = profile.concerns as string | undefined;
@@ -338,7 +418,7 @@ const CONCERN_NARRATIVES: Record<string, ConcernNarrative> = {
       "Hormonal imbalances are almost always downstream of two things: cortisol dysregulation and micronutrient deficiencies.",
     summaryVariants: {
       female:
-        "For women, the cortisol-estrogen-progesterone cascade is highly sensitive to sleep, stress, and nutrition — all three are directly addressable.",
+        "For women, the estrogen-progesterone cycle is highly sensitive to magnesium levels, sleep quality, and cortisol — all three are directly addressable with the right protocol.",
       highStress:
         "Chronic stress creates a cortisol burden that simultaneously suppresses sex hormones, thyroid function, and insulin sensitivity. This is the priority to fix.",
       older:
@@ -347,33 +427,41 @@ const CONCERN_NARRATIVES: Record<string, ConcernNarrative> = {
         "Plant-based diets frequently create zinc and iron gaps — both are critical co-factors in hormone synthesis pathways.",
     },
     explanation: ({ sex }) =>
-      `Your protocol resets the cortisol-${sex === "female" ? "estrogen" : "testosterone"} balance and restores the micronutrients that hormone synthesis depends on.`,
+      sex === "female"
+        ? "Your protocol targets the magnesium-cortisol-estrogen pathway — the three most evidence-backed levers for PMS, cycle regularity, and hormonal skin and mood changes."
+        : "Your protocol resets the cortisol-testosterone balance and restores the micronutrients that hormone synthesis depends on.",
     routine: [
-      { time: "morning", text: "Take your supplement to blunt the morning cortisol peak — the most impactful timing" },
-      { time: "afternoon", text: "15 minutes outside or near a window — light exposure regulates the hormonal clock" },
-      { time: "evening", text: "Light stretching or yoga — activates parasympathetic nervous system, lowers cortisol" },
+      { time: "morning", text: "Take your supplement to blunt the morning cortisol peak — the most impactful timing for hormonal support" },
+      { time: "afternoon", text: "15 minutes outside or near a window — light exposure directly regulates the hormonal clock" },
+      { time: "evening", text: "Light stretching or yoga — activates the parasympathetic nervous system, lowers evening cortisol" },
     ],
     lifestyle: [
-      "Reduce refined sugar — insulin spikes cascade directly into hormonal disruption",
+      "Reduce refined sugar and processed carbs — insulin spikes cascade directly into hormonal disruption and worsen PMS",
       "Include healthy fats (ghee, nuts, avocado) in every meal — they are the literal building blocks of hormones",
       "A consistent sleep and wake time is more powerful than any supplement for hormonal regulation",
     ],
     productTiming: {
-      hormones: "Morning or evening",
+      hormones: "Evening with dinner",
+      sleep: "30–45 min before bed",
       energy: "Morning with food",
-      sleep: "30 min before bed",
+      nutrition: "Morning with breakfast",
+      skin: "Before breakfast or morning",
     },
     productReasoning: {
-      hormones: "Regulates cortisol — the master switch that affects every downstream hormone",
-      energy: "Essential co-factor in hormone synthesis — deficiency directly disrupts the pathway",
-      sleep: "Restores the sleep depth that drives overnight hormonal repair and regulation",
+      hormones: "Magnesium is the most clinically supported intervention for PMS, cycle regularity, and cortisol-driven hormonal symptoms",
+      sleep: "Restores the sleep depth that drives overnight hormonal repair — especially critical in the luteal phase",
+      energy: "Corrects B-vitamin and mineral gaps that directly affect estrogen metabolism and energy production",
+      nutrition: "Essential micronutrients support the hormonal synthesis pathway that most Indian diets consistently under-deliver",
+      skin: "Targets hormonal acne at the gut-skin-hormone axis — more effective than topical-only approaches",
     },
     productReasonTags: {
-      hormones: ["cortisol balance", "hormone synthesis", "HPA axis"],
-      energy: ["co-factor support", "synthesis pathway"],
-      sleep: ["overnight repair", "hormonal reset"],
+      hormones: ["PMS relief", "cycle support", "cortisol balance"],
+      sleep: ["overnight repair", "luteal phase"],
+      energy: ["estrogen metabolism", "B vitamins"],
+      nutrition: ["micronutrient gaps", "hormone synthesis"],
+      skin: ["hormonal acne", "gut-skin axis"],
     },
-    priorityQuestions: ["sleep", "stress", "moodSwings"],
+    priorityQuestions: ["period_regularity", "stress", "sleep"],
   },
   "Sleep / mind": {
     summaryBase:
@@ -471,6 +559,7 @@ function buildSupplements(
     age: profile.age || "25-34",
     diet: profile.diet || "non-veg",
     concern,
+    followUp: buildFollowUpString(profile),
   };
 
   const matched = calculateProtocolMatch(userSegment);
@@ -501,7 +590,10 @@ function buildSupplements(
       reasoning,
       reasonTags,
       matchScore: product.matchScore,
-      shopifyUrl: getProductShopifyUrl(product.id),
+      shopifyUrl: product.url ?? getProductShopifyUrl(product.id),
+      image: product.image,
+      rating: product.rating,
+      reviewCount: product.reviewCount,
       priority,
     };
   });
@@ -573,6 +665,7 @@ function buildMultiConcernSupplements(
       age: profile.age || "25-34",
       diet: profile.diet || "non-veg",
       concern,
+      followUp: buildFollowUpString(profile),
     };
 
     const matched = calculateProtocolMatch(userSegment);
@@ -600,7 +693,10 @@ function buildMultiConcernSupplements(
         reasoning,
         reasonTags,
         matchScore: product.matchScore,
-        shopifyUrl: getProductShopifyUrl(product.id),
+        shopifyUrl: product.url ?? getProductShopifyUrl(product.id),
+        image: product.image,
+        rating: product.rating,
+        reviewCount: product.reviewCount,
         priority,
       });
 
@@ -657,6 +753,56 @@ function buildMultiConcernFollowUps(
   return keys.slice(0, 3).map((k) => QUESTION_BANK[k]).filter(Boolean);
 }
 
+/* ── Warm opening message ───────────────────────────────────── */
+export function buildWarmMessage(profile: UserProfile, allConcerns: string[]): string {
+  const primaryConcern = allConcerns[0] || DEFAULT_CONCERN;
+  const isHighStress = profile.stress === "high";
+  const isFemale = profile.sex === "female";
+  const isPlantBased = profile.diet === "veg" || profile.diet === "vegan";
+  const isOlder = profile.age === "35-44" || profile.age === "45+";
+
+  const messages: Record<string, string> = {
+    "Hair / beard": isHighStress
+      ? "Stress shows up in hair before almost anywhere else in the body. The good news: this is one of the most reversible changes when you target the right things — which is exactly what your protocol does."
+      : isFemale
+        ? "Hair changes are harder to deal with than most people acknowledge. You're taking the right step — and this protocol is designed around exactly what your body needs right now."
+        : isPlantBased
+          ? "Your plant-based diet is a strength in most ways, with one specific gap that affects hair. Your protocol is built precisely around closing that gap — and fixing it makes everything else work faster."
+          : isOlder
+            ? "Hair changes after 35 are real, but they're far more addressable than most people realise. Your protocol targets the right mechanisms — and results typically come sooner than expected."
+            : "You're already ahead of where most people are by being here. This protocol is built specifically for your hair concerns — and the changes start happening before you can see them.",
+    "Skin / acne": isHighStress
+      ? "When stress and skin are connected, topicals alone never fix it. Your protocol tackles the root cause — and that's the difference between temporary relief and actual change."
+      : isFemale
+        ? "Adult skin issues in women are almost always connected to what's happening inside. Your protocol goes after both the hormonal and the gut-skin component at the same time — not just what's visible."
+        : "Dealing with skin concerns is exhausting when nothing seems to work. Your protocol goes after the actual root cause — and that's what changes things for good.",
+    "Energy / gut": isHighStress
+      ? "Stress and gut function are deeply connected — and both show up as fatigue. Your protocol addresses them together, which is why the results are usually felt faster than people expect."
+      : isFemale
+        ? "Energy and gut health in women are closely connected to hormonal rhythms. Your protocol accounts for this and targets both at once — not just the surface symptoms."
+        : isPlantBased
+          ? "Your diet is working for you in most ways, with one specific energy gap to close. Your protocol is built precisely around correcting that — and the difference is noticeable."
+          : "Running on low energy for a long time quietly becomes the new normal. Your protocol is built to change that — starting at the source, not the symptoms.",
+    "Weight": isHighStress
+      ? "Cortisol makes fat loss feel impossible even when you're doing everything right. Your protocol starts by addressing that directly — everything else becomes easier once it does."
+      : isFemale
+        ? "Female body composition follows hormonal patterns that most generic plans completely ignore. Yours doesn't — it's built around how your body actually works."
+        : "Body composition change is mostly hormonal and metabolic — not willpower. Your protocol is built around that truth, not the myths.",
+    "Hormones": isFemale
+      ? "Hormonal symptoms — cramps, irregular cycles, mood shifts, hormonal acne — are signals your body is giving you. Your protocol reads those signals and works at the source, not just the symptoms."
+      : isHighStress
+        ? "Chronic stress quietly disrupts every hormonal pathway downstream. Your protocol starts by addressing this directly — because nothing else works properly until you do."
+        : "Hormonal balance feels distant when you're in the middle of it. Your protocol works at the root — and that's where the real, lasting change happens.",
+    "Sleep / mind": isHighStress
+      ? "When stress and poor sleep feed each other, it's hard to know where to start. Your protocol breaks that cycle at exactly the right point — and the improvement compounds quickly from there."
+      : isFemale
+        ? "Sleep changes with hormonal cycles are frustratingly real and rarely talked about. Magnesium and cortisol management address the root cause — not just the nights when it's bad."
+        : "Poor sleep becomes its own kind of invisible weight over time. Your protocol addresses the actual biology behind it — and changes tend to come faster than people expect.",
+  };
+
+  return messages[primaryConcern] ?? messages["Energy / gut"];
+}
+
 /* ── Main export ────────────────────────────────────────────── */
 export function generateMockProtocol(profile: UserProfile): GeneratedProtocol {
   const allConcerns = parseConcerns(profile);
@@ -681,17 +827,14 @@ export function generateMockProtocol(profile: UserProfile): GeneratedProtocol {
     ? buildMultiConcernLifestyle(allConcerns)
     : narrative.lifestyle;
 
-  const followUpQuestions = isMulti
-    ? buildMultiConcernFollowUps(profile, allConcerns)
-    : buildFollowUps(profile, narrative);
-
   return {
+    warmMessage: buildWarmMessage(profile, allConcerns),
     summary,
     explanation,
     dailyRoutine,
     lifestyle,
     supplements,
-    followUpQuestions,
+    followUpQuestions: [],
     confidence: profileDepth.total,
     confidenceMessage: buildConfidenceMessage(profileDepth.total),
     profileDepth,

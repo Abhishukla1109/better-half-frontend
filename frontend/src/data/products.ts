@@ -10,7 +10,6 @@ import ashwagandhaKsm66 from "@/catalog/ashwagandha-ksm66.json";
 import dailyProbiotics from "@/catalog/daily-probiotics.json";
 import wheyProteinIsolate from "@/catalog/whey-protein-isolate.json";
 import magnesiumB6 from "@/catalog/magnesium-b6.json";
-import kidsMultivitaminGummies from "@/catalog/kids-multivitamin-gummies.json";
 
 /* ─── Types ─── */
 
@@ -91,7 +90,6 @@ export const products: ProductConfig[] = [
   dailyProbiotics,
   wheyProteinIsolate,
   magnesiumB6,
-  kidsMultivitaminGummies,
 ] as ProductConfig[];
 
 /* ─── Slug set for quick existence checks ─── */

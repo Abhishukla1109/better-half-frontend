@@ -40,6 +40,9 @@ export interface ProtocolSupplement {
   reasonTags?: string[];
   matchScore: number;
   shopifyUrl: string;
+  image?: string;
+  rating?: number;
+  reviewCount?: number;
   priority: "essential" | "recommended" | "optional";
 }
 
@@ -65,6 +68,7 @@ export interface ProfileDepth {
 }
 
 export interface GeneratedProtocol {
+  warmMessage: string;
   summary: string;
   explanation: string;
   dailyRoutine: RoutineItem[];

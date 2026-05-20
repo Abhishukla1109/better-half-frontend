@@ -4,7 +4,7 @@
    2. Falls back to mock generator — no config required
    ────────────────────────────────────────────────────────────── */
 
-import { generateMockProtocol } from "./mock-generator";
+import { generateMockProtocol, buildWarmMessage } from "./mock-generator";
 import { buildPrompt } from "./prompt-builder";
 import { calculateProfileDepth } from "./profile-depth";
 import type { UserProfile, GeneratedProtocol } from "./types";
@@ -46,9 +46,13 @@ async function generateWithClaude(
 
   // Calculate profile depth server-side (not delegated to Claude)
   const profileDepth = calculateProfileDepth(profile);
+  const allConcerns = profile.concerns
+    ? String(profile.concerns).split(",").filter(Boolean)
+    : profile.concern ? [profile.concern] : [];
 
   return {
     ...parsed,
+    warmMessage: buildWarmMessage(profile, allConcerns),
     // Normalise supplement shape to include fields Claude may omit
     supplements: (parsed.supplements ?? []).map(
       (s: Record<string, unknown>, i: number) => ({

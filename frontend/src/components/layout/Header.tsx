@@ -11,10 +11,9 @@ export default function Header() {
   const router = useRouter();
 
   const handleLogoClick = useCallback(() => {
-    sessionStorage.removeItem("bh_onboarding_state");
-    sessionStorage.removeItem("bh_profile");
-    sessionStorage.removeItem("bh_protocol_built");
-    sessionStorage.removeItem("bh_home_left");
+    localStorage.removeItem("bh_onboarding_state");
+    localStorage.removeItem("bh_profile");
+    localStorage.removeItem("bh_protocol_built");
     router.push("/home");
   }, [router]);
 
