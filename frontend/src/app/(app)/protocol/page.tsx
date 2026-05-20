@@ -447,11 +447,13 @@ export default function ProtocolPage() {
     return calculateProfileDepth({ ...profile, ...answers }).total;
   }, [profile, answers, protocol]);
 
-  // Silent re-fetch when session ends — merges all answers in, updates products only
+  // Silent re-fetch when session quota is reached — merges all answers in, updates products only
+  // Only triggers on sessionLimitReached (not allAnswered) so the popup doesn't fire after a single answer
+  // when the question bank happens to be exhausted early for that user's profile.
   useEffect(() => {
     if (!profile) return;
-    if (!sessionLimitReached && !allAnswered) return;
-    if (Object.keys(answers).length === 0) return;
+    if (!sessionLimitReached) return;
+    if (answeredCount === 0) return;
     if (hasRefetched.current) return;
     hasRefetched.current = true;
 
@@ -473,7 +475,7 @@ export default function ProtocolPage() {
       })
       .catch(() => { /* silent — original products stay */ });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionLimitReached, allAnswered]);
+  }, [sessionLimitReached]);
 
   /* ── Loading ───────────────────────────────────────────────── */
   if (loading || !protocol) {
