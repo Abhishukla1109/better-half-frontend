@@ -652,7 +652,7 @@ export default function ProtocolPage() {
           <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50 mb-2 px-1">
             Daily Routine
           </p>
-          <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-1">
+          <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-1">
             {protocol.dailyRoutine.map((item, i) => {
               const Icon = item.time === "morning" ? Sun : item.time === "afternoon" ? Zap : Moon;
               const timeLabel = item.time === "morning" ? "Morning" : item.time === "afternoon" ? "Afternoon" : "Evening";
@@ -683,7 +683,7 @@ export default function ProtocolPage() {
             <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50 mb-2 px-1">
               Lifestyle Tips
             </p>
-            <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-1">
+            <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-1">
               {(() => {
                 const tip = protocol.lifestyle[0];
                 const { action, detail } = splitRoutineText(tip);
@@ -870,7 +870,7 @@ export default function ProtocolPage() {
                     {protocol.supplements.slice(0,3).every(s => addedIds.has(s.id)) ? "All added" : "Add all"}
                   </button>
                 </div>
-                <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
+                <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-2">
                   {protocol.supplements.slice(0, 3).map((s) => {
                     const discountPct = s.mrp && s.mrp > s.price
                       ? Math.round((1 - s.price / s.mrp) * 100)

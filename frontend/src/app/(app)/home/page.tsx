@@ -566,15 +566,15 @@ export default function HomePage() {
   // Lock body scroll + hide header when sheet is open
   useEffect(() => {
     if (sheetOpen) {
-      document.body.style.overflow = "hidden";
+      document.body.style.overflowY = "hidden";
       const header = document.querySelector("[data-header-visible]") as HTMLElement;
       if (header) header.style.transform = "translateY(-100%)";
     } else {
-      document.body.style.overflow = "";
+      document.body.style.overflowY = "";
       const header = document.querySelector("[data-header-visible]") as HTMLElement;
       if (header) header.style.transform = "";
     }
-    return () => { document.body.style.overflow = ""; };
+    return () => { document.body.style.overflowY = ""; };
   }, [sheetOpen]);
 
   // Bucket icon resolver

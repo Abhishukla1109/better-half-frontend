@@ -31,11 +31,11 @@ export default function CartDrawer() {
       if (e.key === 'Escape') closeCart();
     };
     document.addEventListener('keydown', handleKey);
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflowY = 'hidden';
     drawerRef.current?.focus();
     return () => {
       document.removeEventListener('keydown', handleKey);
-      document.body.style.overflow = '';
+      document.body.style.overflowY = '';
     };
   }, [isOpen, closeCart]);
 
