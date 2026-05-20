@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Sparkles, ExternalLink, ArrowRight, ShoppingBag, Loader2, Check, AlertCircle, X } from "lucide-react";
 import { ALL_PRODUCTS, resolveSegment } from "@/lib/protocolEngine";
@@ -280,7 +280,7 @@ function NoProfileState() {
 }
 
 /* ── Explore Page ── */
-export default function ExplorePage() {
+function ExplorePageContent() {
   const searchParams = useSearchParams();
   const [activeCategory, setActiveCategory] = useState("for-you");
   const [profile, setProfile] = useState<StoredProfile | null>(null);
@@ -571,5 +571,13 @@ export default function ExplorePage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ExplorePage() {
+  return (
+    <Suspense fallback={null}>
+      <ExplorePageContent />
+    </Suspense>
   );
 }
