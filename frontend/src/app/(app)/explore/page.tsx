@@ -101,9 +101,11 @@ function scoreProducts(
 function ProductCard({
   product,
   isTopPick,
+  matchPct,
 }: {
   product: Product & { matchScore?: number };
   isTopPick?: boolean;
+  matchPct?: number;
 }) {
   const router = useRouter();
   const { addItem } = useCart();
@@ -173,12 +175,16 @@ function ProductCard({
           </span>
         )}
 
-        {isTopPick && (
+        {matchPct !== undefined && matchPct >= 80 ? (
+          <div className="absolute top-2 right-2 bg-primary-container/90 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full leading-none shadow-sm tabular-nums">
+            {matchPct}% match
+          </div>
+        ) : isTopPick ? (
           <div className="absolute top-2 right-2 flex items-center gap-0.5 bg-primary-container/90 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-full leading-none shadow-sm">
             <Sparkles className="w-2 h-2" strokeWidth={2} />
             Top pick
           </div>
-        )}
+        ) : null}
 
         {/* External link hint */}
         <div className="absolute bottom-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -462,7 +468,7 @@ export default function ExplorePage() {
                       <ProductCard
                         key={p.id}
                         product={p}
-                        isTopPick={(p as MatchedProduct).matchScore >= 85}
+                        matchPct={(p as MatchedProduct).matchScore}
                       />
                     ))}
                   </div>
@@ -475,7 +481,8 @@ export default function ExplorePage() {
                 <ProductCard
                   key={p.id}
                   product={p}
-                  isTopPick={isForYou && (p as MatchedProduct).matchScore >= 85}
+                  isTopPick={!isForYou && (p as MatchedProduct).matchScore >= 85}
+                  matchPct={isForYou ? (p as MatchedProduct).matchScore : undefined}
                 />
               ))}
             </div>
