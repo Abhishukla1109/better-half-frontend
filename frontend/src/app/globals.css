@@ -83,7 +83,8 @@
 
 /* --- Base Styles --- */
 html {
-  overflow-x: hidden;
+  /* overflow-x: clip works on iOS Safari; overflow-x: hidden does not */
+  overflow-x: clip;
 }
 
 body {
@@ -92,7 +93,7 @@ body {
   color: var(--color-on-surface);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 h1, h2, h3 {

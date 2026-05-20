@@ -296,6 +296,10 @@ export default function HomePage() {
   // All selected concerns (multi-select from ConcernCard)
   const [selectedConcerns, setSelectedConcerns] = useState<string[]>([]);
 
+  // Protocol generation + fake auth overlay
+  const [showGenerating, setShowGenerating] = useState(false);
+  const [generatingPhase, setGeneratingPhase] = useState<"generating" | "ready" | "auth">("generating");
+
   // Tracks whether we've attempted to restore state — prevents saving before restore
   const [restored, setRestored] = useState(false);
 
@@ -458,8 +462,11 @@ export default function HomePage() {
       name, selectedConcerns, profile: fullProfile, level: "L3",
       userMessages, protocolAccepted: true,
     }));
-    router.push("/protocol");
-  }, [profile, selectedConcerns, name, userMessages, router]);
+    // Show generating → ready → auth overlay instead of navigating immediately
+    setGeneratingPhase("generating");
+    setShowGenerating(true);
+    setTimeout(() => setGeneratingPhase("ready"), 2800);
+  }, [profile, selectedConcerns, name, userMessages]);
 
   const handleAcceptProtocol = useCallback(() => {
     setProtocolAccepted(true);
@@ -1078,6 +1085,145 @@ export default function HomePage() {
                 )}
               </div>
             </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     PROTOCOL GENERATION + FAKE AUTH OVERLAY
+     ═══════════════════════════════════════════════════════ */
+  if (showGenerating) {
+    return (
+      <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center bg-surface px-6">
+
+        {/* Generating phase */}
+        {generatingPhase === "generating" && (
+          <div className="flex flex-col items-center text-center animate-fade-in-up">
+            {/* Pulsing ring */}
+            <div className="relative flex items-center justify-center w-24 h-24 mb-8">
+              <div className="absolute inset-0 rounded-full bg-primary-container/15 animate-ping" style={{ animationDuration: "1.4s" }} />
+              <div className="absolute inset-2 rounded-full bg-primary-container/10" />
+              <Sparkles className="relative w-9 h-9 text-primary-container" strokeWidth={1.5} />
+            </div>
+            <h2 className="text-2xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-3">
+              Building your protocol…
+            </h2>
+            <p className="text-sm text-on-surface-variant/70 max-w-xs leading-relaxed">
+              Analysing your profile across 6.5M Indian health journeys to find your exact match.
+            </p>
+            {/* Animated progress dots */}
+            <div className="flex gap-2 mt-8">
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="w-2 h-2 rounded-full bg-primary-container/40 animate-pulse"
+                  style={{ animationDelay: `${i * 250}ms` }}
+                />
+              ))}
+            </div>
+            {/* Step labels that cycle */}
+            <div className="mt-6 space-y-1.5 text-left w-full max-w-xs">
+              {["Matching your concern profile", "Scoring 86 products", "Personalising daily routine"].map((step, i) => (
+                <div key={i} className="flex items-center gap-2.5 animate-fade-in-up" style={{ animationDelay: `${i * 600 + 200}ms` }}>
+                  <div className="w-4 h-4 rounded-full bg-primary-container/15 flex items-center justify-center shrink-0">
+                    <Check className="w-2.5 h-2.5 text-primary-container" strokeWidth={2.5} />
+                  </div>
+                  <span className="text-xs text-on-surface-variant/60">{step}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Ready phase */}
+        {generatingPhase === "ready" && (
+          <div className="flex flex-col items-center text-center animate-fade-in-up w-full max-w-xs">
+            <div className="flex items-center justify-center w-20 h-20 rounded-full bg-primary-container/15 mb-6">
+              <Check className="w-9 h-9 text-primary-container" strokeWidth={2} />
+            </div>
+            <h2 className="text-2xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-2">
+              Your protocol is ready!
+            </h2>
+            <p className="text-sm text-on-surface-variant/70 leading-relaxed mb-8">
+              We&apos;ve built a personalised plan based on your profile. Save it to your account to track progress.
+            </p>
+            <button
+              onClick={() => setGeneratingPhase("auth")}
+              className="w-full py-4 rounded-2xl bg-primary-container text-white font-bold text-base hover:bg-primary transition-colors duration-200 cursor-pointer"
+            >
+              View my protocol →
+            </button>
+          </div>
+        )}
+
+        {/* Fake auth phase */}
+        {generatingPhase === "auth" && (
+          <div className="flex flex-col w-full max-w-sm animate-fade-in-up">
+            {/* Logo */}
+            <div className="flex items-center justify-center mb-8">
+              <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-primary-container/15">
+                <Sparkles className="w-6 h-6 text-primary-container" strokeWidth={1.5} />
+              </div>
+            </div>
+
+            <h2 className="text-2xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)] text-center mb-2">
+              Let&apos;s get you started.
+            </h2>
+            <p className="text-sm text-on-surface-variant text-center mb-8">
+              Create a free account to save and access your protocol.
+            </p>
+
+            {/* Phone field */}
+            <div className="mb-4">
+              <p className="text-[11px] font-semibold text-on-surface-variant/60 uppercase tracking-wider mb-1.5">
+                Phone Number
+              </p>
+              <div className="flex items-center gap-2 border border-outline-variant/30 rounded-xl px-4 py-3.5 bg-surface-container-lowest focus-within:border-primary-container/50 transition-colors">
+                <span className="text-sm font-semibold text-on-surface-variant">+91</span>
+                <div className="w-px h-4 bg-outline-variant/30" />
+                <input
+                  type="tel"
+                  placeholder="98000 00000"
+                  className="flex-1 bg-transparent text-sm text-on-surface placeholder:text-on-surface-variant/35 outline-none"
+                />
+              </div>
+            </div>
+
+            {/* OTP CTA */}
+            <button
+              onClick={() => router.push("/protocol")}
+              className="w-full flex items-center justify-between py-4 px-5 rounded-2xl bg-primary-container text-white font-bold text-sm hover:bg-primary transition-colors duration-200 cursor-pointer mb-5"
+            >
+              <span>Send OTP</span>
+              <span className="text-lg leading-none">→</span>
+            </button>
+
+            {/* Divider */}
+            <div className="flex items-center gap-3 mb-5">
+              <div className="flex-1 h-px bg-outline-variant/20" />
+              <span className="text-xs text-on-surface-variant/40 font-medium">or</span>
+              <div className="flex-1 h-px bg-outline-variant/20" />
+            </div>
+
+            {/* Google CTA */}
+            <button
+              onClick={() => router.push("/protocol")}
+              className="w-full flex items-center justify-center gap-3 py-3.5 rounded-2xl border border-outline-variant/25 text-sm font-semibold text-on-surface hover:bg-surface-container-low transition-colors cursor-pointer"
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+                <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+                <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+              </svg>
+              Continue with Google
+            </button>
+
+            <p className="text-[10px] text-on-surface-variant/35 text-center mt-5">
+              Free forever · No spam · Your data stays private
+            </p>
           </div>
         )}
       </div>

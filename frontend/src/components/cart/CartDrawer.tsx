@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight, Loader2 } from 'lucide-react';
@@ -10,6 +10,19 @@ import { formatPrice } from '@/lib/shopify/api';
 export default function CartDrawer() {
   const { cart, isOpen, isLoading, closeCart, updateItem, removeItem, checkout } = useCart();
   const drawerRef = useRef<HTMLDivElement>(null);
+
+  // Mount/unmount after animation to prevent iOS Safari horizontal overflow
+  const [shouldRender, setShouldRender] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (isOpen) {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+      setShouldRender(true);
+    } else {
+      closeTimerRef.current = setTimeout(() => setShouldRender(false), 350);
+    }
+    return () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current); };
+  }, [isOpen]);
 
   // Focus trap + close on Escape
   useEffect(() => {
@@ -39,7 +52,8 @@ export default function CartDrawer() {
         aria-hidden="true"
       />
 
-      {/* Drawer */}
+      {/* Drawer — only in DOM while open or animating closed */}
+      {shouldRender && (
       <div
         ref={drawerRef}
         tabIndex={-1}
@@ -193,6 +207,7 @@ export default function CartDrawer() {
           </div>
         )}
       </div>
+      )}
     </>
   );
 }

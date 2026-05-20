@@ -15,10 +15,13 @@ import {
   Upload,
   Lock,
   Stethoscope,
+  Loader2,
 } from "lucide-react";
 import type { GeneratedProtocol, UserProfile } from "@/lib/ai/types";
 import { calculateProfileDepth } from "@/lib/ai/profile-depth";
 import { selectNextQuestion, countFollowUpAnswers } from "@/lib/ai/question-bank";
+import { useCart } from "@/context/CartContext";
+import { resolveVariantId } from "@/lib/shopify/variant-resolver";
 
 /* ── Concern title map ─────────────────────────────────────── */
 const CONCERN_TITLE_MAP: Record<string, string> = {
@@ -267,13 +270,20 @@ export default function ProtocolPage() {
   const [expandedReasonings, setExpandedReasonings] = useState<Set<string>>(new Set());
   const [showingUpdate, setShowingUpdate] = useState(false);
   const [depthGain, setDepthGain] = useState(0);
-  // Wire to real auth later — flip to true once user is logged in
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // Auth gate removed — always unlocked after login step in onboarding
   // Visit tracking for smart question cadence
   const [visitCount, setVisitCount] = useState(1);
   const [bonusUnlocked, setBonusUnlocked] = useState(false);
   // Prevent double re-fetch within a session
   const hasRefetched = useRef(false);
+  // Cart
+  const { addItem } = useCart();
+  const [addingId, setAddingId] = useState<string | null>(null);
+  const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
+  const [addingAll, setAddingAll] = useState(false);
+  // "Protocol sharpened!" dramatic moment
+  const [showSharpen, setShowSharpen] = useState(false);
+  const picksRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let stored: UserProfile | null = null;
@@ -356,6 +366,39 @@ export default function ProtocolPage() {
     });
   }, []);
 
+  const handleAddToCart = useCallback(async (productId: string) => {
+    if (addingId || addedIds.has(productId)) return;
+    setAddingId(productId);
+    try {
+      const variantId = await resolveVariantId(productId);
+      if (variantId) {
+        await addItem(variantId);
+        setAddedIds((prev) => new Set([...prev, productId]));
+      }
+    } finally {
+      setAddingId(null);
+    }
+  }, [addItem, addingId, addedIds]);
+
+  const handleAddAll = useCallback(async () => {
+    if (!protocol || addingAll) return;
+    setAddingAll(true);
+    try {
+      const picks = protocol.supplements.slice(0, 3);
+      for (const s of picks) {
+        if (!addedIds.has(s.id)) {
+          const variantId = await resolveVariantId(s.id);
+          if (variantId) {
+            await addItem(variantId);
+            setAddedIds((prev) => new Set([...prev, s.id]));
+          }
+        }
+      }
+    } finally {
+      setAddingAll(false);
+    }
+  }, [protocol, addingAll, addedIds, addItem]);
+
   /* ── Derived state ─────────────────────────────────────────── */
   const concernList = useMemo(() => parseConcernList(profile), [profile]);
 
@@ -421,6 +464,12 @@ export default function ProtocolPage() {
       .then((r) => r.json())
       .then((data: GeneratedProtocol) => {
         setProtocol((prev) => prev ? { ...prev, supplements: data.supplements } : data);
+        setAddedIds(new Set()); // reset cart state so buttons are fresh on new picks
+        setShowSharpen(true);
+        setTimeout(() => {
+          setShowSharpen(false);
+          picksRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 2500);
       })
       .catch(() => { /* silent — original products stay */ });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -446,6 +495,26 @@ export default function ProtocolPage() {
   /* ── Rendered protocol ─────────────────────────────────────── */
   return (
     <div className="min-h-dvh pb-24 overflow-x-hidden">
+
+      {/* Protocol sharpened dramatic overlay */}
+      {showSharpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-surface-container-lowest rounded-3xl p-8 mx-6 text-center animate-fade-in-up shadow-2xl max-w-xs w-full">
+            <div className="text-5xl mb-4 animate-bounce">✨</div>
+            <h2 className="text-xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-2">
+              Protocol sharpened!
+            </h2>
+            <p className="text-sm text-on-surface-variant/70 leading-relaxed">
+              Your picks have been refreshed based on your answers. Scroll down to see them.
+            </p>
+            <div className="mt-5 flex justify-center gap-1.5">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="w-1.5 h-1.5 rounded-full bg-primary-container/40 animate-pulse" style={{ animationDelay: `${i * 200}ms` }} />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
 
       <div className="px-4 pt-4">
@@ -626,7 +695,7 @@ export default function ProtocolPage() {
                   </div>
                 );
               })()}
-              {isAuthenticated && protocol.lifestyle.slice(1).map((tip, i) => {
+              {protocol.lifestyle.slice(1).map((tip, i) => {
                 const { action, detail } = splitRoutineText(tip);
                 return (
                   <div key={i + 1} className="flex-shrink-0 w-[42vw] max-w-[180px] min-w-[152px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 p-3.5">
@@ -636,53 +705,12 @@ export default function ProtocolPage() {
                   </div>
                 );
               })}
-              {!isAuthenticated && protocol.lifestyle.length > 1 && (
-                <div className="flex-shrink-0 w-[42vw] max-w-[180px] min-w-[152px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 border-dashed p-3.5 flex flex-col items-center justify-center gap-2">
-                  <Lock className="w-4 h-4 text-on-surface-variant/30" strokeWidth={1.5} />
-                  <p className="text-[10px] font-semibold text-on-surface-variant/40 text-center">
-                    {protocol.lifestyle.length - 1} more tip{protocol.lifestyle.length - 1 !== 1 ? "s" : ""} locked
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         )}
 
-        {/* ── Blurred ingredient preview — teases locked content ── */}
-        {!isAuthenticated && ingredientList.length > 0 && (
-          <div className="relative overflow-hidden mb-0" style={{ maxHeight: 168 }}>
-            <div className="blur-sm opacity-50 pointer-events-none select-none">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50 mb-2 px-1">
-                What your body needs
-              </p>
-              <div className="feed-card divide-y divide-outline-variant/8">
-                {ingredientList.slice(0, 3).map((item) => (
-                  <div key={item.name} className="px-4 py-3.5 flex items-center gap-3">
-                    <span className="text-xl shrink-0 leading-none">{getSupplementEmoji(item.name)}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-sm font-semibold text-on-surface">{item.name}</p>
-                        <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded text-primary-container bg-primary-container/10">
-                          {item.priority}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-on-surface-variant/55 mt-0.5">{item.timing}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent to-surface pointer-events-none" />
-          </div>
-        )}
-
-        {/* ── Gate ── */}
-        {!isAuthenticated && (
-          <ProtocolGate onUnlock={() => setIsAuthenticated(true)} />
-        )}
-
-        {/* ── Unlocked content ── */}
-        {isAuthenticated && (
+        {/* ── Full protocol content ── */}
+        {true && (
           <>
             {/* Blood report */}
             {!profile?.bloodReport && (
@@ -822,10 +850,26 @@ export default function ProtocolPage() {
 
             {/* Product sneak peek */}
             {protocol.supplements.length > 0 && (
-              <div className="mb-4 animate-fade-in-up">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50 mb-2.5 px-1">
-                  Your picks
-                </p>
+              <div ref={picksRef} className="mb-4 animate-fade-in-up">
+                <div className="flex items-center justify-between mb-2.5 px-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50">
+                    Your picks
+                  </p>
+                  <button
+                    onClick={handleAddAll}
+                    disabled={addingAll || protocol.supplements.slice(0,3).every(s => addedIds.has(s.id))}
+                    className="flex items-center gap-1.5 text-[11px] font-bold text-primary-container bg-primary-container/10 px-3 py-1.5 rounded-full hover:bg-primary-container/20 transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    {addingAll ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : protocol.supplements.slice(0,3).every(s => addedIds.has(s.id)) ? (
+                      <Check className="w-3 h-3" strokeWidth={2.5} />
+                    ) : (
+                      <ShoppingBag className="w-3 h-3" strokeWidth={2} />
+                    )}
+                    {protocol.supplements.slice(0,3).every(s => addedIds.has(s.id)) ? "All added" : "Add all"}
+                  </button>
+                </div>
                 <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
                   {protocol.supplements.slice(0, 3).map((s) => {
                     const discountPct = s.mrp && s.mrp > s.price
@@ -894,9 +938,24 @@ export default function ProtocolPage() {
                                 <p className="text-[9px] text-on-surface-variant/35 line-through mt-0.5">₹{s.mrp}</p>
                               )}
                             </div>
-                            <span className="text-[10px] font-semibold text-primary-container">
-                              View →
-                            </span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); void handleAddToCart(s.id); }}
+                              disabled={addingId === s.id || addedIds.has(s.id)}
+                              className={`flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-200 cursor-pointer ${
+                                addedIds.has(s.id)
+                                  ? "bg-primary-container text-white"
+                                  : "bg-primary-container/15 text-primary-container hover:bg-primary-container/30"
+                              } disabled:opacity-60`}
+                              aria-label={addedIds.has(s.id) ? "Added to cart" : "Add to cart"}
+                            >
+                              {addingId === s.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : addedIds.has(s.id) ? (
+                                <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+                              ) : (
+                                <ShoppingBag className="w-3.5 h-3.5" strokeWidth={2} />
+                              )}
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -905,7 +964,10 @@ export default function ProtocolPage() {
 
                   {/* View all card */}
                   <div
-                    onClick={() => router.push("/explore")}
+                    onClick={() => {
+                      const picks = protocol.supplements.slice(0, 3).map((s) => s.id).join(",");
+                      router.push(`/explore?picks=${encodeURIComponent(picks)}`);
+                    }}
                     className="flex-shrink-0 w-[36vw] max-w-[148px] min-w-[120px] rounded-2xl border border-primary-container/20 border-dashed flex flex-col items-center justify-center gap-2.5 cursor-pointer hover:bg-primary-container/4 transition-colors"
                     style={{ minHeight: 230 }}
                   >
@@ -924,7 +986,10 @@ export default function ProtocolPage() {
             {/* Shop CTA */}
             <div className="mb-4 animate-fade-in-up">
               <button
-                onClick={() => router.push("/explore")}
+                onClick={() => {
+                  const picks = protocol.supplements.slice(0, 3).map((s) => s.id).join(",");
+                  router.push(`/explore?picks=${encodeURIComponent(picks)}`);
+                }}
                 className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-primary-container text-sm font-bold text-white hover:bg-primary transition-colors duration-200 cursor-pointer"
               >
                 <ShoppingBag className="w-4 h-4" strokeWidth={2} />

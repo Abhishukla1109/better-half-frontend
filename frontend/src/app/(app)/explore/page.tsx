@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { Sparkles, ExternalLink, ArrowRight, ShoppingBag, Loader2, Check, AlertCircle } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Sparkles, ExternalLink, ArrowRight, ShoppingBag, Loader2, Check, AlertCircle, X } from "lucide-react";
 import { ALL_PRODUCTS, resolveSegment } from "@/lib/protocolEngine";
 import type { Product, MatchedProduct } from "@/lib/protocolEngine";
 import { useCart } from "@/context/CartContext";
@@ -281,9 +281,11 @@ function NoProfileState() {
 
 /* ── Explore Page ── */
 export default function ExplorePage() {
+  const searchParams = useSearchParams();
   const [activeCategory, setActiveCategory] = useState("for-you");
   const [profile, setProfile] = useState<StoredProfile | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
+  const [picksVisible, setPicksVisible] = useState(true);
 
   useEffect(() => {
     try {
@@ -294,6 +296,12 @@ export default function ExplorePage() {
     }
     setProfileLoaded(true);
   }, []);
+
+  // Auto-select "For You" when arriving with picks param
+  const picksParam = searchParams.get("picks");
+  useEffect(() => {
+    if (picksParam) setActiveCategory("for-you");
+  }, [picksParam]);
 
   /* Concern values for "For You" — expanded across ALL selected concerns */
   const forYouConcernValues = useMemo<string[]>(() => {
@@ -354,9 +362,25 @@ export default function ExplorePage() {
     return filled.length > 1 ? filled : null;
   }, [activeCategory, profile, displayedProducts]);
 
+  /* Pinned picks from protocol page — shown at top of For You */
+  const pinnedPicks = useMemo<Product[]>(() => {
+    if (!picksParam || !picksVisible) return [];
+    const ids = picksParam.split(",").filter(Boolean);
+    return ids.map((id) => ALL_PRODUCTS.find((p) => p.id === id)).filter(Boolean) as Product[];
+  }, [picksParam, picksVisible]);
+
+  const pinnedPickIds = useMemo(() => new Set(pinnedPicks.map((p) => p.id)), [pinnedPicks]);
+
+  /* Regular For You list — exclude pinned picks to avoid duplication */
+  const forYouNonPinned = useMemo(
+    () => displayedProducts.filter((p) => !pinnedPickIds.has(p.id)),
+    [displayedProducts, pinnedPickIds],
+  );
+
   const isForYou = activeCategory === "for-you";
   const activeCategoryDef = CATEGORIES.find((c) => c.key === activeCategory);
   const showNoProfile = isForYou && profileLoaded && (!profile || forYouConcernValues.length === 0);
+  const showPinnedPicks = isForYou && pinnedPicks.length > 0;
 
   return (
     <div className="flex h-[calc(100dvh-68px-48px)] lg:h-[calc(100dvh-48px)]">
@@ -451,42 +475,83 @@ export default function ExplorePage() {
         {/* No profile state */}
         {showNoProfile && <NoProfileState />}
 
+        {/* Pinned protocol picks — shown at top when navigating from protocol page */}
+        {showPinnedPicks && (
+          <div className="px-2 pt-1 pb-2">
+            <div className="bg-primary-container/6 border border-primary-container/15 rounded-2xl overflow-hidden">
+              <div className="flex items-center justify-between px-3 pt-3 pb-2">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
+                  <span className="text-[11px] font-bold text-primary-container uppercase tracking-wider">
+                    Your protocol picks
+                  </span>
+                </div>
+                <button
+                  onClick={() => setPicksVisible(false)}
+                  className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors cursor-pointer"
+                  aria-label="Dismiss protocol picks"
+                >
+                  <X className="w-3.5 h-3.5 text-on-surface-variant/40" strokeWidth={2} />
+                </button>
+              </div>
+              <div className="px-2 pb-3 grid grid-cols-2 lg:grid-cols-3 gap-2">
+                {pinnedPicks.map((p) => (
+                  <ProductCard key={p.id} product={p} isTopPick={true} />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Product grid — grouped by concern for multi-concern For You, flat otherwise */}
-        {!showNoProfile && displayedProducts.length > 0 && (
-          forYouGrouped ? (
-            <div className="px-2 pb-4 space-y-5">
-              {forYouGrouped.map((group) => (
-                <div key={group.label}>
-                  <div className="flex items-center gap-2 px-1 mb-2">
-                    <span className="text-[11px] font-bold text-primary-container tracking-wide">
-                      For your {concernLabel(group.label)}
+        {!showNoProfile && (showPinnedPicks ? forYouNonPinned : displayedProducts).length > 0 && (
+          (() => {
+            const products = showPinnedPicks ? forYouNonPinned : displayedProducts;
+            return forYouGrouped && !showPinnedPicks ? (
+              <div className="px-2 pb-4 space-y-5">
+                {forYouGrouped.map((group) => (
+                  <div key={group.label}>
+                    <div className="flex items-center gap-2 px-1 mb-2">
+                      <span className="text-[11px] font-bold text-primary-container tracking-wide">
+                        For your {concernLabel(group.label)}
+                      </span>
+                      <div className="flex-1 h-px bg-outline-variant/15" />
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                      {group.products.map((p) => (
+                        <ProductCard
+                          key={p.id}
+                          product={p}
+                          matchPct={(p as MatchedProduct).matchScore}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="px-2 pb-4">
+                {showPinnedPicks && products.length > 0 && (
+                  <div className="flex items-center gap-2 px-1 mb-2 pt-1">
+                    <span className="text-[11px] font-bold text-on-surface-variant/50 tracking-wide">
+                      You might also like
                     </span>
                     <div className="flex-1 h-px bg-outline-variant/15" />
                   </div>
-                  <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-                    {group.products.map((p) => (
-                      <ProductCard
-                        key={p.id}
-                        product={p}
-                        matchPct={(p as MatchedProduct).matchScore}
-                      />
-                    ))}
-                  </div>
+                )}
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                  {products.map((p) => (
+                    <ProductCard
+                      key={p.id}
+                      product={p}
+                      isTopPick={!isForYou && (p as MatchedProduct).matchScore >= 85}
+                      matchPct={isForYou ? (p as MatchedProduct).matchScore : undefined}
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="px-2 pb-4 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-              {displayedProducts.map((p) => (
-                <ProductCard
-                  key={p.id}
-                  product={p}
-                  isTopPick={!isForYou && (p as MatchedProduct).matchScore >= 85}
-                  matchPct={isForYou ? (p as MatchedProduct).matchScore : undefined}
-                />
-              ))}
-            </div>
-          )
+              </div>
+            );
+          })()
         )}
 
         {!showNoProfile && displayedProducts.length === 0 && !profileLoaded && (

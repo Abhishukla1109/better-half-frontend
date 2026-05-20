@@ -7,7 +7,7 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-dvh bg-surface overflow-x-hidden">
+    <div className="flex min-h-dvh bg-surface overflow-x-clip">
       <BottomNav />
       <Header />
       {/* Main content: offset for header top + sidebar on desktop + bottom nav on mobile */}
