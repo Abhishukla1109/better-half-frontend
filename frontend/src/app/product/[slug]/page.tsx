@@ -33,6 +33,8 @@ import { getProductBySlug } from "@/data/products";
 import { getProductImage } from "@/data/images";
 import { useCart } from "@/context/CartContext";
 import { resolveVariantId } from "@/lib/shopify/variant-resolver";
+import { ALL_PRODUCTS } from "@/lib/protocolEngine";
+import type { Product } from "@/lib/protocolEngine";
 
 /* ── Icon resolver: maps string names from JSON config to Lucide components ── */
 const iconMap: Record<string, LucideIcon> = {
@@ -194,6 +196,259 @@ function HeroImage({
   );
 }
 
+/* ── Why-recommended context ── */
+const CONCERN_LABEL: Record<string, string> = {
+  hair: "hair health and growth",
+  beard: "beard growth and density",
+  skin: "skin health and clarity",
+  weight: "weight management",
+  energy: "energy, nutrition, and gut health",
+  sleep: "sleep quality and recovery",
+  hormones: "hormonal balance and performance",
+};
+
+const BRAND_COLOR: Record<string, string> = {
+  "Man Matters": "#00897B",
+  "Be Bodywise": "#E91E8C",
+  "Little Joys": "#F59E0B",
+};
+
+function buildWhyContext(product: Product): string[] {
+  const concern = product.concern[0] ?? "general wellness";
+  const area = CONCERN_LABEL[concern] ?? concern;
+  const meaningful = product.followUp.filter((f) => f !== "general health");
+
+  const lines: string[] = [
+    `Picked for ${area}.`,
+  ];
+  if (meaningful.length > 0) {
+    lines.push(
+      `Specifically targets: ${meaningful.slice(0, 3).join(", ")}.`,
+    );
+  }
+  if (product.rating && product.reviewCount) {
+    const count = product.reviewCount >= 1000
+      ? `${(product.reviewCount / 1000).toFixed(1)}k`
+      : product.reviewCount;
+    lines.push(`Rated ${product.rating}/5 by ${count}+ verified users.`);
+  }
+  return lines;
+}
+
+/* ── Lightweight PDP for new-catalog products ── */
+function NewProductPDP({
+  product,
+  onBack,
+}: {
+  product: Product;
+  onBack: () => void;
+}) {
+  const { addItem } = useCart();
+  const [cartState, setCartState] = useState<"idle" | "loading" | "done" | "error">("idle");
+
+  const discountPct =
+    product.mrp > product.price
+      ? Math.round((1 - product.price / product.mrp) * 100)
+      : 0;
+
+  const brandColor = BRAND_COLOR[product.brand] ?? "#00897B";
+  const whyLines = buildWhyContext(product);
+
+  const handleAddToCart = useCallback(async () => {
+    if (cartState !== "idle") return;
+    setCartState("loading");
+    try {
+      const variantId = await resolveVariantId(product.id);
+      if (!variantId) throw new Error("not found");
+      await addItem(variantId, 1);
+      setCartState("done");
+    } catch {
+      setCartState("error");
+    } finally {
+      setTimeout(() => setCartState("idle"), 2500);
+    }
+  }, [addItem, cartState, product.id]);
+
+  return (
+    <div className="min-h-dvh bg-surface pb-32">
+      {/* Sticky header */}
+      <header className="glass-header fixed top-0 left-0 right-0 z-50">
+        <div className="max-w-2xl mx-auto flex items-center justify-between h-12 px-4">
+          <button
+            onClick={onBack}
+            className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-low transition-colors cursor-pointer"
+            aria-label="Go back"
+          >
+            <ArrowLeft className="w-5 h-5 text-on-surface" strokeWidth={1.5} />
+          </button>
+          <span
+            className="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full"
+            style={{ backgroundColor: brandColor + "18", color: brandColor }}
+          >
+            {product.brand}
+          </span>
+          <div className="w-10" />
+        </div>
+      </header>
+
+      <div className="pt-12 max-w-2xl mx-auto">
+        {/* Hero image */}
+        <div className="relative w-full aspect-square bg-surface-container-low">
+          {product.image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={product.image}
+              alt={product.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <span className="text-8xl font-extrabold text-primary-container/15 font-[family-name:var(--font-manrope)]">
+                {product.name.charAt(0)}
+              </span>
+            </div>
+          )}
+
+          {discountPct >= 5 && (
+            <span className="absolute top-4 left-4 bg-primary-container text-white text-xs font-extrabold px-2 py-1 rounded-lg leading-none">
+              {discountPct}% OFF
+            </span>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="px-5 pt-6">
+          {/* Name + rating */}
+          <h1 className="text-2xl font-extrabold text-on-surface leading-tight tracking-tight font-[family-name:var(--font-manrope)]">
+            {product.name}
+          </h1>
+
+          {product.rating && (
+            <div className="flex items-center gap-1.5 mt-2">
+              <div className="flex">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star
+                    key={s}
+                    className={`w-4 h-4 ${
+                      s <= Math.floor(product.rating!)
+                        ? "text-amber-400 fill-amber-400"
+                        : "text-outline-variant/30"
+                    }`}
+                    strokeWidth={0}
+                  />
+                ))}
+              </div>
+              <span className="text-sm font-semibold text-on-surface">{product.rating}</span>
+              {product.reviewCount && (
+                <span className="text-xs text-on-surface-variant/50">
+                  ({product.reviewCount >= 1000
+                    ? `${(product.reviewCount / 1000).toFixed(1)}k`
+                    : product.reviewCount} reviews)
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Price */}
+          <div className="flex items-baseline gap-3 mt-4">
+            <span className="text-3xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
+              &#8377;{product.price}
+            </span>
+            {product.mrp > product.price && (
+              <>
+                <span className="text-base text-on-surface-variant/40 line-through">
+                  &#8377;{product.mrp}
+                </span>
+                <span
+                  className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: brandColor + "18", color: brandColor }}
+                >
+                  {discountPct}% off
+                </span>
+              </>
+            )}
+          </div>
+
+          {/* Why BetterHalf recommends this */}
+          <div className="mt-6 p-4 rounded-2xl bg-primary-container/6 border border-primary-container/12">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-4 h-4 text-primary-container shrink-0" strokeWidth={1.5} />
+              <span className="text-xs font-semibold text-primary-container uppercase tracking-wider">
+                Why BetterHalf recommends this
+              </span>
+            </div>
+            <ul className="space-y-2">
+              {whyLines.map((line, i) => (
+                <li key={i} className="flex items-start gap-2.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary-container/60 mt-1.5 shrink-0" />
+                  <span className="text-sm text-on-surface leading-relaxed">{line}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Concern tags */}
+          <div className="flex flex-wrap gap-2 mt-4">
+            {product.concern.map((c) => (
+              <span
+                key={c}
+                className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-surface-container-low text-on-surface-variant capitalize"
+              >
+                {c}
+              </span>
+            ))}
+          </div>
+
+          {/* View on brand site */}
+          {product.url && (
+            <button
+              onClick={() => window.open(product.url, "_blank")}
+              className="mt-5 w-full flex items-center justify-center gap-1.5 py-3 rounded-xl border border-outline-variant/20 text-sm font-medium text-on-surface-variant hover:bg-surface-container-low transition-colors cursor-pointer"
+            >
+              View full details on {product.brand}
+              <ArrowLeft className="w-3.5 h-3.5 rotate-180" strokeWidth={2} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Sticky Add to Cart footer */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-surface-container-lowest border-t border-outline-variant/10">
+        <div className="max-w-2xl mx-auto flex items-center gap-3 px-5 py-3">
+          <div className="min-w-0">
+            <p className="text-lg font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
+              &#8377;{product.price}
+            </p>
+            {product.mrp > product.price && (
+              <p className="text-[11px] text-on-surface-variant/40 line-through">&#8377;{product.mrp}</p>
+            )}
+          </div>
+          <button
+            onClick={handleAddToCart}
+            disabled={cartState !== "idle"}
+            className={`flex-1 flex items-center justify-center gap-2 min-h-[48px] rounded-2xl text-sm font-bold transition-all duration-200 cursor-pointer active:scale-[0.98] disabled:opacity-70 ${
+              cartState === "done"
+                ? "bg-green-500 text-white"
+                : cartState === "error"
+                ? "bg-red-500/90 text-white"
+                : "bg-primary-container text-white hover:bg-primary"
+            }`}
+          >
+            {cartState === "loading" && <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />}
+            {cartState === "done" && <CheckCircle className="w-4 h-4" strokeWidth={2} />}
+            {cartState === "error" && <AlertCircle className="w-4 h-4" strokeWidth={2} />}
+            {cartState === "idle" && <ShoppingCart className="w-4 h-4" strokeWidth={2} />}
+            {cartState === "loading" ? "Adding…"
+              : cartState === "done" ? "Added to cart!"
+              : cartState === "error" ? "Not available"
+              : "Add to Cart"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Main PDP ── */
 export default function ProductPage({
   params,
@@ -205,6 +460,7 @@ export default function ProductPage({
   const searchParams = useSearchParams();
   const fromTreatment = searchParams.get("from") === "treatment";
   const product = getProductBySlug(slug);
+  const newProduct = !product ? ALL_PRODUCTS.find((p) => p.id === slug) : undefined;
 
   const [selectedVariant, setSelectedVariant] = useState(0);
   const [selectedPack, setSelectedPack] = useState(0);
@@ -215,11 +471,17 @@ export default function ProductPage({
   const { addItem } = useCart();
 
   useEffect(() => {
-    if (!product) {
+    if (!product && !newProduct) {
       router.replace("/explore");
     }
-  }, [product, router]);
+  }, [product, newProduct, router]);
 
+  if (!product && !newProduct) return null;
+
+  /* ── Lightweight PDP for new catalog products ── */
+  if (newProduct) return <NewProductPDP product={newProduct} onBack={() => router.back()} />;
+
+  /* product is guaranteed non-null from here — new catalog was handled above */
   if (!product) return null;
 
   const currentPrice = product.packs[selectedPack]?.price ?? product.price;

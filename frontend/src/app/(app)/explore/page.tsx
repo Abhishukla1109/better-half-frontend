@@ -100,6 +100,7 @@ function ProductCard({
   product: Product & { matchScore?: number };
   isTopPick?: boolean;
 }) {
+  const router = useRouter();
   const { addItem } = useCart();
   const [cartState, setCartState] = useState<"idle" | "loading" | "done" | "error">("idle");
 
@@ -140,9 +141,9 @@ function ProductCard({
 
   return (
     <div className="flex flex-col bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant/8 hover:border-primary-container/25 transition-all duration-200 group">
-      {/* Image — tapping opens brand site */}
+      {/* Image — tapping opens in-app PDP */}
       <div
-        onClick={() => product.url && window.open(product.url, "_blank")}
+        onClick={() => router.push(`/product/${product.id}`)}
         className="relative w-full h-[130px] bg-surface-container-low cursor-pointer"
       >
         {product.image ? (
