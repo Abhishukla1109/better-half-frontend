@@ -5,7 +5,7 @@
    ══════════════════════════════════════════════════════════════ */
 
 import { calculateProtocolMatch, resolveSegment } from "@/lib/protocolEngine";
-import type { UserSegment } from "@/lib/protocolEngine";
+import type { UserSegment, MatchedProduct } from "@/lib/protocolEngine";
 import { calculateProfileDepth } from "./profile-depth";
 import { getProductShopifyUrl } from "./product-handles";
 import type {
@@ -655,54 +655,56 @@ function buildMultiConcernSupplements(
 ): ProtocolSupplement[] {
   const seen = new Set<string>();
   const result: ProtocolSupplement[] = [];
+  const MAX = 5;
 
-  for (const rawConcern of allConcerns) {
-    const concern = CONCERN_MAP[rawConcern] || "energy";
-    const narrative = CONCERN_NARRATIVES[rawConcern] ?? primaryNarrative;
+  const followUp = buildFollowUpString(profile);
 
-    const userSegment: UserSegment = {
+  const concernData = allConcerns.map((rawConcern) => ({
+    rawConcern,
+    narrative: CONCERN_NARRATIVES[rawConcern] ?? primaryNarrative,
+    matched: calculateProtocolMatch({
       gender: profile.sex || "male",
       age: profile.age || "25-34",
       diet: profile.diet || "non-veg",
-      concern,
-      followUp: buildFollowUpString(profile),
-    };
+      concern: CONCERN_MAP[rawConcern] || "energy",
+      followUp,
+    }),
+  }));
 
-    const matched = calculateProtocolMatch(userSegment);
+  function addProduct(product: MatchedProduct, narrative: ConcernNarrative, rawConcern: string): boolean {
+    if (seen.has(product.id) || result.length >= MAX) return false;
+    seen.add(product.id);
+    const timing = narrative.productTiming[product.category] || "Morning with breakfast";
+    const reasoning =
+      narrative.productReasoning[product.category] ||
+      `Supports your ${rawConcern.toLowerCase()} concern based on your profile`;
+    const reasonTags = narrative.productReasonTags?.[product.category] ?? [];
+    const priority: ProtocolSupplement["priority"] =
+      result.length === 0 ? "essential" : result.length === 1 ? "recommended" : "optional";
+    result.push({
+      id: product.id, name: product.name, brand: product.brand,
+      price: product.price, mrp: product.mrp, timing, reasoning, reasonTags,
+      matchScore: product.matchScore, shopifyUrl: product.url ?? getProductShopifyUrl(product.id),
+      image: product.image, rating: product.rating, reviewCount: product.reviewCount, priority,
+    });
+    return true;
+  }
 
+  // First pass: guarantee at least 1 product per concern
+  for (const { rawConcern, narrative, matched } of concernData) {
+    if (result.length >= MAX) break;
     for (const product of matched) {
-      if (seen.has(product.id)) continue;
-      seen.add(product.id);
-
-      const timing = narrative.productTiming[product.category] || "Morning with breakfast";
-      const reasoning =
-        narrative.productReasoning[product.category] ||
-        `Supports your ${rawConcern.toLowerCase()} concern based on your profile`;
-      const reasonTags = narrative.productReasonTags?.[product.category] ?? [];
-
-      const priority: ProtocolSupplement["priority"] =
-        result.length === 0 ? "essential" : result.length === 1 ? "recommended" : "optional";
-
-      result.push({
-        id: product.id,
-        name: product.name,
-        brand: product.brand,
-        price: product.price,
-        mrp: product.mrp,
-        timing,
-        reasoning,
-        reasonTags,
-        matchScore: product.matchScore,
-        shopifyUrl: product.url ?? getProductShopifyUrl(product.id),
-        image: product.image,
-        rating: product.rating,
-        reviewCount: product.reviewCount,
-        priority,
-      });
-
-      if (result.length >= 4) break;
+      if (addProduct(product, narrative, rawConcern)) break;
     }
-    if (result.length >= 4) break;
+  }
+
+  // Second pass: fill remaining slots up to MAX
+  for (const { rawConcern, narrative, matched } of concernData) {
+    if (result.length >= MAX) break;
+    for (const product of matched) {
+      if (result.length >= MAX) break;
+      addProduct(product, narrative, rawConcern);
+    }
   }
 
   return result;
@@ -729,6 +731,21 @@ function buildMultiConcernLifestyle(allConcerns: string[]): string[] {
   }
 
   return tips;
+}
+
+/* ── Multi-concern routine (capped at 5 items total) ────────── */
+function buildMultiConcernRoutine(allConcerns: string[]): RoutineItem[] {
+  const items: RoutineItem[] = [];
+  for (let i = 0; i < allConcerns.length; i++) {
+    const narrative = CONCERN_NARRATIVES[allConcerns[i]];
+    if (!narrative) continue;
+    const take = i === 0 ? 2 : 1;
+    for (const item of narrative.routine.slice(0, take)) {
+      items.push(item);
+    }
+    if (items.length >= 5) break;
+  }
+  return items.slice(0, 5);
 }
 
 /* ── Multi-concern follow-up questions ──────────────────────── */
@@ -800,7 +817,20 @@ export function buildWarmMessage(profile: UserProfile, allConcerns: string[]): s
         : "Poor sleep becomes its own kind of invisible weight over time. Your protocol addresses the actual biology behind it — and changes tend to come faster than people expect.",
   };
 
-  return messages[primaryConcern] ?? messages["Energy / gut"];
+  let base = messages[primaryConcern] ?? messages["Energy / gut"];
+
+  if (allConcerns.length > 1) {
+    const secondary = allConcerns[1];
+    const bridge =
+      CONCERN_BRIDGES[`${primaryConcern}|${secondary}`] ||
+      CONCERN_BRIDGES[`${secondary}|${primaryConcern}`];
+    const append = bridge
+      ? bridge
+      : `Your ${secondary.split(" / ")[0].toLowerCase()} protocol runs alongside this — both concerns are addressed together in this plan.`;
+    base = base + " " + append;
+  }
+
+  return base;
 }
 
 /* ── Main export ────────────────────────────────────────────── */
@@ -821,7 +851,7 @@ export function generateMockProtocol(profile: UserProfile): GeneratedProtocol {
     ? buildMultiConcernSupplements(profile, allConcerns, narrative)
     : buildSupplements(profile, narrative);
 
-  const dailyRoutine = narrative.routine; // primary concern drives routine structure
+  const dailyRoutine = isMulti ? buildMultiConcernRoutine(allConcerns) : narrative.routine;
 
   const lifestyle = isMulti
     ? buildMultiConcernLifestyle(allConcerns)

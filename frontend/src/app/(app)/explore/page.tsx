@@ -47,6 +47,11 @@ const BRAND_STYLE: Record<string, { bg: string; text: string }> = {
 
 type StoredProfile = Record<string, string | undefined>;
 
+/* "Hair / beard" → "Hair & Beard" */
+function concernLabel(raw: string): string {
+  return raw.split(" / ").map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(" & ");
+}
+
 /* ── Scoring engine (same logic as calculateProtocolMatch, no 3-item cap) ── */
 function scoreProducts(
   concernValues: string[],
@@ -284,10 +289,13 @@ export default function ExplorePage() {
     setProfileLoaded(true);
   }, []);
 
-  /* Concern values for "For You" based on the user's onboarding concern */
+  /* Concern values for "For You" — expanded across ALL selected concerns */
   const forYouConcernValues = useMemo<string[]>(() => {
-    if (!profile?.concern) return [];
-    return ONBOARDING_CONCERN_MAP[profile.concern] ?? [];
+    if (!profile) return [];
+    const raw = (profile.concerns as string | undefined) ?? profile.concern;
+    if (!raw) return [];
+    const allConcerns = raw.split(",").map((s) => s.trim()).filter(Boolean);
+    return [...new Set(allConcerns.flatMap((c) => ONBOARDING_CONCERN_MAP[c] ?? []))];
   }, [profile]);
 
   /* Products to display */
@@ -313,6 +321,32 @@ export default function ExplorePage() {
       return true;
     });
   }, [profile?.sex]);
+
+  /* Group For-You products by concern when multiple concerns are selected */
+  const forYouGrouped = useMemo<{ label: string; products: (Product & { matchScore?: number })[] }[] | null>(() => {
+    if (activeCategory !== "for-you" || !profile) return null;
+    const raw = (profile.concerns as string | undefined) ?? profile.concern ?? "";
+    const concernLabels = raw.split(",").map((s) => s.trim()).filter(Boolean);
+    if (concernLabels.length <= 1) return null;
+
+    const groups = concernLabels.map((label) => ({
+      label,
+      concernValues: ONBOARDING_CONCERN_MAP[label] ?? [],
+      products: [] as (Product & { matchScore?: number })[],
+    }));
+
+    for (const product of displayedProducts) {
+      for (const group of groups) {
+        if (product.concern.some((c) => group.concernValues.includes(c))) {
+          group.products.push(product);
+          break;
+        }
+      }
+    }
+
+    const filled = groups.filter((g) => g.products.length > 0);
+    return filled.length > 1 ? filled : null;
+  }, [activeCategory, profile, displayedProducts]);
 
   const isForYou = activeCategory === "for-you";
   const activeCategoryDef = CATEGORIES.find((c) => c.key === activeCategory);
@@ -386,8 +420,14 @@ export default function ExplorePage() {
               </h1>
               {!showNoProfile && (
                 <p className="text-[11px] text-on-surface-variant/50 mt-0.5 truncate">
-                  {isForYou && profile?.concern
-                    ? `Matched to your ${profile.concern} concern`
+                  {isForYou && forYouConcernValues.length > 0
+                    ? (() => {
+                        const raw = (profile?.concerns as string | undefined) ?? profile?.concern ?? "";
+                        const labels = raw.split(",").map((s) => s.trim()).filter(Boolean);
+                        return labels.length > 1
+                          ? `Matched across ${labels.length} concerns`
+                          : `Matched to your ${labels[0] ?? ""} concern`;
+                      })()
                     : `${displayedProducts.length} product${displayedProducts.length !== 1 ? "s" : ""}`}
                 </p>
               )}
@@ -405,17 +445,41 @@ export default function ExplorePage() {
         {/* No profile state */}
         {showNoProfile && <NoProfileState />}
 
-        {/* Product grid */}
+        {/* Product grid — grouped by concern for multi-concern For You, flat otherwise */}
         {!showNoProfile && displayedProducts.length > 0 && (
-          <div className="px-2 pb-4 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-            {displayedProducts.map((p) => (
-              <ProductCard
-                key={p.id}
-                product={p}
-                isTopPick={isForYou && (p as MatchedProduct).matchScore >= 85}
-              />
-            ))}
-          </div>
+          forYouGrouped ? (
+            <div className="px-2 pb-4 space-y-5">
+              {forYouGrouped.map((group) => (
+                <div key={group.label}>
+                  <div className="flex items-center gap-2 px-1 mb-2">
+                    <span className="text-[11px] font-bold text-primary-container tracking-wide">
+                      For your {concernLabel(group.label)}
+                    </span>
+                    <div className="flex-1 h-px bg-outline-variant/15" />
+                  </div>
+                  <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                    {group.products.map((p) => (
+                      <ProductCard
+                        key={p.id}
+                        product={p}
+                        isTopPick={(p as MatchedProduct).matchScore >= 85}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="px-2 pb-4 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+              {displayedProducts.map((p) => (
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  isTopPick={isForYou && (p as MatchedProduct).matchScore >= 85}
+                />
+              ))}
+            </div>
+          )
         )}
 
         {!showNoProfile && displayedProducts.length === 0 && !profileLoaded && (
