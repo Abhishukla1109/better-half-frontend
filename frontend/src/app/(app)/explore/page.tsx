@@ -52,7 +52,7 @@ function scoreProducts(
   concernValues: string[],
   profile: StoredProfile,
 ): MatchedProduct[] {
-  const gender = (profile.gender ?? "male").toLowerCase();
+  const gender = (profile.sex ?? "male").toLowerCase();
   const age = profile.age ?? "25-34";
   const userSegments = resolveSegment(gender, age, profile.shopping_for, profile.kids_age);
 
@@ -309,10 +309,10 @@ export default function ExplorePage() {
   /* Hide Beard for female users */
   const visibleCategories = useMemo<CategoryDef[]>(() => {
     return CATEGORIES.filter((c) => {
-      if (c.key === "beard" && profile?.gender === "female") return false;
+      if (c.key === "beard" && profile?.sex === "female") return false;
       return true;
     });
-  }, [profile?.gender]);
+  }, [profile?.sex]);
 
   const isForYou = activeCategory === "for-you";
   const activeCategoryDef = CATEGORIES.find((c) => c.key === activeCategory);

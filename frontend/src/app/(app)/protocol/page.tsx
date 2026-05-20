@@ -839,7 +839,7 @@ export default function ProtocolPage() {
                     return (
                       <div
                         key={s.id}
-                        onClick={() => s.shopifyUrl && window.open(s.shopifyUrl, "_blank")}
+                        onClick={() => router.push(`/product/${s.id}`)}
                         className="flex-shrink-0 w-[48vw] max-w-[196px] min-w-[160px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 overflow-hidden cursor-pointer hover:border-primary-container/30 transition-all duration-200 active:scale-[0.98]"
                       >
                         {/* Image area */}
