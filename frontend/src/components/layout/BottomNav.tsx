@@ -1,19 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Home, Search, Sparkles, Stethoscope, BarChart3 } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Home, Search, Sparkles, Stethoscope, BarChart3, LogOut } from "lucide-react";
 
 const tabs = [
   { href: "/home", icon: Home, label: "Home" },
-  { href: "/explore", icon: Search, label: "Explore" },
-  { href: "/home", icon: Sparkles, label: "Ask", isCenter: true },
+  { href: "/explore", icon: Search, label: "Shop" },
+  { href: "/protocol", icon: Sparkles, label: "Ask", isCenter: true },
   { href: "/experts", icon: Stethoscope, label: "Experts" },
   { href: "/insights", icon: BarChart3, label: "Insights" },
 ];
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleSignOut = () => {
+    localStorage.removeItem("bh_auth");
+    localStorage.removeItem("bh_profile");
+    localStorage.removeItem("bh_onboarding_state");
+    localStorage.removeItem("bh_protocol_visits");
+    router.replace("/auth");
+  };
 
   return (
     <>
@@ -81,14 +90,25 @@ export default function BottomNav() {
             const isActive = tab.isCenter ? false : pathname.startsWith(tab.href);
             const Icon = tab.icon;
 
+            if (tab.isCenter) {
+              return (
+                <div
+                  key="ask-desktop"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary-container/15 text-primary-container cursor-default select-none"
+                >
+                  <Icon className="w-[20px] h-[20px]" strokeWidth={1.5} fill="none" />
+                  <span className="text-sm font-semibold">{tab.label}</span>
+                  <span className="ml-auto text-[9px] font-bold text-primary-container/50 uppercase tracking-wider">Soon</span>
+                </div>
+              );
+            }
+
             return (
               <Link
                 key={tab.href + tab.label}
                 href={tab.href}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-200 ${
-                  tab.isCenter
-                    ? "bg-primary-container/15 text-primary-container"
-                    : isActive
+                  isActive
                     ? "bg-primary-fixed/20 text-primary"
                     : "text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
                 }`}
@@ -105,8 +125,15 @@ export default function BottomNav() {
         </div>
 
         {/* Footer */}
-        <div className="px-4 pt-4 border-t border-outline-variant/10">
-          <p className="text-[10px] text-on-surface-variant/50 uppercase tracking-widest">
+        <div className="px-4 pt-4 border-t border-outline-variant/10 space-y-3">
+          <button
+            onClick={handleSignOut}
+            className="flex items-center gap-3 px-4 py-2.5 w-full rounded-xl text-on-surface-variant/60 hover:bg-surface-container-low hover:text-on-surface transition-colors duration-200 cursor-pointer"
+          >
+            <LogOut className="w-[18px] h-[18px]" strokeWidth={1.5} />
+            <span className="text-sm font-semibold">Sign out</span>
+          </button>
+          <p className="text-[10px] text-on-surface-variant/40 uppercase tracking-widest px-4">
             Powered by Mosaic Wellness
           </p>
         </div>

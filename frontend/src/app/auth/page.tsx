@@ -1,145 +1,139 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Sparkles } from "lucide-react";
+
+const DEMO_EXISTING_PHONE = "9999999999";
+
+const DEMO_EXISTING_PROFILE = {
+  name: "Rahul",
+  sex: "male",
+  age: "25-34",
+  concern: "Hair / beard",
+  concerns: "Hair / beard,Energy / gut",
+  hair_concern_type: "thinning",
+  energy_concern_type: "low_energy",
+  diet: "non-veg",
+};
+
+function signIn(isExistingUser: boolean) {
+  localStorage.setItem("bh_auth", JSON.stringify({ loggedIn: true }));
+  if (isExistingUser) {
+    localStorage.setItem("bh_profile", JSON.stringify(DEMO_EXISTING_PROFILE));
+  }
+}
 
 export default function AuthPage() {
+  const router = useRouter();
   const [phone, setPhone] = useState("");
 
+  // Already logged in — route to the right place
+  useEffect(() => {
+    try {
+      const auth = localStorage.getItem("bh_auth");
+      if (auth) {
+        const profile = localStorage.getItem("bh_profile");
+        const p = profile ? JSON.parse(profile) : null;
+        router.replace(p?.diet ? "/protocol" : "/home");
+      }
+    } catch {}
+  }, [router]);
+
+  const handlePhoneContinue = () => {
+    const cleaned = phone.replace(/\s/g, "");
+    const isExisting = cleaned === DEMO_EXISTING_PHONE;
+    signIn(isExisting);
+    router.replace(isExisting ? "/protocol" : "/home");
+  };
+
+  const handleGoogle = () => {
+    signIn(false);
+    router.replace("/home");
+  };
+
   return (
-    <main className="w-full min-h-dvh flex flex-col bg-surface overflow-hidden max-w-[430px] mx-auto lg:my-12 lg:min-h-0 lg:rounded-2xl lg:shadow-xl lg:border lg:border-outline-variant/10">
-      {/* Header */}
-      <header className="flex justify-between items-center w-full px-6 py-4 bg-surface">
-        <Link
-          href="/"
-          aria-label="Go back"
-          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors"
-        >
-          <span className="material-symbols-outlined text-primary">
-            arrow_back
-          </span>
-        </Link>
-        <div className="flex-1" />
-      </header>
+    <main className="w-full min-h-dvh flex flex-col items-center justify-center bg-surface px-6 py-12">
+      <div className="w-full max-w-sm">
 
-      {/* Content */}
-      <section className="flex-1 px-8 pt-12 pb-8 flex flex-col">
-        {/* Hero illustration */}
-        <div className="mb-10 w-24 h-24 bg-primary-fixed rounded-3xl flex items-center justify-center relative">
-          <span className="material-symbols-outlined text-on-primary-fixed text-4xl">
-            shield_person
-          </span>
-          <div className="absolute -right-2 -bottom-2 w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center">
-            <span
-              className="material-symbols-outlined text-tertiary"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              verified_user
-            </span>
-          </div>
+        {/* Logo */}
+        <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary-container/15 mb-8 mx-auto">
+          <Sparkles className="w-6 h-6 text-primary-container" strokeWidth={1.5} />
         </div>
 
-        {/* Headlines */}
-        <div className="space-y-4 mb-12">
-          <h1 className="text-[32px] font-[800] leading-tight tracking-tight text-primary font-[family-name:var(--font-manrope)]">
-            Let&apos;s get you started.
-          </h1>
-          <p className="text-base text-on-surface-variant leading-relaxed max-w-[280px]">
-            Enter your phone number to continue.
+        {/* Heading */}
+        <h1 className="text-[28px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] text-center leading-tight mb-2">
+          Welcome to BetterHalf
+        </h1>
+        <p className="text-sm text-on-surface-variant/70 text-center leading-relaxed mb-10">
+          Your personal health protocol, built by AI — free and instant.
+        </p>
+
+        {/* Phone input */}
+        <div className="mb-4">
+          <p className="text-[11px] font-semibold text-on-surface-variant/60 uppercase tracking-wider mb-2">
+            Phone Number
           </p>
-        </div>
-
-        {/* Input group */}
-        <div className="space-y-6">
-          <div className="group">
-            <label
-              className="block text-[12px] font-semibold uppercase tracking-widest text-on-surface-variant mb-2 px-1"
-              htmlFor="phone"
-            >
-              Phone Number
-            </label>
-            <div className="relative flex items-center bg-surface-container-low rounded-xl p-1 focus-within:bg-surface-container-lowest transition-all duration-300">
-              <div className="flex items-center gap-2 px-4 py-3 border-r border-outline-variant/20">
-                <span className="text-on-surface font-semibold text-lg">
-                  +91
-                </span>
-              </div>
-              <input
-                className="flex-1 bg-transparent border-none focus:ring-0 text-lg font-medium px-4 placeholder:text-outline-variant/60 outline-none"
-                id="phone"
-                placeholder="00000 00000"
-                type="tel"
-                inputMode="numeric"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              />
-            </div>
-            <div className="h-0.5 w-0 group-focus-within:w-full bg-primary transition-all duration-500 rounded-full mt-1" />
+          <div className="flex items-center gap-2 border border-outline-variant/30 rounded-xl px-4 py-3.5 bg-surface-container-lowest focus-within:border-primary-container/50 transition-colors">
+            <span className="text-sm font-semibold text-on-surface-variant">+91</span>
+            <div className="w-px h-4 bg-outline-variant/30" />
+            <input
+              type="tel"
+              inputMode="numeric"
+              placeholder="98000 00000"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && phone.trim()) handlePhoneContinue(); }}
+              className="flex-1 bg-transparent text-sm text-on-surface placeholder:text-on-surface-variant/35 outline-none"
+              autoFocus
+            />
           </div>
-
-          {/* Primary CTA */}
-          <Link
-            href="/home"
-            className="w-full bg-primary text-on-primary font-semibold py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-primary/10 hover:brightness-110 active:scale-[0.98] transition-all duration-200"
-          >
-            <span>Send OTP</span>
-            <span className="material-symbols-outlined text-[20px]">
-              arrow_forward
-            </span>
-          </Link>
         </div>
 
-        {/* Divider */}
-        <div className="my-10 flex items-center gap-4">
-          <div className="flex-1 h-[1px] bg-outline-variant/20" />
-          <span className="text-[12px] font-medium uppercase tracking-widest text-outline-variant">
-            or
-          </span>
-          <div className="flex-1 h-[1px] bg-outline-variant/20" />
-        </div>
-
-        {/* Social auth */}
-        <button className="w-full bg-surface-container-lowest border border-outline-variant/10 text-on-surface font-semibold py-4 rounded-xl flex items-center justify-center gap-3 shadow-sm hover:bg-surface-container-low transition-all duration-200">
-          <svg className="w-5 h-5" viewBox="0 0 24 24">
-            <path
-              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
-              fill="#4285F4"
-            />
-            <path
-              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              fill="#34A853"
-            />
-            <path
-              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-              fill="#FBBC05"
-            />
-            <path
-              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-              fill="#EA4335"
-            />
-          </svg>
-          <span>Continue with Google</span>
+        {/* OTP CTA */}
+        <button
+          onClick={handlePhoneContinue}
+          disabled={!phone.trim()}
+          className="w-full flex items-center justify-between py-4 px-5 rounded-2xl bg-primary-container text-white font-bold text-sm hover:bg-primary transition-colors duration-200 cursor-pointer mb-6 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <span>Continue</span>
+          <span className="text-lg leading-none">→</span>
         </button>
 
-        {/* Footer */}
-        <div className="mt-auto pt-12 text-center">
-          <p className="text-[13px] text-on-surface-variant/70 px-4 leading-relaxed">
-            By continuing, you agree to our{" "}
-            <a className="text-primary font-semibold hover:underline" href="#">
-              Terms of Service
-            </a>{" "}
-            and{" "}
-            <a className="text-primary font-semibold hover:underline" href="#">
-              Privacy Policy
-            </a>
-            .
+        {/* Divider */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex-1 h-px bg-outline-variant/20" />
+          <span className="text-xs text-on-surface-variant/40 font-medium">or</span>
+          <div className="flex-1 h-px bg-outline-variant/20" />
+        </div>
+
+        {/* Google CTA */}
+        <button
+          onClick={handleGoogle}
+          className="w-full flex items-center justify-center gap-3 py-3.5 rounded-2xl border border-outline-variant/25 text-sm font-semibold text-on-surface hover:bg-surface-container-low transition-colors cursor-pointer"
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+            <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+            <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+            <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+          </svg>
+          Continue with Google
+        </button>
+
+        <p className="text-[10px] text-on-surface-variant/35 text-center mt-6">
+          Free forever · No spam · Your data stays private
+        </p>
+
+        {/* Demo hint */}
+        <div className="mt-8 p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/10">
+          <p className="text-[11px] text-on-surface-variant/60 text-center leading-relaxed">
+            <span className="font-semibold text-primary-container">Demo tip:</span> Enter{" "}
+            <span className="font-bold text-on-surface">9999999999</span> to see the existing customer experience — skips onboarding and loads a pre-built profile.
           </p>
         </div>
-      </section>
 
-      {/* Decorative blurs */}
-      <div className="absolute top-0 right-0 -z-10 w-64 h-64 bg-primary-fixed/20 blur-[80px] rounded-full translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute bottom-0 left-0 -z-10 w-96 h-96 bg-tertiary-fixed/10 blur-[100px] rounded-full -translate-x-1/2 translate-y-1/2" />
+      </div>
     </main>
   );
 }

@@ -1,34 +1,45 @@
 "use client";
 
 import { useState } from "react";
-import { getConcernImage } from "@/data/images";
+import { getGenderedConcernImage } from "@/data/images";
 
 interface ConcernCardProps {
   onSelect: (concerns: string[]) => void;
   onTextSubmit: (text: string) => void;
+  sex?: string;
   maxSelections?: number;
 }
 
-const concerns = [
-  "Hair / beard",
-  "Skin / acne",
-  "Energy / gut",
-  "Weight",
-  "Hormones",
-  "Sleep / mind",
-  "Just curious",
-];
+interface ConcernDef {
+  key: string;    // Stored in profile — never changes (protocol engine depends on this)
+  label: string;  // Display label — gender-aware
+}
 
-export default function ConcernCard({ onSelect, onTextSubmit, maxSelections = 4 }: ConcernCardProps) {
+function getConcernDefs(sex?: string): ConcernDef[] {
+  const isFemale = sex === "female";
+  return [
+    { key: "Hair / beard",  label: isFemale ? "Hair health"              : "Hair & beard"             },
+    { key: "Skin / acne",   label: "Skin & acne"                                                       },
+    { key: "Energy / gut",  label: "Energy & gut"                                                      },
+    { key: "Weight",        label: "Weight & body"                                                     },
+    { key: "Hormones",      label: isFemale ? "PCOS & hormones"          : "Testosterone & hormones"  },
+    { key: "Sleep / mind",  label: "Sleep & mind"                                                      },
+    { key: "Just curious",  label: "Just curious"                                                      },
+  ];
+}
+
+export default function ConcernCard({ onSelect, onTextSubmit, sex, maxSelections = 4 }: ConcernCardProps) {
   const [text, setText] = useState("");
-  const [picked, setPicked] = useState<string[]>([]);
+  const [picked, setPicked] = useState<string[]>([]);   // stores keys
   const [submitted, setSubmitted] = useState(false);
 
-  const toggleChip = (label: string) => {
+  const concerns = getConcernDefs(sex);
+
+  const toggleChip = (key: string) => {
     setPicked((prev) => {
-      if (prev.includes(label)) return prev.filter((c) => c !== label);
+      if (prev.includes(key)) return prev.filter((k) => k !== key);
       if (prev.length >= maxSelections) return prev;
-      return [...prev, label];
+      return [...prev, key];
     });
   };
 
@@ -44,9 +55,7 @@ export default function ConcernCard({ onSelect, onTextSubmit, maxSelections = 4 
     onTextSubmit(value);
   };
 
-  const handleEdit = () => {
-    setSubmitted(false);
-  };
+  const handleEdit = () => setSubmitted(false);
 
   return (
     <div className="feed-card-ai p-5 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
@@ -57,18 +66,14 @@ export default function ConcernCard({ onSelect, onTextSubmit, maxSelections = 4 
 
       {!submitted ? (
         <>
-          {/* Free text input */}
+          {/* Free text */}
           <div className="mt-4">
             <div className="flex items-center gap-2 bg-surface-container-low rounded-xl px-4 py-3 border border-outline-variant/15">
               <input
                 type="text"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && text.trim()) {
-                    handleTextSubmit(text.trim());
-                  }
-                }}
+                onKeyDown={(e) => { if (e.key === "Enter" && text.trim()) handleTextSubmit(text.trim()); }}
                 placeholder="Type freely..."
                 className="flex-1 bg-transparent text-base text-on-surface placeholder:text-on-surface-variant/40 outline-none"
               />
@@ -83,19 +88,20 @@ export default function ConcernCard({ onSelect, onTextSubmit, maxSelections = 4 
             </div>
           </div>
 
-          {/* Concern chips — multi-select */}
           <p className="text-xs text-on-surface-variant/60 mt-4 mb-2 uppercase tracking-wider font-semibold">
             or pick the closest
           </p>
+
+          {/* Concern grid */}
           <div className="grid grid-cols-2 gap-2">
-            {concerns.map((label) => {
-              const isSelected = picked.includes(label);
-              const isDisabled = !isSelected && picked.length >= maxSelections;
-              const img = getConcernImage(label);
+            {concerns.map(({ key, label }) => {
+              const isSelected  = picked.includes(key);
+              const isDisabled  = !isSelected && picked.length >= maxSelections;
+              const img         = key === "Just curious" ? undefined : getGenderedConcernImage(key, sex);
               return (
                 <button
-                  key={label}
-                  onClick={() => toggleChip(label)}
+                  key={key}
+                  onClick={() => toggleChip(key)}
                   disabled={isDisabled}
                   className={`chip-option relative flex items-end min-h-[72px] rounded-xl overflow-hidden cursor-pointer text-left transition-all duration-200 ${
                     isSelected
@@ -105,12 +111,11 @@ export default function ConcernCard({ onSelect, onTextSubmit, maxSelections = 4 
                       : "ring-1 ring-outline-variant/10 hover:ring-primary-container/40"
                   }`}
                 >
-                  {/* Background image or fallback */}
                   {img ? (
                     <>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={img} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
                     </>
                   ) : (
                     <div className="absolute inset-0 bg-surface-container-low" />
@@ -130,7 +135,6 @@ export default function ConcernCard({ onSelect, onTextSubmit, maxSelections = 4 
             })}
           </div>
 
-          {/* Continue button — appears when at least 1 is selected */}
           {picked.length > 0 && (
             <button
               onClick={handleSubmit}
@@ -142,14 +146,17 @@ export default function ConcernCard({ onSelect, onTextSubmit, maxSelections = 4 
         </>
       ) : (
         <div className="mt-3 flex items-center gap-2 animate-fade-in-up flex-wrap">
-          {picked.map((c) => (
-            <span
-              key={c}
-              className="inline-block px-4 py-2.5 rounded-xl bg-primary-container/15 border border-primary-container/20 text-sm font-semibold text-primary-container"
-            >
-              {c}
-            </span>
-          ))}
+          {picked.map((key) => {
+            const def = concerns.find((c) => c.key === key);
+            return (
+              <span
+                key={key}
+                className="inline-block px-4 py-2.5 rounded-xl bg-primary-container/15 border border-primary-container/20 text-sm font-semibold text-primary-container"
+              >
+                {def?.label ?? key}
+              </span>
+            );
+          })}
           <button
             onClick={handleEdit}
             className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-surface-container-low cursor-pointer transition-colors"

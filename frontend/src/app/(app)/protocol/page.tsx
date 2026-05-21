@@ -274,6 +274,8 @@ export default function ProtocolPage() {
   // Visit tracking for smart question cadence
   const [visitCount, setVisitCount] = useState(1);
   const [bonusUnlocked, setBonusUnlocked] = useState(false);
+  // Today's answered count — persists across navigation within the same day
+  const [savedAnswerCount, setSavedAnswerCount] = useState(0);
   // Prevent double re-fetch within a session
   const hasRefetched = useRef(false);
   // Cart
@@ -284,6 +286,13 @@ export default function ProtocolPage() {
   // "Protocol sharpened!" dramatic moment
   const [showSharpen, setShowSharpen] = useState(false);
   const picksRef = useRef<HTMLDivElement>(null);
+  // Protocol cart sheet
+  const [showProtocolCart, setShowProtocolCart] = useState(false);
+  const [cartSelections, setCartSelections] = useState<("main" | "alt")[]>(["main", "main", "main"]);
+  const [checkingOutCart, setCheckingOutCart] = useState(false);
+  // Stepped intro animation for the depth bar
+  const [displayDepth, setDisplayDepth] = useState(0);
+  const introPlayed = useRef(false);
 
   useEffect(() => {
     let stored: UserProfile | null = null;
@@ -316,6 +325,15 @@ export default function ProtocolPage() {
       }
     } catch { /* non-critical */ }
 
+    // Restore today's answered question count so the daily limit survives navigation
+    try {
+      const todayRaw = localStorage.getItem("bh_today_answers");
+      if (todayRaw) {
+        const td = JSON.parse(todayRaw) as { date: string; count: number };
+        if (td.date === new Date().toDateString()) setSavedAnswerCount(td.count);
+      }
+    } catch { /* non-critical */ }
+
     fetch("/api/protocol", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -344,6 +362,13 @@ export default function ProtocolPage() {
         }
       } catch { /* non-critical */ }
       return updated;
+    });
+    setSavedAnswerCount((prev) => {
+      const next = prev + 1;
+      try {
+        localStorage.setItem("bh_today_answers", JSON.stringify({ date: new Date().toDateString(), count: next }));
+      } catch { /* non-critical */ }
+      return next;
     });
     setShowingUpdate(true);
     setTimeout(() => {
@@ -399,6 +424,29 @@ export default function ProtocolPage() {
     }
   }, [protocol, addingAll, addedIds, addItem]);
 
+  const handleCheckoutProtocolCart = useCallback(async () => {
+    if (!protocol) return;
+    setCheckingOutCart(true);
+    const mainPicks = protocol.supplements.slice(0, 3);
+    try {
+      for (let i = 0; i < mainPicks.length; i++) {
+        const s = mainPicks[i];
+        const alt = s.alternative;
+        const active = cartSelections[i] === "alt" && alt ? alt : s;
+        if (!addedIds.has(active.id)) {
+          const variantId = await resolveVariantId(active.id);
+          if (variantId) {
+            await addItem(variantId);
+            setAddedIds((prev) => new Set([...prev, active.id]));
+          }
+        }
+      }
+      setShowProtocolCart(false);
+    } finally {
+      setCheckingOutCart(false);
+    }
+  }, [protocol, cartSelections, addedIds, addItem]);
+
   /* ── Derived state ─────────────────────────────────────────── */
   const concernList = useMemo(() => parseConcernList(profile), [profile]);
 
@@ -437,7 +485,7 @@ export default function ProtocolPage() {
   const answeredCount = useMemo(() => countFollowUpAnswers(answers), [answers]);
   const allAnswered = answeredCount > 0 && currentQuestion === null;
   // Skips count toward the per-session interaction cap so users can't skip forever
-  const sessionLimitReached = (answeredCount + skippedKeys.size) >= effectiveLimit;
+  const sessionLimitReached = (Math.max(answeredCount, savedAnswerCount) + skippedKeys.size) >= effectiveLimit;
   const ingredientList = useMemo(() => buildIngredientList(concernList, profile?.sex), [concernList, profile?.sex]);
   const { lead: summaryLead, insights: summaryInsights } = splitSummary(protocol?.summary ?? "");
 
@@ -447,9 +495,13 @@ export default function ProtocolPage() {
     return calculateProfileDepth({ ...profile, ...answers }).total;
   }, [profile, answers, protocol]);
 
+  // Reset the re-fetch gate when the bonus question is unlocked so the bonus answer
+  // can trigger its own re-fetch + popup independently of the first session limit.
+  useEffect(() => {
+    if (bonusUnlocked) hasRefetched.current = false;
+  }, [bonusUnlocked]);
+
   // Silent re-fetch when session quota is reached — merges all answers in, updates products only
-  // Only triggers on sessionLimitReached (not allAnswered) so the popup doesn't fire after a single answer
-  // when the question bank happens to be exhausted early for that user's profile.
   useEffect(() => {
     if (!profile) return;
     if (!sessionLimitReached) return;
@@ -466,16 +518,44 @@ export default function ProtocolPage() {
       .then((r) => r.json())
       .then((data: GeneratedProtocol) => {
         setProtocol((prev) => prev ? { ...prev, supplements: data.supplements } : data);
-        setAddedIds(new Set()); // reset cart state so buttons are fresh on new picks
-        setShowSharpen(true);
-        setTimeout(() => {
-          setShowSharpen(false);
-          picksRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 2500);
+        setAddedIds(new Set());
+        // Show popup only when 2+ questions answered — single-answer sessions update silently
+        if (answeredCount >= 2) {
+          setShowSharpen(true);
+          setTimeout(() => {
+            setShowSharpen(false);
+            picksRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }, 2500);
+        }
       })
       .catch(() => { /* silent — original products stay */ });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionLimitReached]);
+
+  // Stepped intro: once protocol loads, animate bar from 0 → final value one field at a time
+  useEffect(() => {
+    if (loading || !protocol || !profile || introPlayed.current) return;
+    introPlayed.current = true;
+    const qualifierKeys = ["hair_concern_type","skin_concern_type","energy_concern_type","weight_goal","hormone_concern_type","sleep_concern_type"];
+    const hasQualifier = qualifierKeys.some((k) => !!(profile as Record<string, unknown>)[k]);
+    const filledCount = [!!profile.sex, !!profile.age, !!profile.concern, hasQualifier, !!profile.name, !!profile.diet].filter(Boolean).length || 1;
+    const target = liveDepth;
+    const stepValues = Array.from({ length: filledCount }, (_, i) => Math.round(target * (i + 1) / filledCount));
+    let idx = 0;
+    const advance = () => {
+      setDisplayDepth(stepValues[idx]);
+      idx++;
+      if (idx < stepValues.length) setTimeout(advance, 160);
+    };
+    const t = setTimeout(advance, 350);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
+
+  // After intro, keep bar in sync with live depth updates from follow-up answers
+  useEffect(() => {
+    if (introPlayed.current) setDisplayDepth(liveDepth);
+  }, [liveDepth]);
 
   /* ── Loading ───────────────────────────────────────────────── */
   if (loading || !protocol) {
@@ -519,15 +599,159 @@ export default function ProtocolPage() {
       )}
 
 
+      {/* ── Protocol Cart Sheet ── */}
+      {showProtocolCart && protocol && (() => {
+        const mainPicks = protocol.supplements.slice(0, 3);
+        const cartTotal = mainPicks.reduce((sum, s, i) => {
+          const alt    = s.alternative;
+          const active = cartSelections[i] === "alt" && alt ? alt : s;
+          return sum + active.price;
+        }, 0);
+        return (
+          <div className="fixed inset-0 z-[60] flex flex-col justify-end" onClick={() => setShowProtocolCart(false)}>
+            <div className="bg-surface rounded-t-3xl shadow-2xl max-h-[90dvh] flex flex-col animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
+
+              {/* Drag handle + header */}
+              <div className="px-5 pt-4 pb-3 border-b border-outline-variant/10 shrink-0">
+                <div className="w-10 h-1 rounded-full bg-outline-variant/30 mx-auto mb-4" />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">Your Protocol Pack</h2>
+                    <p className="text-[11px] text-on-surface-variant/60 mt-0.5">{mainPicks.length} products · Free delivery · Doctor-approved</p>
+                  </div>
+                  <button
+                    onClick={() => setShowProtocolCart(false)}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-container-low hover:bg-surface-container cursor-pointer transition-colors text-on-surface-variant font-bold text-sm"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {/* Product list */}
+              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+                {mainPicks.map((main, i) => {
+                  const alt    = main.alternative;
+                  const isAlt  = cartSelections[i] === "alt";
+                  const active = isAlt && alt ? alt : main;
+                  // What to show in the swap row (the other option)
+                  const swapItem = isAlt
+                    ? { image: main.image, name: main.name, price: main.price, reason: "Original pick" }
+                    : alt ? { image: alt.image, name: alt.name, price: alt.price, reason: alt.reason } : null;
+                  const activeId   = active.id;
+                  const activePrio = main.priority; // priority belongs to the slot
+                  return (
+                    <div key={main.id} className="rounded-2xl border border-outline-variant/12 bg-surface-container-lowest overflow-hidden">
+
+                      {/* Active product row */}
+                      <div className="flex items-start gap-3 p-4">
+                        {/* Image */}
+                        <div className="w-[72px] h-[72px] rounded-xl overflow-hidden bg-surface-container-low shrink-0">
+                          {active.image
+                            ? <img src={active.image} alt={active.name} className="w-full h-full object-cover" /> /* eslint-disable-line @next/next/no-img-element */
+                            : <div className="w-full h-full flex items-center justify-center text-2xl leading-none">{getSupplementEmoji(active.name)}</div>}
+                        </div>
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-bold text-on-surface leading-snug line-clamp-2">{active.name}</p>
+                          <p className="text-[11px] text-on-surface-variant/50 mt-0.5">{active.brand}</p>
+                          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                            <span className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{active.price}</span>
+                            {active.mrp > active.price && (
+                              <span className="text-[11px] text-on-surface-variant/35 line-through">₹{active.mrp}</span>
+                            )}
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${activePrio === "essential" ? "text-emerald-700 bg-emerald-50" : activePrio === "recommended" ? "text-blue-600 bg-blue-50" : "text-on-surface-variant/60 bg-surface-container-high"}`}>
+                              {activePrio}
+                            </span>
+                          </div>
+                        </div>
+                        {/* Individual add-to-cart */}
+                        <button
+                          onClick={() => void handleAddToCart(activeId)}
+                          disabled={addingId === activeId || addedIds.has(activeId)}
+                          className={`flex items-center justify-center w-9 h-9 rounded-xl shrink-0 transition-all cursor-pointer ${
+                            addedIds.has(activeId) ? "bg-primary-container text-white" : "bg-primary-container/15 text-primary-container hover:bg-primary-container/25"
+                          } disabled:opacity-60`}
+                          aria-label={addedIds.has(activeId) ? "Added" : "Add to cart"}
+                        >
+                          {addingId === activeId
+                            ? <Loader2 className="w-4 h-4 animate-spin" />
+                            : addedIds.has(activeId)
+                            ? <Check className="w-4 h-4" strokeWidth={2.5} />
+                            : <ShoppingBag className="w-4 h-4" strokeWidth={2} />}
+                        </button>
+                      </div>
+
+                      {/* Alternative swap row */}
+                      {swapItem && (
+                        <div className="border-t border-outline-variant/10 px-4 py-2.5 bg-surface-container-low/30 flex items-center gap-2.5">
+                          {/* Thumbnail */}
+                          <div className="w-9 h-9 rounded-lg overflow-hidden bg-surface-container-low shrink-0">
+                            {swapItem.image
+                              ? <img src={swapItem.image} alt={swapItem.name} className="w-full h-full object-cover" /> /* eslint-disable-line @next/next/no-img-element */
+                              : <div className="w-full h-full" />}
+                          </div>
+                          {/* Alt info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[11px] font-semibold text-on-surface/80 truncate">{swapItem.name}</p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-[11px] font-bold text-on-surface/70">₹{swapItem.price}</span>
+                              <span className="text-[9px] font-semibold text-primary-container bg-primary-container/10 px-1.5 py-0.5 rounded-full truncate max-w-[100px]">
+                                {swapItem.reason}
+                              </span>
+                            </div>
+                          </div>
+                          {/* Switch button */}
+                          <button
+                            onClick={() => setCartSelections((prev) => { const next = [...prev]; next[i] = next[i] === "alt" ? "main" : "alt"; return next; })}
+                            className="text-[11px] font-bold text-primary-container bg-primary-container/10 px-3 py-1.5 rounded-full hover:bg-primary-container/20 transition-colors cursor-pointer shrink-0"
+                          >
+                            {isAlt ? "← Original" : "Switch →"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Footer */}
+              <div className="px-5 pt-3 pb-6 border-t border-outline-variant/10 bg-surface shrink-0">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <span className="text-sm font-semibold text-on-surface-variant">Subtotal</span>
+                    <p className="text-[10px] text-on-surface-variant/40 mt-0.5">Based on your current selection</p>
+                  </div>
+                  <span className="text-xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">₹{cartTotal.toLocaleString("en-IN")}</span>
+                </div>
+                <button
+                  onClick={handleCheckoutProtocolCart}
+                  disabled={checkingOutCart}
+                  className="w-full py-4 rounded-2xl bg-primary-container text-white font-bold text-sm hover:bg-primary transition-colors duration-200 cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {checkingOutCart
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Adding to cart…</>
+                    : <><ShoppingBag className="w-4 h-4" strokeWidth={2} /> Add All &amp; Checkout</>}
+                </button>
+                <p className="text-[10px] text-on-surface-variant/40 text-center mt-2">
+                  Free delivery · Doctor-approved · Made for Indian bodies
+                </p>
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="px-4 pt-4">
 
-        {/* ── Back ── */}
+        {/* ── Back to edit onboarding ── */}
         <button
-          onClick={() => router.back()}
+          onClick={() => router.push("/home?edit=true")}
           className="flex items-center gap-1.5 mb-4 text-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" strokeWidth={1.5} />
-          <span>Back</span>
+          <span>Edit profile</span>
         </button>
 
         {/* ── Warm message ── */}
@@ -547,13 +771,13 @@ export default function ProtocolPage() {
               Protocol strength
             </span>
             <span className="text-sm font-extrabold text-primary-container font-[family-name:var(--font-manrope)]">
-              {liveDepth}%
+              {displayDepth}%
             </span>
           </div>
           <div className="h-2 bg-surface-container-high rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-primary-container/70 to-primary-container rounded-full transition-all duration-700 ease-out"
-              style={{ width: `${liveDepth}%` }}
+              className="h-full bg-gradient-to-r from-primary-container/70 to-primary-container rounded-full transition-all duration-200 ease-out"
+              style={{ width: `${displayDepth}%` }}
             />
           </div>
           <p className="text-[11px] text-on-surface-variant/50 mt-1.5">
@@ -850,13 +1074,16 @@ export default function ProtocolPage() {
               </div>
             )}
 
-            {/* Product sneak peek */}
+            {/* Your picks — product carousel */}
             {protocol.supplements.length > 0 && (
               <div ref={picksRef} className="mb-4 animate-fade-in-up">
                 <div className="flex items-center justify-between mb-2.5 px-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50">
-                    Your picks
-                  </p>
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50">
+                      Your picks
+                    </p>
+                    <p className="text-[10px] text-on-surface-variant/35 mt-0.5">Matched to your profile</p>
+                  </div>
                   <button
                     onClick={handleAddAll}
                     disabled={addingAll || protocol.supplements.slice(0,3).every(s => addedIds.has(s.id))}
@@ -874,6 +1101,7 @@ export default function ProtocolPage() {
                 </div>
                 <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-2">
                   {protocol.supplements.slice(0, 3).map((s) => {
+                    const saving = s.mrp && s.mrp > s.price ? s.mrp - s.price : 0;
                     const discountPct = s.mrp && s.mrp > s.price
                       ? Math.round((1 - s.price / s.mrp) * 100)
                       : 0;
@@ -886,10 +1114,10 @@ export default function ProtocolPage() {
                       <div
                         key={s.id}
                         onClick={() => router.push(`/product/${s.id}`)}
-                        className="flex-shrink-0 w-[48vw] max-w-[196px] min-w-[160px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 overflow-hidden cursor-pointer hover:border-primary-container/30 transition-all duration-200 active:scale-[0.98]"
+                        className="flex-shrink-0 w-[52vw] max-w-[210px] min-w-[168px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 overflow-hidden cursor-pointer hover:border-primary-container/30 transition-all duration-200 active:scale-[0.98]"
                       >
-                        {/* Image area */}
-                        <div className="relative w-full h-[130px] bg-surface-container-low">
+                        {/* Image area — taller for visual impact */}
+                        <div className="relative w-full h-[168px] bg-surface-container-low">
                           {s.image ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -905,7 +1133,7 @@ export default function ProtocolPage() {
                           )}
                           {/* Discount badge */}
                           {discountPct >= 5 && (
-                            <span className="absolute top-2 left-2 bg-primary-container text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-md leading-none">
+                            <span className="absolute top-2 left-2 bg-primary-container text-white text-[10px] font-extrabold px-2 py-0.5 rounded-md leading-none">
                               {discountPct}% OFF
                             </span>
                           )}
@@ -917,33 +1145,38 @@ export default function ProtocolPage() {
                           {s.rating && (
                             <div className="flex items-center gap-1 mb-1.5">
                               <span className="text-[11px] leading-none">⭐</span>
-                              <span className="text-[11px] font-bold text-on-surface">{s.rating}</span>
+                              <span className="text-xs font-bold text-on-surface">{s.rating}</span>
                               {reviewLabel && (
-                                <span className="text-[10px] text-on-surface-variant/40">({reviewLabel})</span>
+                                <span className="text-[10px] text-on-surface-variant/45">({reviewLabel})</span>
                               )}
                             </div>
                           )}
 
                           {/* Name */}
-                          <p className="text-xs font-bold text-on-surface leading-snug line-clamp-2 mb-0.5">
+                          <p className="text-[13px] font-bold text-on-surface leading-snug line-clamp-2 mb-0.5">
                             {s.name}
                           </p>
                           <p className="text-[10px] text-on-surface-variant/45 mb-2.5">{s.brand}</p>
 
                           {/* Price row */}
-                          <div className="flex items-end justify-between">
+                          <div className="flex items-end justify-between gap-1">
                             <div>
-                              <p className="text-sm font-extrabold text-primary font-[family-name:var(--font-manrope)] leading-none">
+                              <p className="text-base font-extrabold text-primary font-[family-name:var(--font-manrope)] leading-none">
                                 ₹{s.price}
                               </p>
                               {s.mrp && s.mrp > s.price && (
-                                <p className="text-[9px] text-on-surface-variant/35 line-through mt-0.5">₹{s.mrp}</p>
+                                <div className="flex items-center gap-1 mt-0.5">
+                                  <p className="text-[10px] text-on-surface-variant/40 line-through">₹{s.mrp}</p>
+                                  <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded leading-none">
+                                    Save ₹{saving}
+                                  </span>
+                                </div>
                               )}
                             </div>
                             <button
                               onClick={(e) => { e.stopPropagation(); void handleAddToCart(s.id); }}
                               disabled={addingId === s.id || addedIds.has(s.id)}
-                              className={`flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-200 cursor-pointer ${
+                              className={`flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 cursor-pointer shrink-0 ${
                                 addedIds.has(s.id)
                                   ? "bg-primary-container text-white"
                                   : "bg-primary-container/15 text-primary-container hover:bg-primary-container/30"
@@ -951,11 +1184,11 @@ export default function ProtocolPage() {
                               aria-label={addedIds.has(s.id) ? "Added to cart" : "Add to cart"}
                             >
                               {addingId === s.id ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                <Loader2 className="w-4 h-4 animate-spin" />
                               ) : addedIds.has(s.id) ? (
-                                <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+                                <Check className="w-4 h-4" strokeWidth={2.5} />
                               ) : (
-                                <ShoppingBag className="w-3.5 h-3.5" strokeWidth={2} />
+                                <ShoppingBag className="w-4 h-4" strokeWidth={2} />
                               )}
                             </button>
                           </div>
@@ -970,8 +1203,8 @@ export default function ProtocolPage() {
                       const picks = protocol.supplements.slice(0, 3).map((s) => s.id).join(",");
                       router.push(`/explore?picks=${encodeURIComponent(picks)}`);
                     }}
-                    className="flex-shrink-0 w-[36vw] max-w-[148px] min-w-[120px] rounded-2xl border border-primary-container/20 border-dashed flex flex-col items-center justify-center gap-2.5 cursor-pointer hover:bg-primary-container/4 transition-colors"
-                    style={{ minHeight: 230 }}
+                    className="flex-shrink-0 w-[38vw] max-w-[156px] min-w-[128px] rounded-2xl border border-primary-container/20 border-dashed flex flex-col items-center justify-center gap-2.5 cursor-pointer hover:bg-primary-container/4 transition-colors"
+                    style={{ minHeight: 260 }}
                   >
                     <div className="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center">
                       <ShoppingBag className="w-5 h-5 text-primary-container/70" strokeWidth={1.5} />
@@ -982,16 +1215,70 @@ export default function ProtocolPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Also in your stack — extra supplements if protocol returns more than 3 */}
+                {protocol.supplements.length > 3 && (
+                  <div className="mt-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50 mb-2 px-1">
+                      Also pairs well
+                    </p>
+                    <div className="space-y-2">
+                      {protocol.supplements.slice(3, 5).map((s) => {
+                        const discountPct = s.mrp && s.mrp > s.price
+                          ? Math.round((1 - s.price / s.mrp) * 100) : 0;
+                        return (
+                          <div
+                            key={s.id}
+                            onClick={() => router.push(`/product/${s.id}`)}
+                            className="flex items-center gap-3 p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/8 cursor-pointer hover:border-primary-container/25 transition-all active:scale-[0.99]"
+                          >
+                            <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-surface-container-low shrink-0">
+                              {s.image ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={s.image} alt={s.name} className="w-full h-full object-cover" loading="lazy" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <span className="text-2xl">{getSupplementEmoji(s.name)}</span>
+                                </div>
+                              )}
+                              {discountPct >= 5 && (
+                                <span className="absolute top-0.5 left-0.5 bg-primary-container text-white text-[8px] font-extrabold px-1 py-0.5 rounded leading-none">
+                                  -{discountPct}%
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-on-surface leading-snug line-clamp-1">{s.name}</p>
+                              <p className="text-[10px] text-on-surface-variant/45 mt-0.5">{s.brand}</p>
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <p className="text-sm font-extrabold text-primary font-[family-name:var(--font-manrope)]">₹{s.price}</p>
+                                {s.mrp && s.mrp > s.price && (
+                                  <p className="text-[10px] text-on-surface-variant/35 line-through">₹{s.mrp}</p>
+                                )}
+                              </div>
+                            </div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); void handleAddToCart(s.id); }}
+                              disabled={addingId === s.id || addedIds.has(s.id)}
+                              className={`flex items-center justify-center w-9 h-9 rounded-xl shrink-0 transition-all cursor-pointer ${
+                                addedIds.has(s.id) ? "bg-primary-container text-white" : "bg-primary-container/12 text-primary-container hover:bg-primary-container/25"
+                              } disabled:opacity-60`}
+                            >
+                              {addingId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : addedIds.has(s.id) ? <Check className="w-4 h-4" strokeWidth={2.5} /> : <ShoppingBag className="w-4 h-4" strokeWidth={2} />}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Shop CTA */}
             <div className="mb-4 animate-fade-in-up">
               <button
-                onClick={() => {
-                  const picks = protocol.supplements.slice(0, 3).map((s) => s.id).join(",");
-                  router.push(`/explore?picks=${encodeURIComponent(picks)}`);
-                }}
+                onClick={() => { setCartSelections(["main", "main", "main"]); setShowProtocolCart(true); }}
                 className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-primary-container text-sm font-bold text-white hover:bg-primary transition-colors duration-200 cursor-pointer"
               >
                 <ShoppingBag className="w-4 h-4" strokeWidth={2} />
@@ -1000,6 +1287,13 @@ export default function ProtocolPage() {
               <p className="text-[11px] text-on-surface-variant text-center mt-2">
                 Free shipping · Doctor-approved · Made for Indian bodies
               </p>
+              <button
+                onClick={() => router.push("/explore")}
+                className="flex items-center justify-center gap-1 w-full mt-2.5 text-[12px] font-semibold text-on-surface-variant/50 hover:text-primary-container transition-colors cursor-pointer"
+              >
+                Browse all products
+                <ChevronRight className="w-3.5 h-3.5" strokeWidth={2} />
+              </button>
             </div>
 
             {/* Severity escalation — expert consult card */}

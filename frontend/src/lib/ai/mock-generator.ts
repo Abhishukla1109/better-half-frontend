@@ -4,7 +4,7 @@
    Uses calculateProtocolMatch for real product recommendations.
    ══════════════════════════════════════════════════════════════ */
 
-import { calculateProtocolMatch, resolveSegment } from "@/lib/protocolEngine";
+import { calculateProtocolMatch, resolveSegment, ALL_PRODUCTS } from "@/lib/protocolEngine";
 import type { UserSegment, MatchedProduct } from "@/lib/protocolEngine";
 import { calculateProfileDepth } from "./profile-depth";
 import { getProductShopifyUrl } from "./product-handles";
@@ -541,6 +541,99 @@ function buildSummary(profile: UserProfile, narrative: ConcernNarrative): string
   return parts.join(" ");
 }
 
+/* ── Alternative enrichment ────────────────────────────────── */
+
+// Physical devices should never be suggested as alternatives for ingestibles/topicals
+const DEVICE_TERMS = ["roller", "massager"];
+function isDevice(name: string): boolean {
+  const lower = name.toLowerCase();
+  return DEVICE_TERMS.some((t) => lower.includes(t));
+}
+
+// Broad "product type" keywords — used to prefer same-type alternatives over same-category-but-different-type
+const TYPE_BUCKETS: string[][] = [
+  ["shampoo", "anti-dandruff", "dandruff"],
+  ["face wash", "facewash", "cleanser"],
+  ["serum", "tonic"],
+  ["oil"],
+  ["cream", "moisturiser", "moisturizer", "lotion"],
+  ["gummies", "tablet", "capsule", "supplement"],
+  ["protein", "whey", "bcaa"],
+  ["spray"],
+  ["sunscreen", "spf"],
+];
+
+function productTypeBucket(name: string): string | null {
+  const lower = name.toLowerCase();
+  for (const bucket of TYPE_BUCKETS) {
+    if (bucket.some((k) => lower.includes(k))) return bucket[0];
+  }
+  return null;
+}
+
+function enrichWithAlternatives(
+  supplements: ProtocolSupplement[],
+  categoryOf: (id: string) => string | undefined,
+): ProtocolSupplement[] {
+  const pickedIds = new Set(supplements.map((s) => s.id));
+  const usedAltIds = new Set<string>(); // prevent the same alt appearing for multiple slots
+
+  return supplements.map((s, i) => {
+    if (i >= 3) return s;
+    const cat = categoryOf(s.id);
+    if (!cat) return s;
+
+    const mainIsDevice = isDevice(s.name);
+    const mainBucket = productTypeBucket(s.name);
+
+    // Pass 1: same category + same product type + not a device conflict + not already used
+    let altProduct = ALL_PRODUCTS.find(
+      (p) =>
+        p.category === cat &&
+        !pickedIds.has(p.id) &&
+        !usedAltIds.has(p.id) &&
+        !!p.image &&
+        isDevice(p.name) === mainIsDevice &&
+        productTypeBucket(p.name) === mainBucket,
+    );
+
+    // Pass 2: same category, relax type bucket — but still respect device type
+    if (!altProduct) {
+      altProduct = ALL_PRODUCTS.find(
+        (p) =>
+          p.category === cat &&
+          !pickedIds.has(p.id) &&
+          !usedAltIds.has(p.id) &&
+          !!p.image &&
+          isDevice(p.name) === mainIsDevice,
+      );
+    }
+
+    if (!altProduct) return s; // no suitable alternative — better to show nothing than something wrong
+
+    usedAltIds.add(altProduct.id);
+
+    const priceDiff = s.price - altProduct.price;
+    return {
+      ...s,
+      alternative: {
+        id: altProduct.id,
+        name: altProduct.name,
+        brand: altProduct.brand,
+        price: altProduct.price,
+        mrp: altProduct.mrp,
+        image: altProduct.image,
+        reason:
+          priceDiff > 80
+            ? `₹${priceDiff} cheaper · same benefits`
+            : priceDiff < -80
+            ? "Premium formula · stronger dose"
+            : "Different brand · same actives",
+      },
+    };
+  });
+}
+
 /* ── Supplement builder ─────────────────────────────────────── */
 function buildSupplements(
   profile: UserProfile,
@@ -569,7 +662,9 @@ function buildSupplements(
     return [];
   }
 
-  return matched.map((product, idx) => {
+  const categoryById = new Map(matched.map((p) => [p.id, p.category]));
+
+  const supplements = matched.map((product, idx) => {
     const timing =
       narrative.productTiming[product.category] ||
       "Morning with breakfast";
@@ -597,6 +692,8 @@ function buildSupplements(
       priority,
     };
   });
+
+  return enrichWithAlternatives(supplements, (id) => categoryById.get(id));
 }
 
 /* ── Follow-up questions ────────────────────────────────────── */
@@ -707,7 +804,10 @@ function buildMultiConcernSupplements(
     }
   }
 
-  return result;
+  return enrichWithAlternatives(result, (id) => {
+    const p = ALL_PRODUCTS.find((x) => x.id === id);
+    return p?.category;
+  });
 }
 
 /* ── Multi-concern lifestyle tips ───────────────────────────── */

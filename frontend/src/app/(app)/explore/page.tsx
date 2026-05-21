@@ -282,6 +282,7 @@ function NoProfileState() {
 /* ── Explore Page ── */
 function ExplorePageContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [activeCategory, setActiveCategory] = useState("for-you");
   const [profile, setProfile] = useState<StoredProfile | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
@@ -441,6 +442,23 @@ function ExplorePageContent() {
 
       {/* ── Right: content ── */}
       <div className="flex-1 overflow-y-auto overflow-x-clip">
+
+        {/* Onboarding nudge — shown when user has no profile yet */}
+        {profileLoaded && !profile && (
+          <div className="mx-3 mt-3 mb-1 bg-primary-container/8 border border-primary-container/15 rounded-2xl px-3.5 py-3 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold text-on-surface leading-snug">Not sure what to buy?</p>
+              <p className="text-[11px] text-on-surface-variant/55 mt-0.5 leading-relaxed">A 2-min check-in personalises your picks</p>
+            </div>
+            <button
+              onClick={() => router.push("/home")}
+              className="shrink-0 text-[11px] font-bold text-white bg-primary-container px-3 py-2 rounded-full cursor-pointer hover:bg-primary transition-colors whitespace-nowrap"
+            >
+              Personalise →
+            </button>
+          </div>
+        )}
+
         {/* Header */}
         <div className="px-3 pt-4 pb-2">
           <div className="flex items-start justify-between gap-2">

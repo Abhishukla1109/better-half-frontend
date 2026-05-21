@@ -1,25 +1,12 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Sparkles, ShoppingCart, ChevronRight, Check, Lock, X, Utensils, Pill, Stethoscope, Brain, Activity, Droplets, ClipboardList, ArrowLeft, CircleCheck, ExternalLink } from "lucide-react";
-import { shopifyProductUrl } from "@/lib/shopify-url";
-import { getTreatmentTypesForConcern } from "@/data/treatment-types";
-import type { TreatmentType, TreatmentProduct } from "@/data/treatment-types";
-import TreatmentTypeSheet from "@/components/feed/TreatmentTypeSheet";
+import { Sparkles, ChevronRight, Check } from "lucide-react";
 import GreetingCard from "@/components/feed/cards/GreetingCard";
 import ConcernCard from "@/components/feed/cards/ConcernCard";
-import InsightCard from "@/components/feed/cards/InsightCard";
 import ProfilingCard from "@/components/feed/cards/ProfilingCard";
-import NudgeCard from "@/components/feed/cards/NudgeCard";
-import SupplementCard from "@/components/feed/cards/SupplementCard";
-import ExpertCard from "@/components/feed/cards/ExpertCard";
-import MealPhotoCard from "@/components/feed/cards/MealPhotoCard";
-import SliderCard from "@/components/feed/cards/SliderCard";
 import UserMessageCard from "@/components/feed/cards/UserMessageCard";
-import BuildingProtocolCard from "@/components/feed/cards/BuildingProtocolCard";
-import FeedInput from "@/components/feed/FeedInput";
 
 type ProfileLevel = "L0" | "L1" | "L2" | "L3";
 
@@ -34,283 +21,154 @@ interface UserProfile {
   [key: string]: string | undefined;
 }
 
-// Protocol suggestions per concern
-const protocolSuggestions: Record<string, { supplements: { name: string; brand: string; timing: string; slug: string }[]; reasoning: string }> = {
-  "Hair / beard": {
-    supplements: [
-      { name: "Iron + Vitamin C", brand: "Be Bodywise", timing: "Morning", slug: "iron-vitamin-c" },
-      { name: "Biotin + Zinc", brand: "Man Matters", timing: "Evening", slug: "biotin-zinc-hair" },
+/* ── Smart concern qualifier questions ────────────────────────
+   Asked immediately after concern selection to sharpen product
+   mapping without waiting for the full profiling flow.
+   Keys stored in profile match the question-bank keys so they
+   automatically deepen personalisation downstream.
+   ─────────────────────────────────────────────────────────── */
+interface QualifierOption { label: string; value: string; }
+interface QualifierDef { question: string; key: string; options: QualifierOption[]; }
+
+const CONCERN_QUALIFIERS: Record<string, (sex?: string) => QualifierDef> = {
+  "Hair / beard": () => ({
+    question: "What's your main hair concern?",
+    key: "hair_concern_type",
+    options: [
+      { label: "Hair fall & thinning",  value: "thinning"    },
+      { label: "Dandruff & itchy scalp", value: "dandruff"   },
+      { label: "Slow / no growth",       value: "slow_growth" },
+      { label: "Breakage & dryness",     value: "breakage"    },
     ],
-    reasoning: "Based on your profile, iron and biotin gaps are the most likely contributors. This protocol targets follicle strength and growth cycle support.",
-  },
-  "Skin / acne": {
-    supplements: [
-      { name: "Daily Probiotics", brand: "Be Bodywise", timing: "Morning", slug: "daily-probiotics" },
-      { name: "Ashwagandha KSM-66", brand: "Root Labs", timing: "Evening", slug: "ashwagandha-ksm66" },
+  }),
+  "Skin / acne": (sex) => ({
+    question: "When do you break out most?",
+    key: "skin_concern_type",
+    options: sex === "female" ? [
+      { label: "Before my period", value: "hormonal" },
+      { label: "Constantly",       value: "chronic"  },
+      { label: "After junk food",  value: "dietary"  },
+      { label: "When stressed",    value: "stress"   },
+    ] : [
+      { label: "Constantly",        value: "chronic"  },
+      { label: "After oily food",   value: "dietary"  },
+      { label: "When stressed",     value: "stress"   },
+      { label: "Randomly / hormonal", value: "hormonal" },
     ],
-    reasoning: "Probiotics address the gut-skin axis, while ashwagandha reduces cortisol-driven breakouts. This covers the two most common internal drivers of adult acne.",
-  },
-  "Energy / gut": {
-    supplements: [
-      { name: "Iron + Vitamin C", brand: "Be Bodywise", timing: "Morning", slug: "iron-vitamin-c" },
-      { name: "Daily Probiotics", brand: "Be Bodywise", timing: "Before lunch", slug: "daily-probiotics" },
+  }),
+  "Energy / gut": () => ({
+    question: "What bothers you most?",
+    key: "energy_concern_type",
+    options: [
+      { label: "Low energy all day", value: "low_energy" },
+      { label: "Afternoon crash",    value: "afternoon"  },
+      { label: "Bloating & gut",     value: "gut"        },
+      { label: "Brain fog",          value: "brain_fog"  },
     ],
-    reasoning: "Iron and B12 are your energy foundations. Probiotics help your gut absorb what you eat — fixing the root cause, not the symptom.",
-  },
-  "Weight": {
-    supplements: [
-      { name: "Whey Protein Isolate", brand: "OWN", timing: "Post-workout", slug: "whey-protein-isolate" },
-      { name: "Ashwagandha KSM-66", brand: "Root Labs", timing: "Evening", slug: "ashwagandha-ksm66" },
+  }),
+  "Weight": () => ({
+    question: "What's your main goal?",
+    key: "weight_goal",
+    options: [
+      { label: "Lose fat",     value: "fat_loss"        },
+      { label: "Build muscle", value: "muscle_gain"     },
+      { label: "Both",         value: "body_recomp"     },
+      { label: "Get fitter",   value: "general_fitness" },
     ],
-    reasoning: "Protein preserves muscle while losing fat and keeps you full. Ashwagandha manages cortisol, which drives stress-eating and belly fat storage.",
-  },
-  "Hormones": {
-    supplements: [
-      { name: "Ashwagandha KSM-66", brand: "Root Labs", timing: "Morning", slug: "ashwagandha-ksm66" },
-      { name: "Iron + Vitamin C", brand: "Be Bodywise", timing: "With lunch", slug: "iron-vitamin-c" },
+  }),
+  "Hormones": (sex) => sex === "female" ? {
+    question: "What's your main hormonal concern?",
+    key: "hormone_concern_type",
+    options: [
+      { label: "Irregular periods", value: "irregular"     },
+      { label: "PCOS symptoms",     value: "pcos"          },
+      { label: "PMS & mood swings", value: "pms"           },
+      { label: "Hormonal acne",     value: "hormonal_acne" },
     ],
-    reasoning: "Ashwagandha regulates cortisol — the master switch for hormonal balance. Iron supports the pathways that produce and regulate hormones.",
-  },
-  "Sleep / mind": {
-    supplements: [
-      { name: "Magnesium B6", brand: "Root Labs", timing: "30 min before bed", slug: "magnesium-b6" },
-      { name: "Ashwagandha KSM-66", brand: "Root Labs", timing: "Evening", slug: "ashwagandha-ksm66" },
+  } : {
+    question: "What are you looking to improve?",
+    key: "hormone_concern_type",
+    options: [
+      { label: "Energy & drive",    value: "energy_drive" },
+      { label: "Muscle & strength", value: "muscle"       },
+      { label: "Mood & focus",      value: "mood_focus"   },
+      { label: "Sleep quality",     value: "sleep"        },
     ],
-    reasoning: "Magnesium activates your parasympathetic nervous system. Ashwagandha reduces cortisol so your brain can actually wind down.",
   },
+  "Sleep / mind": () => ({
+    question: "What's your main struggle?",
+    key: "sleep_concern_type",
+    options: [
+      { label: "Can't fall asleep", value: "onset"   },
+      { label: "Wake up at night",  value: "waking"  },
+      { label: "Wake up exhausted", value: "quality" },
+      { label: "Anxious mind",      value: "anxiety" },
+    ],
+  }),
 };
 
-// Protocol buckets — each has questions that feed Protocol Depth
-interface BucketQuestion {
-  key: string;
-  question: string;
-  reason: string;
-  options: { label: string; value: string }[];
-}
+// Shown when 2+ concerns are selected — asks about the root cause driver instead of
+// repeating a question per concern
+const MULTI_CONCERN_QUALIFIER: QualifierDef = {
+  question: "What do you think is driving most of this?",
+  key: "multi_concern_driver",
+  options: [
+    { label: "Stress & lifestyle",  value: "stress"    },
+    { label: "Poor sleep",          value: "poor_sleep" },
+    { label: "Diet & gut health",   value: "diet"      },
+    { label: "Hormonal changes",    value: "hormonal"  },
+  ],
+};
 
-interface ProtocolBucket {
-  id: string;
-  label: string;
-  icon: string;
-  questions: BucketQuestion[];
-  isExternal?: boolean; // for buckets that aren't question-based
-}
-
-const protocolBuckets: ProtocolBucket[] = [
-  {
-    id: "basic",
-    label: "Basic Details",
-    icon: "check",
-    questions: [], // already done via onboarding
-  },
-  {
-    id: "supplements",
-    label: "Details & Existing Supplements",
-    icon: "pill",
-    questions: [
-      {
-        key: "existingSupplements",
-        question: "Are you currently taking any supplements or medicines?",
-        reason: "Knowing this helps avoid conflicts and unnecessary overlap.",
-        options: [
-          { label: "Yes, a few", value: "yes" },
-          { label: "Nothing right now", value: "none" },
-          { label: "Not sure", value: "unsure" },
-        ],
-      },
-      {
-        key: "allergies",
-        question: "Any known allergies or intolerances?",
-        reason: "This ensures nothing in your protocol triggers a reaction.",
-        options: [
-          { label: "None", value: "none" },
-          { label: "Lactose", value: "lactose" },
-          { label: "Gluten", value: "gluten" },
-          { label: "Other", value: "other" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "history",
-    label: "History & Concern Depth",
-    icon: "clipboard",
-    questions: [
-      {
-        key: "concernDuration",
-        question: "How long have you been noticing your primary concern?",
-        reason: "Duration helps estimate whether this is acute or chronic.",
-        options: [
-          { label: "A few weeks", value: "weeks" },
-          { label: "A few months", value: "months" },
-          { label: "6+ months", value: "6months" },
-          { label: "Years", value: "years" },
-        ],
-      },
-      {
-        key: "familyHistory",
-        question: "Does anyone in your family deal with something similar?",
-        reason: "Genetics play a significant role in your protocol design.",
-        options: [
-          { label: "Yes", value: "yes" },
-          { label: "No", value: "no" },
-          { label: "Not sure", value: "unsure" },
-        ],
-      },
-      {
-        key: "previousTreatment",
-        question: "Have you tried anything for this before?",
-        reason: "Knowing what didn't work helps the AI avoid repeating it.",
-        options: [
-          { label: "Yes, supplements", value: "supplements" },
-          { label: "Yes, prescription", value: "prescription" },
-          { label: "Home remedies", value: "remedies" },
-          { label: "Nothing yet", value: "none" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "lifestyle",
-    label: "Lifestyle Details",
-    icon: "activity",
-    questions: [
-      {
-        key: "sleep",
-        question: "How's your sleep been generally?",
-        reason: "Sleep quality directly affects how your body uses supplements.",
-        options: [
-          { label: "Rarely good", value: "poor" },
-          { label: "Hit or miss", value: "variable" },
-          { label: "Mostly fine", value: "good" },
-        ],
-      },
-      {
-        key: "activityLevel",
-        question: "How active are you on a typical day?",
-        reason: "Activity level determines protein targets and recovery needs.",
-        options: [
-          { label: "Desk-bound", value: "sedentary" },
-          { label: "Light activity", value: "light" },
-          { label: "Regularly active", value: "active" },
-          { label: "Athlete", value: "athlete" },
-        ],
-      },
-      {
-        key: "waterIntake",
-        question: "Roughly how much water do you drink daily?",
-        reason: "Hydration directly affects supplement absorption and gut health.",
-        options: [
-          { label: "< 1 litre", value: "low" },
-          { label: "1–2 litres", value: "moderate" },
-          { label: "2–3 litres", value: "good" },
-          { label: "3+ litres", value: "high" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "health-data",
-    label: "Sync Health Data",
-    icon: "droplets",
-    questions: [],
-    isExternal: true,
-  },
-  {
-    id: "blood-test",
-    label: "Blood Test",
-    icon: "droplets",
-    questions: [],
-    isExternal: true,
-  },
-  {
-    id: "expert",
-    label: "Medical Expert Evaluation",
-    icon: "stethoscope",
-    questions: [],
-    isExternal: true,
-  },
+const SNEAK_PEEK = [
+  { slug: "biotin-zinc-hair",     name: "Biotin Hair Gummies",                  price: 499,  original: 599,  img: "https://i.mscwlns.co/media/misc/pdp_rcl/hair-health-gummies/4%25AHABHARollOn%20%281%29_hk8vt2.jpg?tr=w-400" },
+  { slug: "ashwagandha-ksm66",    name: "Ashwagandha Gummies",                  price: 629,  original: 799,  img: "https://i.mscwlns.co/media/misc/pdp_rcl/13222757/Ashwa%20Gummies%20%281%29_jjrtro.png?tr=w-400"           },
+  { slug: "whey-protein-isolate", name: "Whey Protein",                         price: 999,  original: 1299, img: "https://i.mscwlns.co/media/misc/pdp/26166740/Whey-Protein-Powder_600X600__mB6ULq4bQ.png?tr=w-400"        },
+  { slug: "magnesium-b6",         name: "Magnesium Glycinate Gummies",          price: 899,  original: 1099, img: "https://i.mscwlns.co/media/misc/pdp_rcl/2024494/Magnesium%20Gummies_br8d83.jpg?tr=w-400"                  },
+  { slug: "creatine-monohydrate", name: "Micronised Creatine Monohydrate",      price: 549,  original: 699,  img: "https://i.mscwlns.co/media/misc/pdp_rcl/2025071/Creatine%20Powder%20Lemon%20125gm_5bjt7h.png?tr=w-400"    },
 ];
-
-// Flatten all questions for depth calculation
-const allBucketQuestions = protocolBuckets.flatMap((b) => b.questions);
-const depthPerQuestion = 60 / Math.max(allBucketQuestions.length, 1); // 10% base + up to 70% from questions, 20% from external
-
-/* ── Shuffling Hint: cycles through unselected types' whyNeeded ── */
-function ShufflingHint({ types, selections, allSelected }: {
-  types: TreatmentType[];
-  selections: Record<string, { product: TreatmentProduct; status: string }>;
-  allSelected: boolean;
-}) {
-  const unselected = types.filter((t) => !selections[t.id]);
-  const [idx, setIdx] = useState(0);
-  const [fading, setFading] = useState(false);
-
-  useEffect(() => {
-    if (unselected.length <= 1) return;
-    const interval = setInterval(() => {
-      setFading(true);
-      setTimeout(() => {
-        setIdx((prev) => (prev + 1) % unselected.length);
-        setFading(false);
-      }, 200);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [unselected.length]);
-
-  if (allSelected || unselected.length === 0) return null;
-  const current = unselected[idx % unselected.length];
-
-  return (
-    <div className="flex items-start gap-2 px-4 py-2.5 bg-primary-fixed/5 border-t border-outline-variant/8 overflow-hidden">
-      <Sparkles className="w-3.5 h-3.5 text-primary-container shrink-0 mt-0.5" strokeWidth={1.5} />
-      <p className={`text-xs text-on-surface-variant leading-snug transition-opacity duration-200 ${fading ? "opacity-0" : "opacity-100"}`}>
-        <span className="font-semibold text-primary-container">{current.label}:</span>{" "}
-        {current.whyNeeded}
-      </p>
-    </div>
-  );
-}
 
 export default function HomePage() {
   const [showSplash, setShowSplash] = useState(true);
   const [level, setLevel] = useState<ProfileLevel>("L0");
   const [profile, setProfile] = useState<Partial<UserProfile>>({});
   const [userMessages, setUserMessages] = useState<string[]>([]);
-  const [protocolAccepted, setProtocolAccepted] = useState(false);
-  const [protocolReady, setProtocolReady] = useState(false);
-  const [hasSupply, setHasSupply] = useState(false);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [answeredHistory, setAnsweredHistory] = useState<string[]>([]);
-  // Treatment type selections: typeId → { product, status }
-  const [typeSelections, setTypeSelections] = useState<Record<string, { product: TreatmentProduct; status: "plan" | "using" | "other" }>>({});
-  const [activeTypeSheet, setActiveTypeSheet] = useState<TreatmentType | null>(null);
-  const [buildPlanMode, setBuildPlanMode] = useState(false);
-  const [hintIndex, setHintIndex] = useState(0);
-
   // Name state
   const [name, setName] = useState<string>("");
   const [nameText, setNameText] = useState<string>("");
   const [nameSubmitted, setNameSubmitted] = useState(false);
+  const [nameEditing, setNameEditing] = useState(false);
 
   // All selected concerns (multi-select from ConcernCard)
   const [selectedConcerns, setSelectedConcerns] = useState<string[]>([]);
 
-  // Protocol generation + fake auth overlay
+  // Protocol generation overlay
   const [showGenerating, setShowGenerating] = useState(false);
-  const [generatingPhase, setGeneratingPhase] = useState<"generating" | "ready" | "auth">("generating");
+  const [generatingPhase, setGeneratingPhase] = useState<"generating" | "ready">("generating");
 
   // Tracks whether we've attempted to restore state — prevents saving before restore
   const [restored, setRestored] = useState(false);
 
   const router = useRouter();
-  const feedRef = useRef<HTMLDivElement>(null);
 
   // Bump this whenever the saved-state shape changes — auto-clears old data
   const STATE_VERSION = "bh_v2";
 
   // Restore onboarding state from localStorage on mount
   useEffect(() => {
+    // If onboarding is complete (profile with diet exists), go straight to protocol
+    // — UNLESS the user explicitly navigated back to edit (?edit=true)
+    const isEditMode = window.location.search.includes("edit=true");
+    if (!isEditMode) {
+      try {
+        const raw = localStorage.getItem("bh_profile");
+        if (raw) {
+          const p = JSON.parse(raw);
+          if (p?.diet) { router.replace("/protocol"); return; }
+        }
+      } catch {}
+    }
+
     // ?reset clears everything and starts fresh (used for testing / demos)
     if (window.location.search.includes("reset")) {
       localStorage.removeItem("bh_onboarding_state");
@@ -331,7 +189,6 @@ export default function HomePage() {
           profile?: Partial<UserProfile>;
           level?: ProfileLevel;
           userMessages?: string[];
-          protocolAccepted?: boolean;
         };
 
         // Old version data — clear it silently and start fresh
@@ -348,7 +205,6 @@ export default function HomePage() {
         if (state.profile) setProfile(state.profile);
         if (state.level) setLevel(state.level);
         if (state.userMessages) setUserMessages(state.userMessages);
-        if (state.protocolAccepted) setProtocolAccepted(true);
         if (state.level && state.level !== "L0") setNameSubmitted(true);
         setShowSplash(false);
       }
@@ -364,35 +220,10 @@ export default function HomePage() {
     try {
       localStorage.setItem("bh_onboarding_state", JSON.stringify({
         _version: STATE_VERSION,
-        name, selectedConcerns, profile, level, userMessages, protocolAccepted,
+        name, selectedConcerns, profile, level, userMessages,
       }));
     } catch {}
-  }, [name, selectedConcerns, profile, level, userMessages, protocolAccepted, restored, STATE_VERSION]);
-
-  // Protocol depth calculation
-  const answeredQuestions = allBucketQuestions.filter((q) => profile[q.key]);
-  const protocolDepth = Math.min(
-    Math.round(10 + answeredQuestions.length * depthPerQuestion),
-    70 // max 70% from questions, remaining 30% from external buckets
-  );
-
-  // Bucket completion status
-  const getBucketStatus = (bucket: ProtocolBucket) => {
-    if (bucket.id === "basic") return "done";
-    if (bucket.isExternal) return "locked";
-    if (bucket.questions.length === 0) return "locked";
-    const answered = bucket.questions.filter((q) => profile[q.key]).length;
-    if (answered === bucket.questions.length) return "done";
-    if (answered > 0) return "partial";
-    return "pending";
-  };
-
-  // Next unanswered question across all buckets (for the bottom sheet)
-  const nextQuestion = allBucketQuestions.find((q) => !profile[q.key]);
-  // Which bucket is the next question in?
-  const nextBucketForSheet = protocolBuckets.find((b) =>
-    b.questions.some((q) => q.key === nextQuestion?.key)
-  );
+  }, [name, selectedConcerns, profile, level, userMessages, restored, STATE_VERSION]);
 
   const scrollToCard = useCallback((cardId: string) => {
     requestAnimationFrame(() => {
@@ -405,8 +236,22 @@ export default function HomePage() {
   const handleConcernSelect = useCallback((concerns: string[]) => {
     setSelectedConcerns(concerns);
     setProfile((p) => ({ ...p, concern: concerns[0], concerns: concerns.join(",") }));
+    // Multi-concern → umbrella question. Single concern with qualifier → that question.
+    // Otherwise advance straight to L1.
+    const isMulti = concerns.length > 1;
+    const hasSingleQualifier = !isMulti && concerns[0] && CONCERN_QUALIFIERS[concerns[0]];
+    if (isMulti || hasSingleQualifier) {
+      scrollToCard("card-qualifier");
+    } else {
+      setLevel("L1");
+      scrollToCard("card-diet");
+    }
+  }, [scrollToCard]);
+
+  const handleQualifierAnswer = useCallback((key: string, value: string) => {
+    if (key) setProfile((p) => ({ ...p, [key]: value }));
     setLevel("L1");
-    scrollToCard("card-name");
+    scrollToCard("card-diet");
   }, [scrollToCard]);
 
   const handleConcernText = useCallback((text: string) => {
@@ -421,7 +266,7 @@ export default function HomePage() {
     setSelectedConcerns([matched]);
     setProfile((p) => ({ ...p, concern: matched, concerns: matched }));
     setLevel("L1");
-    scrollToCard("card-name");
+    scrollToCard("card-diet");
   }, [scrollToCard]);
 
   const handleNameSubmit = useCallback((submittedName: string) => {
@@ -431,6 +276,7 @@ export default function HomePage() {
       setProfile((p) => ({ ...p, name: trimmed }));
     }
     setNameSubmitted(true);
+    setNameEditing(false);
     scrollToCard("card-sex");
   }, [scrollToCard]);
 
@@ -441,658 +287,27 @@ export default function HomePage() {
 
   const handleAgeSelect = useCallback((age: string) => {
     setProfile((p) => ({ ...p, age }));
-    scrollToCard("card-diet");
+    scrollToCard("card-concern");
   }, [scrollToCard]);
 
   const handleDietSelect = useCallback((diet: string) => {
-    setProfile((p) => ({ ...p, diet }));
-    setLevel("L2");
-    setProtocolReady(false);
-    scrollToCard("card-building");
-  }, [scrollToCard]);
-
-  const handleProtocolBuilt = useCallback(() => {
     const fullProfile = {
       ...profile,
+      diet,
       concerns: selectedConcerns.join(","),
       name: name || undefined,
     };
+    setProfile((p) => ({ ...p, diet }));
+    setLevel("L3");
     localStorage.setItem("bh_profile", JSON.stringify(fullProfile));
-    localStorage.setItem("bh_onboarding_state", JSON.stringify({
-      name, selectedConcerns, profile: fullProfile, level: "L3",
-      userMessages, protocolAccepted: true,
-    }));
-    // Show generating → ready → auth overlay instead of navigating immediately
     setGeneratingPhase("generating");
     setShowGenerating(true);
     setTimeout(() => setGeneratingPhase("ready"), 2800);
-  }, [profile, selectedConcerns, name, userMessages]);
-
-  const handleAcceptProtocol = useCallback(() => {
-    setProtocolAccepted(true);
-    setLevel("L3");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
-
-  const handleDeepeningAnswer = useCallback((key: string, value: string) => {
-    setProfile((p) => ({ ...p, [key]: value }));
-    setAnsweredHistory((h) => [...h.filter((k) => k !== key), key]);
-  }, []);
-
-  const handleSheetBack = useCallback(() => {
-    if (answeredHistory.length === 0) {
-      setSheetOpen(false);
-      return;
-    }
-    const lastKey = answeredHistory[answeredHistory.length - 1];
-    setProfile((p) => { const next = { ...p }; delete next[lastKey]; return next; });
-    setAnsweredHistory((h) => h.slice(0, -1));
-  }, [answeredHistory]);
-
-  const handleFeedInput = useCallback((message: string) => {
-    setUserMessages((m) => [...m, message]);
-    // Check if user mentions having supply
-    const lower = message.toLowerCase();
-    if (lower.includes("already have") || lower.includes("i have") || lower.includes("bought") || lower.includes("ordered")) {
-      setHasSupply(true);
-    }
-  }, []);
-
-  // Auto-advance: after selecting a type, open the next unselected one
-  const advanceToNext = useCallback((justSelectedId: string) => {
-    if (!buildPlanMode) {
-      setActiveTypeSheet(null);
-      return;
-    }
-    const types = getTreatmentTypesForConcern(profile.concern || "");
-    const justIdx = types.findIndex((t) => t.id === justSelectedId);
-    const next = types.find((t, i) => i > justIdx && !typeSelections[t.id] && t.id !== justSelectedId)
-      || types.find((t) => !typeSelections[t.id] && t.id !== justSelectedId);
-    if (next) {
-      // Swap content in-place — sheet stays mounted, no close/reopen
-      setActiveTypeSheet(next);
-    } else {
-      setActiveTypeSheet(null);
-      setBuildPlanMode(false);
-    }
-  }, [buildPlanMode, profile.concern, typeSelections]);
-
-  const handleTypeAddToPlan = useCallback((typeId: string, product: TreatmentProduct) => {
-    setTypeSelections((prev) => ({ ...prev, [typeId]: { product, status: "plan" } }));
-    advanceToNext(typeId);
-  }, [advanceToNext]);
-
-  const handleTypeAlreadyUsing = useCallback((typeId: string, product: TreatmentProduct) => {
-    setTypeSelections((prev) => ({ ...prev, [typeId]: { product, status: "using" } }));
-    setHasSupply(true);
-    advanceToNext(typeId);
-  }, [advanceToNext]);
-
-  const handleTypeUsingOther = useCallback((typeId: string) => {
-    setTypeSelections((prev) => ({ ...prev, [typeId]: { product: { id: "other", name: "Custom", brand: "", size: "", price: 0, mrp: 0, usp: "", slug: "", image: "", tags: [] }, status: "other" } }));
-    advanceToNext(typeId);
-  }, [advanceToNext]);
-
-  const concern = profile.concern || "";
-  const protocol = protocolSuggestions[concern];
-  const treatmentTypes = getTreatmentTypesForConcern(concern);
-  const allTypesSelected = treatmentTypes.length > 0 && treatmentTypes.every((t) => typeSelections[t.id]);
-
-  /* ═══════════════════════════════════════════════════════
-     L3: PROFILED HOME — completely different screen
-     ═══════════════════════════════════════════════════════ */
-  // Track header visibility for sticky depth bar positioning
-  const [headerVisible, setHeaderVisible] = useState(true);
-
-  useEffect(() => {
-    if (level !== "L3") return;
-
-    const observer = new MutationObserver(() => {
-      const header = document.querySelector("[data-header-visible]");
-      if (header) {
-        setHeaderVisible(header.getAttribute("data-header-visible") === "true");
-      }
-    });
-
-    const header = document.querySelector("[data-header-visible]");
-    if (header) {
-      observer.observe(header, { attributes: true, attributeFilter: ["data-header-visible"] });
-      setHeaderVisible(header.getAttribute("data-header-visible") === "true");
-    }
-
-    return () => observer.disconnect();
-  }, [level]);
-
-  // Lock body scroll + hide header when sheet is open
-  useEffect(() => {
-    if (sheetOpen) {
-      document.body.style.overflowY = "hidden";
-      const header = document.querySelector("[data-header-visible]") as HTMLElement;
-      if (header) header.style.transform = "translateY(-100%)";
-    } else {
-      document.body.style.overflowY = "";
-      const header = document.querySelector("[data-header-visible]") as HTMLElement;
-      if (header) header.style.transform = "";
-    }
-    return () => { document.body.style.overflowY = ""; };
-  }, [sheetOpen]);
-
-  // Bucket icon resolver
-  const bucketIcon = (icon: string, className: string) => {
-    const props = { className, strokeWidth: 1.5 };
-    switch (icon) {
-      case "check": return <Check {...props} />;
-      case "pill": return <Pill {...props} />;
-      case "clipboard": return <ClipboardList {...props} />;
-      case "activity": return <Activity {...props} />;
-      case "droplets": return <Droplets {...props} />;
-      case "stethoscope": return <Stethoscope {...props} />;
-      default: return <Sparkles {...props} />;
-    }
-  };
-
-  if (level === "L3" && protocolAccepted && protocol) {
-    const hour = new Date().getHours();
-    const timeGreeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-
-    return (
-      <div ref={feedRef}>
-        {/* ── Protocol Depth Bar ── */}
-        <div
-          className={`px-4 py-3 bg-surface/95 backdrop-blur-sm transition-all duration-300 ease-out ${
-            sheetOpen ? "sticky z-[60]" : "relative z-10"
-          }`}
-          style={{ top: sheetOpen ? "0px" : undefined }}
-        >
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-semibold text-on-surface-variant">Protocol Depth</span>
-            <span className="text-xs font-bold text-primary-container">{protocolDepth}%</span>
-          </div>
-          <div className="h-1.5 bg-surface-container-high rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-primary-container to-primary rounded-full transition-all duration-700 ease-out"
-              style={{ width: `${protocolDepth}%` }}
-            />
-          </div>
-        </div>
-
-        <div className="px-4 pb-4">
-
-        {/* ── Greeting ── */}
-        <div className="feed-card-ai p-5 mb-3 animate-fade-in-up" style={{ animationDelay: "50ms" }}>
-          <div className="flex items-start gap-3">
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary-container/20 shrink-0 mt-0.5">
-              <Sparkles className="w-4 h-4 text-primary-container" strokeWidth={1.5} />
-            </div>
-            <div>
-              <h1 className="text-lg font-extrabold text-primary font-[family-name:var(--font-manrope)] leading-tight">
-                {timeGreeting}, {name}.
-              </h1>
-              <p className="text-sm text-on-surface-variant mt-1 leading-relaxed">
-                Your protocol is set. Here&apos;s your recommended treatment plan.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Treatment Plan ── */}
-        {(() => {
-          const selectedCount = treatmentTypes.filter((t) => typeSelections[t.id]).length;
-          const totalPrice = treatmentTypes.reduce((sum, t) => {
-            const sel = typeSelections[t.id];
-            return sum + (sel?.product.price || 0);
-          }, 0);
-          const totalMrp = treatmentTypes.reduce((sum, t) => {
-            const sel = typeSelections[t.id];
-            return sum + (sel?.product.mrp || 0);
-          }, 0);
-
-          return (
-            <div className="mb-4 animate-fade-in-up rounded-2xl bg-surface-container-lowest border border-outline-variant/10 overflow-hidden shadow-sm" style={{ animationDelay: "150ms" }}>
-              {/* ── Header band ── */}
-              <div className="bg-gradient-to-r from-primary-container to-primary px-4 py-3.5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-sm font-extrabold text-white font-[family-name:var(--font-manrope)]">
-                      Your Treatment Plan
-                    </h2>
-                    <p className="text-[11px] text-white/60 mt-0.5">
-                      Personalised for your profile
-                    </p>
-                  </div>
-                  {/* Progress ring */}
-                  <div className="relative w-10 h-10">
-                    <svg className="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
-                      <circle cx="18" cy="18" r="15.5" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="3" />
-                      <circle cx="18" cy="18" r="15.5" fill="none" stroke="white" strokeWidth="3"
-                        strokeDasharray={`${(selectedCount / treatmentTypes.length) * 97.4} 97.4`}
-                        strokeLinecap="round"
-                        className="transition-all duration-700 ease-out"
-                      />
-                    </svg>
-                    <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">
-                      {selectedCount}/{treatmentTypes.length}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* ── Product items — connected list inside the widget ── */}
-              <div className="divide-y divide-outline-variant/8">
-                {treatmentTypes.map((t, idx) => {
-                  const selection = typeSelections[t.id];
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => setActiveTypeSheet(t)}
-                      className="w-full text-left cursor-pointer hover:bg-surface-container-low/40 transition-colors duration-150"
-                    >
-                      <div className="flex items-start gap-3 px-4 py-3.5">
-                        {/* Step number / check */}
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold mt-0.5 ${
-                          selection
-                            ? "bg-primary-container text-white"
-                            : "bg-surface-container-high text-on-surface-variant"
-                        }`}>
-                          {selection ? <Check className="w-3.5 h-3.5" strokeWidth={3} /> : idx + 1}
-                        </div>
-
-                        {/* Thumbnail */}
-                        <div className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={selection?.product.image || t.image}
-                            alt={t.label}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          {selection ? (
-                            <>
-                              <p className="text-sm font-semibold text-on-surface leading-snug">{selection.product.name}</p>
-                              <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="text-sm font-bold text-on-surface">₹{selection.product.price}</span>
-                                {selection.product.mrp > selection.product.price && (
-                                  <span className="text-xs text-on-surface-variant line-through">₹{selection.product.mrp}</span>
-                                )}
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <p className="text-sm font-semibold text-on-surface">Choose your {t.label}</p>
-                              <p className="text-xs text-on-surface-variant mt-0.5">{t.timing}</p>
-                            </>
-                          )}
-                        </div>
-
-                        {/* Select CTA */}
-                        {!selection ? (
-                          <span className="text-xs font-semibold text-primary-container shrink-0 mt-0.5">Select</span>
-                        ) : (
-                          <span className="text-xs text-on-surface-variant shrink-0 mt-0.5">Change</span>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* ── Shuffling hint — cycles through unselected types ── */}
-              <ShufflingHint types={treatmentTypes} selections={typeSelections} allSelected={allTypesSelected} />
-
-              {/* ── Footer: price + CTA — always visible ── */}
-              <div className="px-4 py-3.5 bg-surface-container-low/30 border-t border-outline-variant/8">
-                {selectedCount > 0 ? (
-                  <>
-                    {/* Price line */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-lg font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
-                          ₹{totalPrice}
-                        </span>
-                        {totalMrp > totalPrice && (
-                          <>
-                            <span className="text-sm text-on-surface-variant line-through">₹{totalMrp}</span>
-                            <span className="text-xs font-semibold text-primary-container bg-primary-fixed/15 px-1.5 py-0.5 rounded">
-                              Save ₹{totalMrp - totalPrice}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                      {!allTypesSelected && (
-                        <span className="text-xs text-on-surface-variant">
-                          {treatmentTypes.length - selectedCount} remaining
-                        </span>
-                      )}
-                    </div>
-
-                    {allTypesSelected ? (
-                      <div className="space-y-2">
-                        <p className="text-[11px] font-semibold text-on-surface-variant/60 text-center uppercase tracking-wider">
-                          Your protocol · ready to order
-                        </p>
-                        {treatmentTypes.map((type) => {
-                          const sel = typeSelections[type.id];
-                          if (!sel || sel.status === "other") return null;
-                          return (
-                            <a
-                              key={type.id}
-                              href={shopifyProductUrl(sel.product.slug)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="w-full flex items-center justify-between gap-3 py-3 px-4 rounded-xl bg-surface-container-lowest border border-outline-variant/10 hover:border-primary-container/40 transition-all active:scale-[0.99]"
-                            >
-                              <div className="min-w-0">
-                                <p className="text-sm font-semibold text-on-surface truncate">{sel.product.name}</p>
-                                <p className="text-xs text-on-surface-variant">&#8377;{sel.product.price}</p>
-                              </div>
-                              <span className="flex items-center gap-1 text-xs font-bold text-primary-container shrink-0">
-                                Buy <ExternalLink className="w-3 h-3" strokeWidth={2.5} />
-                              </span>
-                            </a>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          const next = treatmentTypes.find((t) => !typeSelections[t.id]);
-                          if (next) setActiveTypeSheet(next);
-                        }}
-                        className="w-full py-3 rounded-xl bg-primary-container text-sm font-semibold text-white cursor-pointer hover:bg-primary transition-colors"
-                      >
-                        Continue · {selectedCount} of {treatmentTypes.length} selected
-                      </button>
-                    )}
-                  </>
-                ) : (
-                  <button
-                    onClick={() => { setBuildPlanMode(true); setActiveTypeSheet(treatmentTypes[0]); }}
-                    className="w-full py-3 rounded-xl bg-primary-container text-sm font-semibold text-white cursor-pointer hover:bg-primary transition-colors"
-                  >
-                    Build your plan
-                  </button>
-                )}
-
-                <p className="text-[11px] text-on-surface-variant text-center mt-2">
-                  Free shipping · Cancel anytime · Doctor-approved
-                </p>
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* ── Treatment Type Bottom Sheet ── */}
-        {activeTypeSheet && (
-          <TreatmentTypeSheet
-            type={activeTypeSheet}
-            onClose={() => setActiveTypeSheet(null)}
-            onAddToPlan={handleTypeAddToPlan}
-            onAlreadyUsing={handleTypeAlreadyUsing}
-            onUsingOther={handleTypeUsingOther}
-          />
-        )}
-
-        {/* ── Supplement Logging (only if user has supply) ── */}
-        {hasSupply && (
-          <div className="mb-3 animate-fade-in-up">
-            <SupplementCard
-              supplements={protocol.supplements}
-              dayCount={1}
-              onAction={() => {}}
-              delay={0}
-            />
-          </div>
-        )}
-
-        {/* ── Protocol Buckets ── */}
-        <div className="mb-3 animate-fade-in-up" style={{ animationDelay: "300ms" }}>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50 mb-2 px-1">
-            Sharpen your protocol
-          </p>
-          <div className="feed-card p-4">
-            <div className="space-y-1">
-              {protocolBuckets.map((bucket, idx) => {
-                const status = getBucketStatus(bucket);
-                return (
-                  <div
-                    key={bucket.id}
-                    className="flex items-center gap-3 py-2.5"
-                  >
-                    {/* Status icon */}
-                    <div className={`flex items-center justify-center w-8 h-8 rounded-full shrink-0 ${
-                      status === "done"
-                        ? "bg-primary-container/20"
-                        : status === "partial"
-                        ? "bg-tertiary-fixed/20"
-                        : status === "locked"
-                        ? "bg-surface-container-high/50"
-                        : "bg-surface-container-low"
-                    }`}>
-                      {status === "done" ? (
-                        <Check className="w-4 h-4 text-primary-container" strokeWidth={2} />
-                      ) : status === "locked" ? (
-                        <Lock className="w-3.5 h-3.5 text-on-surface-variant/30" strokeWidth={1.5} />
-                      ) : (
-                        bucketIcon(bucket.icon, `w-4 h-4 ${status === "partial" ? "text-tertiary-container" : "text-on-surface-variant/50"}`)
-                      )}
-                    </div>
-
-                    {/* Label */}
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium ${
-                        status === "done"
-                          ? "text-primary-container"
-                          : status === "locked"
-                          ? "text-on-surface-variant/40"
-                          : "text-on-surface"
-                      }`}>
-                        {idx + 1}. {bucket.label}
-                      </p>
-                      {status === "partial" && (
-                        <p className="text-[10px] text-tertiary-container">
-                          {bucket.questions.filter((q) => profile[q.key]).length}/{bucket.questions.length} answered
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Status badge */}
-                    {status === "done" && (
-                      <span className="text-[10px] font-semibold text-primary-container bg-primary-container/10 px-2 py-0.5 rounded-full">
-                        Done
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* CTA to open bottom sheet */}
-            {nextQuestion && (
-              <button
-                onClick={() => setSheetOpen(true)}
-                className="mt-4 w-full py-3 rounded-xl bg-primary-container text-sm font-semibold text-white cursor-pointer hover:bg-primary transition-colors duration-200"
-              >
-                Complete your protocol
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* ── What you get at 100% ── */}
-        <div className="mb-3 animate-fade-in-up" style={{ animationDelay: "400ms" }}>
-          <div className="feed-card-ai p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="w-4 h-4 text-primary-container" strokeWidth={1.5} />
-              <span className="text-xs font-semibold text-primary-container uppercase tracking-wider">
-                At 100% Protocol Depth you get
-              </span>
-            </div>
-            <p className="text-sm font-semibold text-on-surface mb-3">
-              A fully personalised regime with:
-            </p>
-            <div className="space-y-2.5">
-              {[
-                { icon: Utensils, text: "Diet Plan tailored to your body, goals, and preferences" },
-                { icon: Pill, text: "Medicine & Supplements protocol designed for your specific gaps" },
-                { icon: Stethoscope, text: "Health Coach for ongoing assistance and support" },
-                { icon: Activity, text: "Health & Progress Monitoring with weekly visual tracking" },
-                { icon: Brain, text: "AI Model trained around your needs — instant actionable insights and answers to every concern" },
-                { icon: Stethoscope, text: "Access to medical experts who have in-depth knowledge about you" },
-              ].map(({ icon: Icon, text }, i) => (
-                <div key={i} className="flex items-start gap-2.5">
-                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary-container/10 shrink-0 mt-0.5">
-                    <Icon className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
-                  </div>
-                  <span className="text-sm text-on-surface leading-relaxed">{text}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ── Lifestyle nudges ── */}
-        {answeredQuestions.length >= 1 && (
-          <NudgeCard
-            question="Would you be stepping out today?"
-            pillarTag="Lifestyle"
-            options={[
-              { label: "Yeah", value: "yes" },
-              { label: "Maybe", value: "maybe" },
-              { label: "Nah, home", value: "no" },
-            ]}
-            onSelect={() => {}}
-            delay={100}
-          />
-        )}
-
-        {answeredQuestions.length >= 3 && (
-          <ExpertCard
-            reason="Your profile is taking shape. A specialist can review your protocol and refine it based on clinical assessment."
-            doctorName="Dr. Priya Sharma"
-            specialty="Dermatologist \u00b7 Hair specialist"
-            rating={4.8}
-            consultCount="2,400+"
-            price={499}
-            duration="15 min"
-            nextSlot="Today, 4:30 PM"
-            delay={200}
-          />
-        )}
-
-        <FeedInput
-          onSend={handleFeedInput}
-          placeholder="Something on your mind?"
-        />
-        </div>
-
-        {/* ── Bottom Sheet for Protocol Questions ── */}
-        {sheetOpen && (
-          <div className="fixed inset-0 z-50 flex items-end">
-            {/* Backdrop */}
-            <div
-              className="absolute inset-0 bg-on-surface/40"
-              style={{ animation: "fadeInUp 150ms ease-out" }}
-              onClick={() => setSheetOpen(false)}
-            />
-
-            {/* Sheet — sits below the depth bar (which is z-60) */}
-            <div
-              className="relative w-full bg-surface rounded-t-3xl overflow-hidden animate-fade-in-up"
-              style={{ animationDuration: "250ms", maxHeight: "70dvh" }}
-            >
-              {/* Sheet header: back arrow + bucket label + close */}
-              <div className="flex items-center justify-between px-4 pt-4 pb-2">
-                <button
-                  onClick={handleSheetBack}
-                  className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-low cursor-pointer transition-colors"
-                  aria-label={answeredHistory.length > 0 ? "Previous question" : "Close"}
-                >
-                  <ArrowLeft className="w-5 h-5 text-on-surface" strokeWidth={1.5} />
-                </button>
-                <span className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-                  {nextBucketForSheet?.label || "Complete"}
-                </span>
-                <button
-                  onClick={() => setSheetOpen(false)}
-                  className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-low cursor-pointer transition-colors"
-                  aria-label="Close"
-                >
-                  <X className="w-4 h-4 text-on-surface-variant" strokeWidth={2} />
-                </button>
-              </div>
-
-              {/* Question content */}
-              <div className="px-5 pb-8 overflow-y-auto" style={{ maxHeight: "calc(70dvh - 60px)" }}>
-                {nextQuestion ? (
-                  <div className="animate-fade-in-up" key={nextQuestion.key}>
-                    <p className="text-xl font-semibold text-on-surface leading-snug mb-1 mt-4 font-[family-name:var(--font-manrope)]">
-                      {nextQuestion.question}
-                    </p>
-                    <p className="text-sm text-on-surface-variant/60 mb-6 leading-relaxed">
-                      {nextQuestion.reason}
-                    </p>
-
-                    {/* Options — single select with chevron-right */}
-                    <div className="space-y-2">
-                      {nextQuestion.options.map((opt) => (
-                        <button
-                          key={opt.value}
-                          onClick={() => {
-                            handleDeepeningAnswer(nextQuestion.key, opt.value);
-                            const remaining = allBucketQuestions.filter(
-                              (q) => q.key !== nextQuestion.key && !profile[q.key]
-                            );
-                            if (remaining.length === 0) {
-                              setTimeout(() => setSheetOpen(false), 400);
-                            }
-                          }}
-                          className="w-full flex items-center justify-between px-5 py-4 rounded-2xl bg-surface-container-low border border-outline-variant/10 text-sm font-medium text-on-surface hover:border-primary-container/40 cursor-pointer transition-all duration-200 active:scale-[0.98]"
-                        >
-                          <span>{opt.label}</span>
-                          <ChevronRight className="w-4 h-4 text-on-surface-variant/30" strokeWidth={1.5} />
-                        </button>
-                      ))}
-                    </div>
-
-                    <button
-                      onClick={() => handleDeepeningAnswer(nextQuestion.key, "skipped")}
-                      className="mt-5 w-full text-center text-xs text-on-surface-variant/50 cursor-pointer hover:text-on-surface-variant transition-colors py-2"
-                    >
-                      Skip this question
-                    </button>
-                  </div>
-                ) : (
-                  <div className="text-center py-12 animate-fade-in-up">
-                    <div className="w-16 h-16 rounded-full bg-primary-container/20 flex items-center justify-center mx-auto mb-4">
-                      <Check className="w-8 h-8 text-primary-container" strokeWidth={2} />
-                    </div>
-                    <p className="text-lg font-semibold text-on-surface font-[family-name:var(--font-manrope)]">
-                      All questions answered!
-                    </p>
-                    <p className="text-sm text-on-surface-variant mt-2 leading-relaxed max-w-xs mx-auto">
-                      Your protocol is now much sharper. Connect health data or book an expert to reach 100%.
-                    </p>
-                    <button
-                      onClick={() => setSheetOpen(false)}
-                      className="mt-6 px-8 py-3 rounded-xl bg-primary-container text-sm font-semibold text-white cursor-pointer hover:bg-primary transition-colors"
-                    >
-                      Done
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
+  }, [profile, selectedConcerns, name]);
 
   /* ═══════════════════════════════════════════════════════
      PROTOCOL GENERATION + FAKE AUTH OVERLAY
+     — checked before L3 so it renders on top when transitioning
      ═══════════════════════════════════════════════════════ */
   if (showGenerating) {
     return (
@@ -1147,83 +362,14 @@ export default function HomePage() {
               Your protocol is ready!
             </h2>
             <p className="text-sm text-on-surface-variant/70 leading-relaxed mb-8">
-              We&apos;ve built a personalised plan based on your profile. Save it to your account to track progress.
+              We&apos;ve built a personalised plan based on your profile.
             </p>
             <button
-              onClick={() => setGeneratingPhase("auth")}
+              onClick={() => router.replace("/protocol")}
               className="w-full py-4 rounded-2xl bg-primary-container text-white font-bold text-base hover:bg-primary transition-colors duration-200 cursor-pointer"
             >
               View my protocol →
             </button>
-          </div>
-        )}
-
-        {/* Fake auth phase */}
-        {generatingPhase === "auth" && (
-          <div className="flex flex-col w-full max-w-sm animate-fade-in-up">
-            {/* Logo */}
-            <div className="flex items-center justify-center mb-8">
-              <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-primary-container/15">
-                <Sparkles className="w-6 h-6 text-primary-container" strokeWidth={1.5} />
-              </div>
-            </div>
-
-            <h2 className="text-2xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)] text-center mb-2">
-              Let&apos;s get you started.
-            </h2>
-            <p className="text-sm text-on-surface-variant text-center mb-8">
-              Create a free account to save and access your protocol.
-            </p>
-
-            {/* Phone field */}
-            <div className="mb-4">
-              <p className="text-[11px] font-semibold text-on-surface-variant/60 uppercase tracking-wider mb-1.5">
-                Phone Number
-              </p>
-              <div className="flex items-center gap-2 border border-outline-variant/30 rounded-xl px-4 py-3.5 bg-surface-container-lowest focus-within:border-primary-container/50 transition-colors">
-                <span className="text-sm font-semibold text-on-surface-variant">+91</span>
-                <div className="w-px h-4 bg-outline-variant/30" />
-                <input
-                  type="tel"
-                  placeholder="98000 00000"
-                  className="flex-1 bg-transparent text-sm text-on-surface placeholder:text-on-surface-variant/35 outline-none"
-                />
-              </div>
-            </div>
-
-            {/* OTP CTA */}
-            <button
-              onClick={() => router.push("/protocol")}
-              className="w-full flex items-center justify-between py-4 px-5 rounded-2xl bg-primary-container text-white font-bold text-sm hover:bg-primary transition-colors duration-200 cursor-pointer mb-5"
-            >
-              <span>Send OTP</span>
-              <span className="text-lg leading-none">→</span>
-            </button>
-
-            {/* Divider */}
-            <div className="flex items-center gap-3 mb-5">
-              <div className="flex-1 h-px bg-outline-variant/20" />
-              <span className="text-xs text-on-surface-variant/40 font-medium">or</span>
-              <div className="flex-1 h-px bg-outline-variant/20" />
-            </div>
-
-            {/* Google CTA */}
-            <button
-              onClick={() => router.push("/protocol")}
-              className="w-full flex items-center justify-center gap-3 py-3.5 rounded-2xl border border-outline-variant/25 text-sm font-semibold text-on-surface hover:bg-surface-container-low transition-colors cursor-pointer"
-            >
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
-                <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
-                <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
-                <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
-              </svg>
-              Continue with Google
-            </button>
-
-            <p className="text-[10px] text-on-surface-variant/35 text-center mt-5">
-              Free forever · No spam · Your data stays private
-            </p>
           </div>
         )}
       </div>
@@ -1272,170 +418,293 @@ export default function HomePage() {
     <div className="px-4 py-4">
       <div className="flex flex-col gap-3">
 
-        {/* L0: Greeting + concern */}
+        {/* L0: Greeting */}
         <GreetingCard
           name={name}
           contextLine="I work best the more I know about you. No forms — just a conversation."
         />
-        <ConcernCard onSelect={handleConcernSelect} onTextSubmit={handleConcernText} />
+
+        {/* What you'll get strip */}
+        <div className="feed-card px-4 py-3.5 animate-fade-in-up" style={{ animationDelay: "80ms" }}>
+          <div className="flex items-center justify-between gap-2">
+            {[
+              { icon: "✦", label: "Personalised supplement protocol" },
+              { icon: "⏱", label: "Ready in 60 seconds" },
+              { icon: "★", label: "Free, no sign-up needed" },
+            ].map((item) => (
+              <div key={item.label} className="flex flex-col items-center gap-1 flex-1 text-center">
+                <span className="text-[15px] leading-none text-primary-container">{item.icon}</span>
+                <span className="text-[10px] font-semibold text-on-surface-variant/70 leading-tight">{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Name — first thing, right after greeting */}
+        <div id="card-name" className="feed-card-ai p-5 animate-fade-in-up" style={{ animationDelay: "150ms" }}>
+          {nameSubmitted && !nameEditing ? (
+            <div className="flex items-center gap-2 animate-fade-in-up flex-wrap">
+              <p className="text-sm text-on-surface-variant">I&apos;ll call you</p>
+              <span className="inline-block px-4 py-2.5 rounded-xl bg-primary-container/15 border border-primary-container/20 text-sm font-semibold text-primary-container">
+                {name || "friend"}
+              </span>
+              <button
+                onClick={() => setNameEditing(true)}
+                className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-surface-container-low cursor-pointer transition-colors"
+                aria-label="Edit name"
+              >
+                <svg className="w-3.5 h-3.5 text-on-surface-variant/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
+              </button>
+            </div>
+          ) : (
+            <>
+              <p className="text-base text-on-surface leading-relaxed">What should I call you?</p>
+              <div className="mt-3 flex items-center gap-2 bg-surface-container-low rounded-xl px-4 py-3 border border-outline-variant/15">
+                <input
+                  type="text"
+                  value={nameText}
+                  onChange={(e) => setNameText(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleNameSubmit(nameText); }}
+                  placeholder="Your name"
+                  className="flex-1 bg-transparent text-base text-on-surface placeholder:text-on-surface-variant/40 outline-none"
+                  autoFocus
+                />
+                {nameText.trim() && (
+                  <button
+                    onClick={() => handleNameSubmit(nameText)}
+                    className="text-sm font-semibold text-primary cursor-pointer hover:text-primary-container transition-colors"
+                  >
+                    Continue
+                  </button>
+                )}
+              </div>
+              <button
+                onClick={() => handleNameSubmit("")}
+                className="mt-2 text-xs text-on-surface-variant/50 cursor-pointer hover:text-on-surface-variant transition-colors"
+              >
+                Skip
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Step 1: Gender — visual tile card */}
+        <div id="card-sex" className="feed-card-ai p-5 animate-fade-in-up" style={{ animationDelay: "150ms" }}>
+          <p className="text-base text-on-surface leading-relaxed">Who are we building this for?</p>
+
+          {!profile.sex ? (
+            <>
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                {/* Male tile */}
+                <button
+                  onClick={() => handleSexSelect("male")}
+                  className="group relative flex flex-col justify-end overflow-hidden rounded-2xl border-2 border-outline-variant/10 hover:border-primary-container/50 transition-all duration-200 cursor-pointer h-[148px]"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/images/concerns/hair-male.jpg" alt="" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
+                  <div className="relative px-3.5 pb-3.5 text-left">
+                    <p className="text-[10px] font-semibold text-white/65 uppercase tracking-wider leading-none mb-0.5">For me</p>
+                    <p className="text-[15px] font-extrabold text-white leading-tight">A man</p>
+                  </div>
+                </button>
+
+                {/* Female tile */}
+                <button
+                  onClick={() => handleSexSelect("female")}
+                  className="group relative flex flex-col justify-end overflow-hidden rounded-2xl border-2 border-outline-variant/10 hover:border-rose-300/60 transition-all duration-200 cursor-pointer h-[148px]"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/images/concerns/hair-female.jpg" alt="" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
+                  <div className="relative px-3.5 pb-3.5 text-left">
+                    <p className="text-[10px] font-semibold text-white/65 uppercase tracking-wider leading-none mb-0.5">For me</p>
+                    <p className="text-[15px] font-extrabold text-white leading-tight">A woman</p>
+                  </div>
+                </button>
+              </div>
+              <button
+                onClick={() => handleSexSelect("undisclosed")}
+                className="mt-3 text-xs text-on-surface-variant/45 cursor-pointer hover:text-on-surface-variant transition-colors"
+              >
+                I&apos;d rather not say
+              </button>
+            </>
+          ) : (
+            <div className="mt-3 flex items-center gap-3 animate-fade-in-up">
+              {profile.sex !== "undisclosed" && (
+                <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-outline-variant/15">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={profile.sex === "male" ? "/images/concerns/hair-male.jpg" : "/images/concerns/hair-female.jpg"}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <span className="flex-1 text-sm font-semibold text-primary-container">
+                {profile.sex === "male" ? "For me — a man" : profile.sex === "female" ? "For me — a woman" : "I'd rather not say"}
+              </span>
+              <button
+                onClick={() => {
+                  setProfile((p) => ({ ...p, sex: undefined, age: undefined, concern: undefined, concerns: undefined }));
+                  setSelectedConcerns([]);
+                  setLevel("L0");
+                }}
+                className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-surface-container-low cursor-pointer transition-colors shrink-0"
+                aria-label="Edit selection"
+              >
+                <svg className="w-3.5 h-3.5 text-on-surface-variant/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Marketplace sneak peek — visible before gender selection */}
+        {!profile.sex && (
+          <div className="feed-card overflow-hidden animate-fade-in-up" style={{ animationDelay: "300ms" }}>
+            <div className="px-4 pt-4 pb-3 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[13px] font-bold text-on-surface">Rather browse first?</p>
+                <p className="text-[11px] text-on-surface-variant/55 mt-0.5">Explore our full range without any forms</p>
+              </div>
+              <button
+                onClick={() => router.push("/explore?from=skip")}
+                className="shrink-0 flex items-center gap-1 text-[11px] font-bold text-primary-container hover:text-primary transition-colors cursor-pointer mt-0.5"
+              >
+                See all <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+
+            {/* Product scroll strip */}
+            <div className="flex gap-3 px-4 pb-4 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+              {SNEAK_PEEK.map((p) => (
+                <button
+                  key={p.slug}
+                  onClick={() => router.push(`/explore/product/${p.slug}`)}
+                  className="flex-shrink-0 w-[108px] text-left cursor-pointer group"
+                >
+                  <div className="w-full h-[96px] rounded-xl overflow-hidden bg-surface-container-low mb-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={p.img}
+                      alt={p.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <p className="text-[11px] font-semibold text-on-surface leading-tight line-clamp-2 mb-1">{p.name}</p>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[12px] font-bold text-on-surface">₹{p.price}</span>
+                    <span className="text-[10px] text-on-surface-variant/40 line-through">₹{p.original}</span>
+                  </div>
+                </button>
+              ))}
+              {/* Browse all end cap */}
+              <button
+                onClick={() => router.push("/explore?from=skip")}
+                className="flex-shrink-0 w-[80px] flex flex-col items-center justify-center gap-2 rounded-xl border border-outline-variant/15 bg-surface-container-lowest cursor-pointer hover:bg-primary-container/5 hover:border-primary-container/30 transition-colors h-[96px]"
+              >
+                <span className="text-2xl">→</span>
+                <span className="text-[10px] font-bold text-primary-container text-center leading-tight">Browse all</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Age — shown after gender */}
+        {profile.sex && (
+          <div id="card-age">
+            <ProfilingCard
+              question="And roughly how old are you?"
+              reason="This helps me calibrate recommendations for your life stage."
+              options={[
+                { label: "18–24", value: "18-24" },
+                { label: "25–34", value: "25-34" },
+                { label: "35–44", value: "35-44" },
+                { label: "45+",   value: "45+"   },
+              ]}
+              onSelect={handleAgeSelect}
+              onSkip={() => handleAgeSelect("unknown")}
+              delay={200}
+            />
+          </div>
+        )}
+
+        {/* Step 3: Concerns — gender-aware, shown after sex + age */}
+        {profile.sex && profile.age && (
+          <div id="card-concern">
+            <ConcernCard
+              sex={profile.sex}
+              onSelect={handleConcernSelect}
+              onTextSubmit={handleConcernText}
+            />
+          </div>
+        )}
+
+        {/* Smart qualifier — shown right after concern selection */}
+        {level === "L0" && selectedConcerns.length > 0 && (() => {
+          let qualifier: QualifierDef | null = null;
+          if (selectedConcerns.length > 1) {
+            qualifier = MULTI_CONCERN_QUALIFIER;
+          } else {
+            const qualifierFn = CONCERN_QUALIFIERS[selectedConcerns[0]];
+            qualifier = qualifierFn ? qualifierFn(profile.sex) : null;
+          }
+          if (!qualifier) return null;
+          return (
+            <div id="card-qualifier" className="feed-card-ai p-5 animate-fade-in-up">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
+                <span className="text-[11px] font-semibold text-primary-container uppercase tracking-wider">
+                  One quick thing
+                </span>
+              </div>
+              <p className="text-base text-on-surface leading-snug mb-4">{qualifier.question}</p>
+              <div className="grid grid-cols-2 gap-2">
+                {qualifier.options.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => handleQualifierAnswer(qualifier.key, opt.value)}
+                    className="chip-option py-3 px-3.5 rounded-xl border border-outline-variant/15 bg-surface-container-lowest text-[13px] font-semibold text-on-surface text-left hover:border-primary-container/40 hover:bg-primary-container/5 transition-all duration-200 cursor-pointer"
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => handleQualifierAnswer("", "")}
+                className="mt-3 text-xs text-on-surface-variant/45 cursor-pointer hover:text-on-surface-variant transition-colors"
+              >
+                Skip this
+              </button>
+            </div>
+          );
+        })()}
 
         {userMessages.length > 0 && level !== "L0" && (
           <UserMessageCard message={userMessages[0]} />
         )}
 
-        {/* Name card — appears after concern is selected */}
+        {/* L1: Profiling — diet only (sex + age now collected before concerns) */}
         {level !== "L0" && (
-          <div id="card-name" className="feed-card-ai p-5 animate-fade-in-up" style={{ animationDelay: "150ms" }}>
-            {nameSubmitted ? (
-              <div className="flex items-center gap-2 animate-fade-in-up flex-wrap">
-                <p className="text-sm text-on-surface-variant">I&apos;ll call you</p>
-                <span className="inline-block px-4 py-2.5 rounded-xl bg-primary-container/15 border border-primary-container/20 text-sm font-semibold text-primary-container">
-                  {name || "friend"}
-                </span>
-                <button
-                  onClick={() => setNameSubmitted(false)}
-                  className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-surface-container-low cursor-pointer transition-colors"
-                  aria-label="Edit name"
-                >
-                  <svg className="w-3.5 h-3.5 text-on-surface-variant/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
-                </button>
-              </div>
-            ) : (
-              <>
-                <p className="text-base text-on-surface leading-relaxed">What should I call you?</p>
-                <div className="mt-3 flex items-center gap-2 bg-surface-container-low rounded-xl px-4 py-3 border border-outline-variant/15">
-                  <input
-                    type="text"
-                    value={nameText}
-                    onChange={(e) => setNameText(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") handleNameSubmit(nameText); }}
-                    placeholder="Your name"
-                    className="flex-1 bg-transparent text-base text-on-surface placeholder:text-on-surface-variant/40 outline-none"
-                    autoFocus
-                  />
-                  {nameText.trim() && (
-                    <button
-                      onClick={() => handleNameSubmit(nameText)}
-                      className="text-sm font-semibold text-primary cursor-pointer hover:text-primary-container transition-colors"
-                    >
-                      Continue
-                    </button>
-                  )}
-                </div>
-                <button
-                  onClick={() => handleNameSubmit("")}
-                  className="mt-2 text-xs text-on-surface-variant/50 cursor-pointer hover:text-on-surface-variant transition-colors"
-                >
-                  Skip
-                </button>
-              </>
-            )}
+          <div id="card-diet">
+            <ProfilingCard
+              question="What does your diet look like mostly?"
+              reason="Diet type directly affects which nutrients you might be missing."
+              options={[
+                { label: "Vegetarian", value: "veg"     },
+                { label: "Non-veg",    value: "non-veg" },
+                { label: "Vegan",      value: "vegan"   },
+                { label: "Eggetarian", value: "egg"     },
+              ]}
+              onSelect={handleDietSelect}
+              onSkip={() => handleDietSelect("unknown")}
+              layout="grid"
+              delay={200}
+            />
           </div>
         )}
 
-        {/* L1: Profiling — sex → age → diet */}
-        {level !== "L0" && nameSubmitted && (
-          <>
-            <div id="card-sex">
-              <ProfilingCard
-                question="Quick one — are you male, female, or prefer not to say?"
-                reason="This helps me calibrate recommendations accurately."
-                options={[
-                  { label: "Male", value: "male" },
-                  { label: "Female", value: "female" },
-                  { label: "Prefer not to say", value: "undisclosed" },
-                ]}
-                onSelect={handleSexSelect}
-                onSkip={() => handleSexSelect("undisclosed")}
-                delay={300}
-              />
-            </div>
-
-            {profile.sex && (
-              <div id="card-age">
-                <ProfilingCard
-                  question="And roughly how old are you?"
-                  reason="This helps me calibrate recommendations for your life stage."
-                  options={[
-                    { label: "18–24", value: "18-24" },
-                    { label: "25–34", value: "25-34" },
-                    { label: "35–44", value: "35-44" },
-                    { label: "45+", value: "45+" },
-                  ]}
-                  onSelect={handleAgeSelect}
-                  onSkip={() => handleAgeSelect("unknown")}
-                  delay={200}
-                />
-              </div>
-            )}
-
-            {profile.sex && profile.age && (
-              <div id="card-diet">
-                <ProfilingCard
-                  question="What does your diet look like mostly?"
-                  reason="Diet type directly affects which nutrients you might be missing."
-                  options={[
-                    { label: "Vegetarian", value: "veg" },
-                    { label: "Non-veg", value: "non-veg" },
-                    { label: "Vegan", value: "vegan" },
-                    { label: "Eggetarian", value: "egg" },
-                  ]}
-                  onSelect={handleDietSelect}
-                  onSkip={() => handleDietSelect("unknown")}
-                  layout="grid"
-                  delay={200}
-                />
-              </div>
-            )}
-
-          </>
-        )}
-
-        {/* L2: Building animation → protocol */}
-        {level === "L2" && protocol && (
-          <>
-            {!protocolReady && (
-              <div id="card-building">
-                <BuildingProtocolCard onComplete={handleProtocolBuilt} delay={100} />
-              </div>
-            )}
-
-            {protocolReady && (
-              <>
-                <div id="card-protocol">
-                  <InsightCard
-                    content={protocol.reasoning}
-                    pillarTag="Your protocol"
-                    delay={100}
-                  >
-                    <div className="space-y-2 mt-2">
-                      {protocol.supplements.map((s) => (
-                        <div key={s.name} className="flex items-center justify-between py-2 px-3 bg-surface-container-low rounded-xl">
-                          <div>
-                            <p className="text-sm font-medium text-on-surface">{s.name}</p>
-                            <p className="text-xs text-on-surface-variant/50">{s.brand} &middot; {s.timing}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </InsightCard>
-                </div>
-
-                <div className="flex gap-2 px-1 animate-fade-in-up" style={{ animationDelay: "200ms" }}>
-                  <button
-                    onClick={handleAcceptProtocol}
-                    className="flex-1 py-3 rounded-xl bg-primary-container text-sm font-semibold text-white cursor-pointer hover:bg-primary transition-colors duration-200"
-                  >
-                    Yes, start here
-                  </button>
-                  <button className="px-5 py-3 rounded-xl bg-surface-container-low text-sm font-medium text-on-surface-variant cursor-pointer hover:bg-surface-container-high transition-colors duration-200">
-                    Tell me more
-                  </button>
-                </div>
-              </>
-            )}
-          </>
-        )}
       </div>
     </div>
   );

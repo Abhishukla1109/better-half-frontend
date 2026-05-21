@@ -14,7 +14,7 @@ export const productImages: Record<string, string> = {
   "kids-multivitamin-gummies":"/images/products/gummies.jpg",
 };
 
-/** Concern label → concern image */
+/** Concern label → concern image (gender-neutral fallback) */
 export const concernImages: Record<string, string> = {
   "Hair / beard": "/images/concerns/hair.jpg",
   "Skin / acne":  "/images/concerns/skin.jpg",
@@ -23,6 +23,33 @@ export const concernImages: Record<string, string> = {
   "Hormones":     "/images/concerns/hormones.jpg",
   "Sleep / mind": "/images/concerns/sleep.jpg",
 };
+
+/** Male concern images */
+export const maleConcernImages: Record<string, string> = {
+  "Hair / beard": "/images/concerns/hair-male.jpg",
+  "Skin / acne":  "/images/concerns/skin-male.jpg",
+  "Energy / gut": "/images/concerns/energy-male.jpg",
+  "Weight":       "/images/concerns/weight-male.jpg",
+  "Hormones":     "/images/concerns/hormones-male.jpg",
+  "Sleep / mind": "/images/concerns/sleep-male.jpg",
+};
+
+/** Female concern images */
+export const femaleConcernImages: Record<string, string> = {
+  "Hair / beard": "/images/concerns/hair-female.jpg",
+  "Skin / acne":  "/images/concerns/skin-female.jpg",
+  "Energy / gut": "/images/concerns/energy-female.jpg",
+  "Weight":       "/images/concerns/weight-female.jpg",
+  "Hormones":     "/images/concerns/hormones-female.jpg",
+  "Sleep / mind": "/images/concerns/sleep-female.jpg",
+};
+
+/** Returns the gender-appropriate image for a concern key */
+export function getGenderedConcernImage(key: string, sex?: string): string | undefined {
+  if (sex === "male")   return maleConcernImages[key]  ?? concernImages[key];
+  if (sex === "female") return femaleConcernImages[key] ?? concernImages[key];
+  return concernImages[key];
+}
 
 /** Protocol engine product ID → product image */
 const protocolProductImages: Record<string, string> = {

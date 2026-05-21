@@ -29,6 +29,16 @@ export interface RoutineItem {
   text: string;
 }
 
+export interface ProtocolSupplementAlternative {
+  id: string;
+  name: string;
+  brand: string;
+  price: number;
+  mrp: number;
+  image?: string;
+  reason: string; // e.g. "₹150 cheaper · same actives" or "premium · stronger formula"
+}
+
 export interface ProtocolSupplement {
   id: string;
   name: string;
@@ -44,6 +54,7 @@ export interface ProtocolSupplement {
   rating?: number;
   reviewCount?: number;
   priority: "essential" | "recommended" | "optional";
+  alternative?: ProtocolSupplementAlternative;
 }
 
 export interface FollowUpQuestion {
