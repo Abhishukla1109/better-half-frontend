@@ -102,6 +102,7 @@ export function calculateProtocolMatch(user: UserSegment): MatchedProduct[] {
     return { ...product, matchScore: score };
   })
     .filter((item): item is MatchedProduct => item !== null)
+    .filter((item, idx, arr) => arr.findIndex((p) => p.id === item.id) === idx)
     .sort((a, b) => b.matchScore - a.matchScore)
     .slice(0, 3);
 }
