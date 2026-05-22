@@ -1,27 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles } from "lucide-react";
 
 export default function LandingPage() {
   const router = useRouter();
-  const [returning, setReturning] = useState<{ name?: string; hasProfile: boolean } | null>(null);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    try {
-      const auth = localStorage.getItem("bh_auth");
-      if (auth) {
-        const raw = localStorage.getItem("bh_profile");
-        const p = raw ? JSON.parse(raw) : null;
-        setReturning({ name: p?.name, hasProfile: !!p?.diet });
-      }
-    } catch {}
-    setReady(true);
-  }, []);
-
-  if (!ready) return null;
 
   return (
     <main className="w-full min-h-dvh flex flex-col bg-surface overflow-hidden">
@@ -71,40 +54,31 @@ export default function LandingPage() {
 
         {/* CTAs */}
         <div className="mt-auto space-y-3">
-          {/* Returning user — show Continue */}
-          {returning && (
-            <button
-              onClick={() => router.push(returning.hasProfile ? "/protocol" : "/home")}
-              className="w-full flex items-center justify-between py-4 px-5 rounded-2xl border border-primary-container/30 bg-primary-container/8 text-sm font-bold text-primary-container hover:bg-primary-container/15 transition-colors cursor-pointer"
-            >
-              <span>Continue{returning.name ? ` as ${returning.name}` : ""}</span>
-              <span className="text-lg leading-none">→</span>
-            </button>
-          )}
-
-          {/* Primary CTA */}
-          <button
-            onClick={() => router.push("/auth")}
-            className="w-full flex items-center justify-between py-4 px-5 rounded-2xl bg-primary-container text-white font-bold text-sm hover:bg-primary transition-colors duration-200 cursor-pointer"
-          >
-            <span>{returning ? "Sign in with a different account" : "Get started — it's free"}</span>
-            <span className="text-lg leading-none">→</span>
-          </button>
-
-          <p className="text-[10px] text-on-surface-variant/35 text-center pt-1">
-            Trusted by 2M+ Indians · Made by Mosaic Wellness
-          </p>
-
+          {/* Demo */}
           <button
             onClick={() => {
               localStorage.removeItem("bh_profile");
               localStorage.setItem("bh_auth", "demo");
               router.push("/home");
             }}
-            className="w-full text-center text-[11px] text-on-surface-variant/40 hover:text-on-surface-variant/70 transition-colors cursor-pointer py-1"
+            className="w-full flex items-center justify-between py-4 px-5 rounded-2xl bg-primary-container text-white font-bold text-sm hover:bg-primary transition-colors duration-200 cursor-pointer"
           >
-            Try a demo →
+            <span>Try a demo</span>
+            <span className="text-lg leading-none">→</span>
           </button>
+
+          {/* Sign in / Sign up */}
+          <button
+            onClick={() => router.push("/auth")}
+            className="w-full flex items-center justify-between py-4 px-5 rounded-2xl border border-primary-container/30 bg-primary-container/8 text-sm font-bold text-primary-container hover:bg-primary-container/15 transition-colors cursor-pointer"
+          >
+            <span>Sign in / Sign up</span>
+            <span className="text-lg leading-none">→</span>
+          </button>
+
+          <p className="text-[10px] text-on-surface-variant/35 text-center pt-1">
+            Trusted by 2M+ Indians · Made by Mosaic Wellness
+          </p>
         </div>
 
       </div>
