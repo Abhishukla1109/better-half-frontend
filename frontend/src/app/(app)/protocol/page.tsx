@@ -181,6 +181,39 @@ function getConcernEmoji(concernList: string[], sex?: string): string {
   return "👋";
 }
 
+/* Strips filler phrases from habit tips to produce a compact but meaningful headline */
+function compressHabit(text: string): string {
+  let s = text
+    .replace(/\s+for the first \d+[\w ]*of your protocol\.?/gi, "")
+    .replace(/\s+for the first \d+[\w ]*\.?$/gi, "")
+    .replace(/\s+for \d+[\w ]*\.?$/gi, "")
+    .replace(/\s*at the end of your shower/gi, " after shower")
+    .replace(/\s*reduces? \w+ significantly\.?$/gi, "")
+    .replace(/\s*(significantly|considerably|dramatically)\.?$/gi, "")
+    .replace(/\s*of your protocol\.?$/gi, "")
+    .replace(/\bin at least (\d+) meals? daily\b/gi, "daily")
+    .replace(/\s{2,}/g, " ")
+    .trim()
+    .replace(/[,.]$/, "");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function firstSentence(text: string): string {
+  const m = text.match(/^.*?[.!?](?:\s|$)/);
+  return m ? m[0].trim() : text;
+}
+
+function getConcernTagStyle(c: string): string {
+  const k = c.toLowerCase();
+  if (k.includes("hair") || k.includes("beard")) return "bg-rose-500/10 text-rose-700 border-rose-500/20";
+  if (k.includes("skin") || k.includes("acne")) return "bg-amber-500/10 text-amber-700 border-amber-500/20";
+  if (k.includes("energy") || k.includes("gut")) return "bg-yellow-500/10 text-yellow-700 border-yellow-500/20";
+  if (k.includes("weight")) return "bg-orange-500/10 text-orange-700 border-orange-500/20";
+  if (k.includes("sleep") || k.includes("mind")) return "bg-indigo-500/10 text-indigo-700 border-indigo-500/20";
+  if (k.includes("hormone")) return "bg-teal-500/10 text-teal-700 border-teal-500/20";
+  return "bg-primary-container/10 text-primary-container border-primary-container/20";
+}
+
 /* Keyword-based emoji for lifestyle tips */
 function getLifestyleEmoji(tip: string): string {
   const t = tip.toLowerCase();
@@ -288,6 +321,8 @@ export default function ProtocolPage() {
   const picksRef = useRef<HTMLDivElement>(null);
   // Protocol cart sheet
   const [showProtocolCart, setShowProtocolCart] = useState(false);
+  // Question bottom sheet
+  const [showQuestionSheet, setShowQuestionSheet] = useState(false);
   const [cartSelections, setCartSelections] = useState<("main" | "alt")[]>(["main", "main", "main"]);
   const [checkingOutCart, setCheckingOutCart] = useState(false);
   // Stepped intro animation for the depth bar
@@ -743,6 +778,108 @@ export default function ProtocolPage() {
         );
       })()}
 
+      {/* ── Question bottom sheet ── */}
+      {showQuestionSheet && (
+        <div className="fixed inset-0 z-[60] flex flex-col justify-end" onClick={() => setShowQuestionSheet(false)}>
+          <div className="bg-surface rounded-t-3xl shadow-2xl max-h-[85dvh] flex flex-col animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
+
+            {/* Handle + header */}
+            <div className="px-5 pt-4 pb-3 shrink-0">
+              <div className="w-10 h-1 rounded-full bg-outline-variant/30 mx-auto mb-4" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
+                  <span className="text-[11px] font-semibold text-primary-container uppercase tracking-wider">
+                    {showingUpdate ? "Updated" : sessionLimitReached ? "That's good for today" : `Personalising · Question ${answeredCount + 1}`}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowQuestionSheet(false)}
+                  className="w-7 h-7 flex items-center justify-center rounded-full bg-surface-container-low text-on-surface-variant/60 text-sm font-bold cursor-pointer hover:bg-surface-container transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto px-5 pb-8 pt-2">
+              {showingUpdate ? (
+                <div className="flex items-center gap-3 py-4 animate-fade-in-up">
+                  <div className="w-10 h-10 rounded-full bg-primary-container/20 flex items-center justify-center shrink-0">
+                    <Check className="w-5 h-5 text-primary-container" strokeWidth={2.5} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-base font-semibold text-on-surface">Protocol updated</p>
+                    <p className="text-sm text-on-surface-variant/70">
+                      {depthGain > 0 ? `+${depthGain}% more precise` : "Your answer has been factored in"}
+                    </p>
+                  </div>
+                  {depthGain > 0 && (
+                    <span className="text-xl font-extrabold text-primary-container font-[family-name:var(--font-manrope)] shrink-0">
+                      +{depthGain}%
+                    </span>
+                  )}
+                </div>
+              ) : sessionLimitReached ? (
+                <div className="py-2 animate-fade-in-up">
+                  <p className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-1.5">
+                    That&apos;s good for today
+                  </p>
+                  <p className="text-sm text-on-surface-variant/70 leading-relaxed mb-5">
+                    Your protocol gets sharper every time you return. Come back tomorrow for one more question.
+                  </p>
+                  <div className="h-1.5 bg-surface-container-high rounded-full overflow-hidden mb-1.5">
+                    <div className="h-full bg-gradient-to-r from-primary-container/60 to-primary-container rounded-full transition-all duration-700 ease-out" style={{ width: `${liveDepth}%` }} />
+                  </div>
+                  <p className="text-[11px] text-on-surface-variant/50 mb-5">Protocol at {liveDepth}%</p>
+                  {!bonusUnlocked && currentQuestion && (
+                    <button
+                      onClick={() => setBonusUnlocked(true)}
+                      className="w-full py-3 rounded-xl border border-primary-container/25 text-sm font-semibold text-primary-container hover:bg-primary-container/8 transition-colors cursor-pointer"
+                    >
+                      Actually, one more thing →
+                    </button>
+                  )}
+                </div>
+              ) : currentQuestion ? (
+                <div key={currentQuestion.key} className="py-2 animate-fade-in-up">
+                  <p className="text-[17px] font-semibold text-on-surface leading-snug mb-5 font-[family-name:var(--font-manrope)]">
+                    {currentQuestion.question}
+                  </p>
+                  <div className="space-y-2.5">
+                    {currentQuestion.options.map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => handleAnswer(currentQuestion.key, opt.value)}
+                        className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl bg-surface-container-low border border-outline-variant/10 text-sm font-medium text-on-surface hover:border-primary-container/40 cursor-pointer transition-all duration-200 active:scale-[0.99]"
+                      >
+                        <span>{opt.label}</span>
+                        <ChevronRight className="w-4 h-4 text-on-surface-variant/30" strokeWidth={1.5} />
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between mt-5">
+                    <div className="flex gap-1.5">
+                      {Array.from({ length: answeredCount }).map((_, i) => (
+                        <div key={i} className="h-1.5 w-4 rounded-full bg-primary-container" />
+                      ))}
+                      <div className="h-1.5 w-4 rounded-full bg-primary-container/40" />
+                    </div>
+                    <button
+                      onClick={() => handleSkip(currentQuestion.key)}
+                      className="text-[11px] font-medium text-on-surface-variant/40 hover:text-on-surface-variant/70 transition-colors cursor-pointer"
+                    >
+                      Skip
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="px-4 pt-4">
 
         {/* ── Back to edit onboarding ── */}
@@ -754,99 +891,83 @@ export default function ProtocolPage() {
           <span>Edit profile</span>
         </button>
 
-        {/* ── Warm message ── */}
-        {protocol.warmMessage && (
-          <div className="mb-4 animate-fade-in-up">
-            <span className="text-3xl block mb-2.5 leading-none">{getConcernEmoji(concernList, profile?.sex)}</span>
-            <p className="text-[15px] font-medium text-on-surface leading-relaxed">
-              {protocol.warmMessage}
-            </p>
-          </div>
-        )}
+        {/* ── Unified protocol header card ── */}
+        <div
+          className="mb-4 rounded-2xl border border-outline-variant/10 overflow-hidden animate-fade-in-up"
+          style={{ background: "linear-gradient(145deg, color-mix(in srgb, var(--color-primary-container) 10%, transparent), color-mix(in srgb, var(--color-primary-container) 4%, transparent))" }}
+        >
+          <div className="p-4">
 
-        {/* ── Protocol depth bar ── */}
-        <div className="mb-4 animate-fade-in-up" style={{ animationDelay: "60ms" }}>
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-semibold text-on-surface-variant/60 uppercase tracking-wider">
-              Protocol strength
-            </span>
-            <span className="text-sm font-extrabold text-primary-container font-[family-name:var(--font-manrope)]">
-              {displayDepth}%
-            </span>
-          </div>
-          <div className="h-2 bg-surface-container-high rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-primary-container/70 to-primary-container rounded-full transition-all duration-200 ease-out"
-              style={{ width: `${displayDepth}%` }}
-            />
-          </div>
-          <p className="text-[11px] text-on-surface-variant/50 mt-1.5">
-            Your protocol is live · gets more precise over time
-          </p>
-          {!allAnswered && currentQuestion && !sessionLimitReached && (
-            <button
-              onClick={() => document.getElementById("protocol-question")?.scrollIntoView({ behavior: "smooth" })}
-              className="flex items-center gap-1.5 mt-2.5 cursor-pointer group"
-            >
-              <Sparkles className="w-3 h-3 text-primary-container shrink-0" strokeWidth={1.5} />
-              <span className="text-[11px] font-semibold text-primary-container flex-1 text-left group-hover:underline">
-                Answer more questions to sharpen it further
+            {/* Top row: label + strength % */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="w-3 h-3 text-primary-container" strokeWidth={1.5} />
+                <span className="text-[10px] font-bold text-primary-container uppercase tracking-widest">
+                  Your Protocol
+                </span>
+              </div>
+              <span className="text-sm font-extrabold text-primary-container font-[family-name:var(--font-manrope)]">
+                {displayDepth}%
               </span>
-              <ChevronRight className="w-3 h-3 text-primary-container" strokeWidth={2} />
-            </button>
-          )}
-        </div>
+            </div>
 
-        {/* ── AI Summary ── */}
-        <div className="feed-card-ai p-5 mb-3 animate-fade-in-up">
-          <div className="flex items-start gap-3">
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary-container/20 shrink-0 mt-0.5">
-              <Sparkles className="w-4 h-4 text-primary-container" strokeWidth={1.5} />
+            {/* Title */}
+            <h1 className="text-[22px] font-extrabold text-primary font-[family-name:var(--font-manrope)] leading-tight capitalize mb-2.5">
+              {buildProtocolTitle(profile)}
+            </h1>
+
+            {/* Concern tags */}
+            {concernList.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {concernList.map((c) => (
+                  <span key={c} className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border ${getConcernTagStyle(c)}`}>
+                    <span className="text-sm leading-none">{getConcernEmoji([c], profile?.sex)}</span>
+                    {CONCERN_TITLE_MAP[c] ?? c.toLowerCase()}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Strength bar */}
+            <div className="h-1.5 bg-black/8 rounded-full overflow-hidden mb-3">
+              <div
+                className="h-full bg-gradient-to-r from-primary-container/80 to-primary-container rounded-full transition-all duration-200 ease-out"
+                style={{ width: `${displayDepth}%` }}
+              />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-semibold text-primary-container uppercase tracking-wider mb-1">
-                Your Protocol
+
+            {/* Insight line */}
+            {protocol.warmMessage && (
+              <p className="text-[13px] text-on-surface/80 leading-relaxed font-medium">
+                {firstSentence(protocol.warmMessage)}
               </p>
-              <h1 className="text-xl font-extrabold text-primary font-[family-name:var(--font-manrope)] leading-tight mb-2 capitalize">
-                {buildProtocolTitle(profile)}
-              </h1>
-              {concernList.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-2.5">
-                  {concernList.map((c) => (
-                    <span key={c} className="text-[10px] font-semibold text-primary-container bg-primary-container/10 px-2 py-0.5 rounded-full">
-                      {c}
-                    </span>
-                  ))}
+            )}
+
+            {/* Sharpen bar */}
+            {allAnswered ? (
+              <div className="mt-3 flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-primary-container/10">
+                <Check className="w-3.5 h-3.5 text-primary-container shrink-0" strokeWidth={2.5} />
+                <p className="text-[12px] font-bold text-primary-container">Protocol fully personalised</p>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowQuestionSheet(true)}
+                className="mt-3 w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-black/6 hover:bg-black/10 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-3.5 h-3.5 text-primary-container shrink-0" strokeWidth={1.5} />
+                  <div className="text-left">
+                    <p className="text-[12px] font-bold text-on-surface leading-none">
+                      {sessionLimitReached ? "That's good for today" : "Sharpen your protocol"}
+                    </p>
+                    <p className="text-[10px] text-on-surface-variant/55 mt-0.5">
+                      {sessionLimitReached ? `${liveDepth}% · Come back tomorrow` : `Question ${answeredCount + 1} · Takes 10 seconds`}
+                    </p>
+                  </div>
                 </div>
-              )}
-              <p className="text-sm font-medium text-on-surface leading-relaxed">
-                {summaryLead}
-              </p>
-              {(summaryInsights.length > 0 || protocol.explanation) && (
-                <>
-                  <button
-                    onClick={() => setSummaryExpanded((v) => !v)}
-                    className="flex items-center gap-1 mt-2 text-[11px] font-semibold text-primary-container cursor-pointer"
-                  >
-                    {summaryExpanded ? "Show less" : "More insights"}
-                    <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${summaryExpanded ? "rotate-180" : ""}`} strokeWidth={2} />
-                  </button>
-                  {summaryExpanded && (
-                    <div className="mt-2 space-y-1.5 border-t border-outline-variant/10 pt-2">
-                      {summaryInsights.map((insight, i) => (
-                        <div key={i} className="flex items-start gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-primary-container/40 shrink-0 mt-1.5" />
-                          <p className="text-xs text-on-surface-variant/80 leading-relaxed">{insight}</p>
-                        </div>
-                      ))}
-                      {protocol.explanation && (
-                        <p className="text-xs text-on-surface-variant/70 leading-relaxed mt-1">{protocol.explanation}</p>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+                <ChevronRight className="w-4 h-4 text-on-surface-variant/40 shrink-0" strokeWidth={2} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -863,71 +984,33 @@ export default function ProtocolPage() {
           </div>
         )}
 
-        {/* ── Habits intro ── */}
-        <div className="mb-3 px-1 animate-fade-in-up" style={{ animationDelay: "80ms" }}>
-          <p className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-1">
-            Habits before supplements.
-          </p>
-          <p className="text-xs text-on-surface-variant/65 leading-relaxed">
-            I genuinely believe daily habits move the needle more than any pill. Build these first — supplements accelerate what&apos;s already moving.
-          </p>
-        </div>
-
-        {/* ── Daily Routine ── */}
-        <div className="mb-3 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50 mb-2 px-1">
-            Daily Routine
-          </p>
-          <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-1">
-            {protocol.dailyRoutine.map((item, i) => {
-              const Icon = item.time === "morning" ? Sun : item.time === "afternoon" ? Zap : Moon;
-              const timeLabel = item.time === "morning" ? "Morning" : item.time === "afternoon" ? "Afternoon" : "Evening";
-              const iconBg = item.time === "morning" ? "bg-amber-500/10" : item.time === "afternoon" ? "bg-blue-500/10" : "bg-indigo-500/10";
-              const iconColor = item.time === "morning" ? "text-amber-600" : item.time === "afternoon" ? "text-blue-600" : "text-indigo-600";
-              const { action, detail } = splitRoutineText(item.text);
-              return (
-                <div key={i} className="flex-shrink-0 w-[42vw] max-w-[180px] min-w-[152px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 p-3.5">
-                  <div className={`flex items-center justify-center w-9 h-9 rounded-xl mb-2.5 ${iconBg}`}>
-                    <Icon className={`w-4 h-4 ${iconColor}`} strokeWidth={1.5} />
-                  </div>
-                  <p className="text-[9px] font-bold text-on-surface-variant/50 uppercase tracking-wider mb-1">
-                    {timeLabel}
-                  </p>
-                  <p className="text-sm font-semibold text-on-surface leading-snug">{action}</p>
-                  {detail && (
-                    <p className="text-[10px] text-on-surface-variant/55 mt-1.5 leading-relaxed">{detail}</p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* ── Lifestyle Tips — first always visible ── */}
+        {/* ── Lifestyle habits — shown first, before supplements ── */}
         {protocol.lifestyle.length > 0 && (
-          <div className="mb-3 animate-fade-in-up" style={{ animationDelay: "200ms" }}>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50 mb-2 px-1">
-              Lifestyle Tips
-            </p>
+          <div className="mb-4 animate-fade-in-up" style={{ animationDelay: "80ms" }}>
+            <div className="mb-3 px-1">
+              <p className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-1">
+                Habits before supplements.
+              </p>
+              <p className="text-xs text-on-surface-variant/65 leading-relaxed">
+                Daily habits move the needle more than any pill. Start here — supplements accelerate what&apos;s already moving.
+              </p>
+            </div>
             <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-1">
-              {(() => {
-                const tip = protocol.lifestyle[0];
-                const { action, detail } = splitRoutineText(tip);
+              {protocol.lifestyle.map((tip, i) => {
+                const { action } = splitRoutineText(tip);
+                const emoji = getLifestyleEmoji(tip);
+                const tint =
+                  emoji === "😴" || emoji === "🌙" ? "bg-indigo-500/8 border-indigo-500/15" :
+                  emoji === "🏃" || emoji === "💪" ? "bg-orange-500/8 border-orange-500/15" :
+                  emoji === "🥗" || emoji === "🌿" ? "bg-emerald-500/8 border-emerald-500/15" :
+                  emoji === "💧" ? "bg-sky-500/8 border-sky-500/15" :
+                  emoji === "🧘" ? "bg-violet-500/8 border-violet-500/15" :
+                  emoji === "✨" || emoji === "☀️" ? "bg-amber-500/8 border-amber-500/15" :
+                  "bg-surface-container-low border-outline-variant/10";
                 return (
-                  <div className="flex-shrink-0 w-[42vw] max-w-[180px] min-w-[152px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 p-3.5">
-                    <span className="text-2xl block mb-2 leading-none">{getLifestyleEmoji(tip)}</span>
-                    <p className="text-sm font-semibold text-on-surface leading-snug">{action}</p>
-                    {detail && <p className="text-[10px] text-on-surface-variant/55 mt-1.5 leading-relaxed">{detail}</p>}
-                  </div>
-                );
-              })()}
-              {protocol.lifestyle.slice(1).map((tip, i) => {
-                const { action, detail } = splitRoutineText(tip);
-                return (
-                  <div key={i + 1} className="flex-shrink-0 w-[42vw] max-w-[180px] min-w-[152px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 p-3.5">
-                    <span className="text-2xl block mb-2 leading-none">{getLifestyleEmoji(tip)}</span>
-                    <p className="text-sm font-semibold text-on-surface leading-snug">{action}</p>
-                    {detail && <p className="text-[10px] text-on-surface-variant/55 mt-1.5 leading-relaxed">{detail}</p>}
+                  <div key={i} className={`flex-shrink-0 w-[36vw] max-w-[148px] min-w-[124px] rounded-2xl border p-3.5 flex flex-col ${tint}`}>
+                    <span className="text-4xl leading-none mb-3">{emoji}</span>
+                    <p className="text-xs font-semibold text-on-surface leading-snug">{compressHabit(action)}</p>
                   </div>
                 );
               })}
@@ -935,348 +1018,114 @@ export default function ProtocolPage() {
           </div>
         )}
 
-        {/* ── Full protocol content ── */}
-        {true && (
-          <>
-            {/* Blood report */}
-            {!profile?.bloodReport && (
-              <div className="mb-3 animate-fade-in-up">
-                <div className="feed-card p-4 border border-primary-container/20">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-primary-container/10 flex items-center justify-center shrink-0">
-                      <Upload className="w-4 h-4 text-primary-container" strokeWidth={1.5} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                        <p className="text-sm font-semibold text-on-surface">Upload blood report</p>
-                        <span className="text-[9px] font-bold text-primary-container bg-primary-container/10 px-1.5 py-0.5 rounded">
-                          +10% accuracy
-                        </span>
-                      </div>
-                      <p className="text-xs text-on-surface-variant">Personalise further based on your actual biomarkers.</p>
-                    </div>
-                    <button className="shrink-0 text-[11px] font-semibold text-primary-container border border-primary-container/30 px-2.5 py-1.5 rounded-lg hover:bg-primary-container/10 transition-colors cursor-pointer whitespace-nowrap">
-                      Upload
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
+        {/* ── Product picks — right after habits ── */}
+        {protocol.supplements.length > 0 && (
+          <div ref={picksRef} className="mb-4 animate-fade-in-up" style={{ animationDelay: "120ms" }}>
+            <div className="mb-3 px-1">
+              <p className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-1">
+                Your picks.
+              </p>
+              <p className="text-xs text-on-surface-variant/65 leading-relaxed">
+                Matched to your concerns — formulated for Indian bodies.
+              </p>
+            </div>
 
-            {/* What your body needs — ingredient list */}
-            {ingredientList.length > 0 && (
-              <div className="mb-3 animate-fade-in-up">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50 mb-2 px-1">
-                  What your body needs
-                </p>
-                <div className="feed-card divide-y divide-outline-variant/8">
-                  {ingredientList.map((item) => {
-                    const isExpanded = expandedReasonings.has(item.name);
-                    return (
-                      <div key={item.name} className="px-4 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <span className="text-xl shrink-0 leading-none">{getSupplementEmoji(item.name)}</span>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <p className="text-sm font-semibold text-on-surface">{item.name}</p>
-                              <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                                item.priority === "essential"
-                                  ? "text-primary-container bg-primary-container/10"
-                                  : item.priority === "recommended"
-                                    ? "text-on-surface-variant/70 bg-surface-container-high"
-                                    : "text-on-surface-variant/50 bg-surface-container-low"
-                              }`}>
-                                {item.priority}
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-on-surface-variant/55 mt-0.5">{item.timing}</p>
-                          </div>
-                          <button
-                            onClick={() => toggleReasoning(item.name)}
-                            className="shrink-0 flex items-center gap-0.5 text-[10px] font-semibold text-on-surface-variant/50 hover:text-primary-container transition-colors cursor-pointer"
-                          >
-                            Why?
-                            <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} strokeWidth={2} />
-                          </button>
+            <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-2">
+              {protocol.supplements.slice(0, 3).map((s) => {
+                const saving = s.mrp && s.mrp > s.price ? s.mrp - s.price : 0;
+                const discountPct = s.mrp && s.mrp > s.price
+                  ? Math.round((1 - s.price / s.mrp) * 100)
+                  : 0;
+                const reviewLabel = s.reviewCount
+                  ? s.reviewCount >= 1000
+                    ? `${(s.reviewCount / 1000).toFixed(1)}k`
+                    : `${s.reviewCount}`
+                  : null;
+                return (
+                  <div
+                    key={s.id}
+                    onClick={() => router.push(`/product/${s.id}`)}
+                    className="flex-shrink-0 w-[52vw] max-w-[210px] min-w-[168px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 overflow-hidden cursor-pointer hover:border-primary-container/30 transition-all duration-200 active:scale-[0.98]"
+                  >
+                    <div className="relative w-full h-[168px] bg-surface-container-low">
+                      {s.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={s.image} alt={s.name} className="w-full h-full object-cover" loading="lazy" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="text-5xl leading-none">{getSupplementEmoji(s.name)}</span>
                         </div>
-                        {isExpanded && (
-                          <p className="text-xs text-on-surface-variant mt-2 leading-relaxed pl-9">
-                            {item.why}
-                          </p>
-                        )}
+                      )}
+                      {discountPct >= 5 && (
+                        <span className="absolute top-2 left-2 bg-primary-container text-white text-[10px] font-extrabold px-2 py-0.5 rounded-md leading-none">
+                          {discountPct}% OFF
+                        </span>
+                      )}
+                      {s.matchScore >= 70 && (
+                        <span className="absolute top-2 right-2 bg-black/55 backdrop-blur-sm text-white text-[9px] font-extrabold px-2 py-0.5 rounded-md leading-none tracking-wide">
+                          {s.matchScore}% MATCH
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-3">
+                      {s.rating && (
+                        <div className="flex items-center gap-1 mb-1.5">
+                          <span className="text-[11px] leading-none">⭐</span>
+                          <span className="text-xs font-bold text-on-surface">{s.rating}</span>
+                          {reviewLabel && (
+                            <span className="text-[10px] text-on-surface-variant/45">({reviewLabel})</span>
+                          )}
+                        </div>
+                      )}
+                      <p className="text-[13px] font-bold text-on-surface leading-snug line-clamp-2 mb-0.5">{s.name}</p>
+                      <p className="text-[10px] text-on-surface-variant/45 mb-2.5">{s.brand}</p>
+                      <div className="flex items-end justify-between gap-1">
+                        <div>
+                          <p className="text-base font-extrabold text-primary font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
+                          {s.mrp && s.mrp > s.price && (
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <p className="text-[10px] text-on-surface-variant/40 line-through">₹{s.mrp}</p>
+                              <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded leading-none">Save ₹{saving}</span>
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); void handleAddToCart(s.id); }}
+                          disabled={addingId === s.id || addedIds.has(s.id)}
+                          className={`flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 cursor-pointer shrink-0 ${
+                            addedIds.has(s.id) ? "bg-primary-container text-white" : "bg-primary-container/15 text-primary-container hover:bg-primary-container/30"
+                          } disabled:opacity-60`}
+                          aria-label={addedIds.has(s.id) ? "Added to cart" : "Add to cart"}
+                        >
+                          {addingId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : addedIds.has(s.id) ? <Check className="w-4 h-4" strokeWidth={2.5} /> : <ShoppingBag className="w-4 h-4" strokeWidth={2} />}
+                        </button>
                       </div>
-                    );
-                  })}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* View all card */}
+              <div
+                onClick={() => {
+                  const picks = protocol.supplements.slice(0, 3).map((s) => s.id).join(",");
+                  router.push(`/explore?picks=${encodeURIComponent(picks)}`);
+                }}
+                className="flex-shrink-0 w-[38vw] max-w-[156px] min-w-[128px] rounded-2xl border border-primary-container/20 border-dashed flex flex-col items-center justify-center gap-2.5 cursor-pointer hover:bg-primary-container/4 transition-colors"
+                style={{ minHeight: 260 }}
+              >
+                <div className="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center">
+                  <ShoppingBag className="w-5 h-5 text-primary-container/70" strokeWidth={1.5} />
                 </div>
-              </div>
-            )}
-
-            {/* Bridge message — store card */}
-            <div className="mb-3 animate-fade-in-up">
-              <div className="rounded-2xl overflow-hidden border border-primary-container/20"
-                style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--color-primary-container) 12%, transparent), color-mix(in srgb, var(--color-primary-container) 5%, transparent))" }}>
-                <div className="p-4">
-                  {/* Header row */}
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <div className="flex-1">
-                      <p className="text-sm font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug">
-                        Good news — we stock all of this 🎉
-                      </p>
-                      <p className="text-xs text-on-surface-variant/65 mt-0.5 leading-relaxed">
-                        Formulated for Indian bodies. No hunting across ten brands.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Social proof row */}
-                  <div className="flex items-center gap-2 flex-wrap mb-3">
-                    <div className="flex items-center gap-1">
-                      <span className="text-[11px]">⭐</span>
-                      <span className="text-[11px] font-bold text-on-surface">4.5 rated</span>
-                    </div>
-                    <span className="text-on-surface-variant/25 text-xs">·</span>
-                    <span className="text-[11px] font-bold text-on-surface">2M+ men trust us</span>
-                    <span className="text-on-surface-variant/25 text-xs">·</span>
-                    <span className="text-[11px] font-bold text-on-surface">Doctor-approved</span>
-                  </div>
-
-                  {/* Concern coverage pills */}
-                  <div className="flex gap-1.5 flex-wrap">
-                    {concernList.slice(0, 3).map((c) => (
-                      <span
-                        key={c}
-                        className="inline-flex items-center gap-1 text-[10px] font-bold text-primary-container bg-primary-container/12 px-2 py-0.5 rounded-full"
-                      >
-                        <span className="text-[9px]">✓</span>
-                        {c.split(" / ")[0]}
-                      </span>
-                    ))}
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-on-surface-variant/50 bg-surface-container px-2 py-0.5 rounded-full">
-                      Free shipping
-                    </span>
-                  </div>
+                <div className="text-center px-2">
+                  <p className="text-[11px] font-bold text-primary-container/80 leading-snug">View all</p>
+                  <p className="text-[10px] text-on-surface-variant/40 mt-0.5">50+ products</p>
                 </div>
               </div>
             </div>
 
-            {/* Allergy soft warning */}
-            {profileAllergies.length > 0 && (
-              <div className="mb-3 animate-fade-in-up rounded-xl border border-orange-500/20 bg-orange-500/6 px-4 py-3.5 flex items-start gap-3">
-                <span className="text-lg shrink-0 leading-none mt-0.5">⚠️</span>
-                <div>
-                  <p className="text-xs font-semibold text-on-surface mb-0.5">
-                    You mentioned {profileAllergies.join(", ")} sensitivity
-                  </p>
-                  <p className="text-xs text-on-surface-variant/75 leading-relaxed">
-                    Check ingredient labels before purchasing — some supplement formulations may contain traces. When in doubt, contact the brand directly.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Your picks — product carousel */}
-            {protocol.supplements.length > 0 && (
-              <div ref={picksRef} className="mb-4 animate-fade-in-up">
-                <div className="flex items-center justify-between mb-2.5 px-1">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50">
-                      Your picks
-                    </p>
-                    <p className="text-[10px] text-on-surface-variant/35 mt-0.5">Matched to your profile</p>
-                  </div>
-                  <button
-                    onClick={handleAddAll}
-                    disabled={addingAll || protocol.supplements.slice(0,3).every(s => addedIds.has(s.id))}
-                    className="flex items-center gap-1.5 text-[11px] font-bold text-primary-container bg-primary-container/10 px-3 py-1.5 rounded-full hover:bg-primary-container/20 transition-colors disabled:opacity-50 cursor-pointer"
-                  >
-                    {addingAll ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : protocol.supplements.slice(0,3).every(s => addedIds.has(s.id)) ? (
-                      <Check className="w-3 h-3" strokeWidth={2.5} />
-                    ) : (
-                      <ShoppingBag className="w-3 h-3" strokeWidth={2} />
-                    )}
-                    {protocol.supplements.slice(0,3).every(s => addedIds.has(s.id)) ? "All added" : "Add all"}
-                  </button>
-                </div>
-                <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-2">
-                  {protocol.supplements.slice(0, 3).map((s) => {
-                    const saving = s.mrp && s.mrp > s.price ? s.mrp - s.price : 0;
-                    const discountPct = s.mrp && s.mrp > s.price
-                      ? Math.round((1 - s.price / s.mrp) * 100)
-                      : 0;
-                    const reviewLabel = s.reviewCount
-                      ? s.reviewCount >= 1000
-                        ? `${(s.reviewCount / 1000).toFixed(1)}k`
-                        : `${s.reviewCount}`
-                      : null;
-                    return (
-                      <div
-                        key={s.id}
-                        onClick={() => router.push(`/product/${s.id}`)}
-                        className="flex-shrink-0 w-[52vw] max-w-[210px] min-w-[168px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 overflow-hidden cursor-pointer hover:border-primary-container/30 transition-all duration-200 active:scale-[0.98]"
-                      >
-                        {/* Image area — taller for visual impact */}
-                        <div className="relative w-full h-[168px] bg-surface-container-low">
-                          {s.image ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={s.image}
-                              alt={s.name}
-                              className="w-full h-full object-cover"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <span className="text-5xl leading-none">{getSupplementEmoji(s.name)}</span>
-                            </div>
-                          )}
-                          {/* Discount badge */}
-                          {discountPct >= 5 && (
-                            <span className="absolute top-2 left-2 bg-primary-container text-white text-[10px] font-extrabold px-2 py-0.5 rounded-md leading-none">
-                              {discountPct}% OFF
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Content */}
-                        <div className="p-3">
-                          {/* Rating row */}
-                          {s.rating && (
-                            <div className="flex items-center gap-1 mb-1.5">
-                              <span className="text-[11px] leading-none">⭐</span>
-                              <span className="text-xs font-bold text-on-surface">{s.rating}</span>
-                              {reviewLabel && (
-                                <span className="text-[10px] text-on-surface-variant/45">({reviewLabel})</span>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Name */}
-                          <p className="text-[13px] font-bold text-on-surface leading-snug line-clamp-2 mb-0.5">
-                            {s.name}
-                          </p>
-                          <p className="text-[10px] text-on-surface-variant/45 mb-2.5">{s.brand}</p>
-
-                          {/* Price row */}
-                          <div className="flex items-end justify-between gap-1">
-                            <div>
-                              <p className="text-base font-extrabold text-primary font-[family-name:var(--font-manrope)] leading-none">
-                                ₹{s.price}
-                              </p>
-                              {s.mrp && s.mrp > s.price && (
-                                <div className="flex items-center gap-1 mt-0.5">
-                                  <p className="text-[10px] text-on-surface-variant/40 line-through">₹{s.mrp}</p>
-                                  <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded leading-none">
-                                    Save ₹{saving}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); void handleAddToCart(s.id); }}
-                              disabled={addingId === s.id || addedIds.has(s.id)}
-                              className={`flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 cursor-pointer shrink-0 ${
-                                addedIds.has(s.id)
-                                  ? "bg-primary-container text-white"
-                                  : "bg-primary-container/15 text-primary-container hover:bg-primary-container/30"
-                              } disabled:opacity-60`}
-                              aria-label={addedIds.has(s.id) ? "Added to cart" : "Add to cart"}
-                            >
-                              {addingId === s.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : addedIds.has(s.id) ? (
-                                <Check className="w-4 h-4" strokeWidth={2.5} />
-                              ) : (
-                                <ShoppingBag className="w-4 h-4" strokeWidth={2} />
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* View all card */}
-                  <div
-                    onClick={() => {
-                      const picks = protocol.supplements.slice(0, 3).map((s) => s.id).join(",");
-                      router.push(`/explore?picks=${encodeURIComponent(picks)}`);
-                    }}
-                    className="flex-shrink-0 w-[38vw] max-w-[156px] min-w-[128px] rounded-2xl border border-primary-container/20 border-dashed flex flex-col items-center justify-center gap-2.5 cursor-pointer hover:bg-primary-container/4 transition-colors"
-                    style={{ minHeight: 260 }}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center">
-                      <ShoppingBag className="w-5 h-5 text-primary-container/70" strokeWidth={1.5} />
-                    </div>
-                    <div className="text-center px-2">
-                      <p className="text-[11px] font-bold text-primary-container/80 leading-snug">View all</p>
-                      <p className="text-[10px] text-on-surface-variant/40 mt-0.5">50+ products</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Also in your stack — extra supplements if protocol returns more than 3 */}
-                {protocol.supplements.length > 3 && (
-                  <div className="mt-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50 mb-2 px-1">
-                      Also pairs well
-                    </p>
-                    <div className="space-y-2">
-                      {protocol.supplements.slice(3, 5).map((s) => {
-                        const discountPct = s.mrp && s.mrp > s.price
-                          ? Math.round((1 - s.price / s.mrp) * 100) : 0;
-                        return (
-                          <div
-                            key={s.id}
-                            onClick={() => router.push(`/product/${s.id}`)}
-                            className="flex items-center gap-3 p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/8 cursor-pointer hover:border-primary-container/25 transition-all active:scale-[0.99]"
-                          >
-                            <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-surface-container-low shrink-0">
-                              {s.image ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={s.image} alt={s.name} className="w-full h-full object-cover" loading="lazy" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                  <span className="text-2xl">{getSupplementEmoji(s.name)}</span>
-                                </div>
-                              )}
-                              {discountPct >= 5 && (
-                                <span className="absolute top-0.5 left-0.5 bg-primary-container text-white text-[8px] font-extrabold px-1 py-0.5 rounded leading-none">
-                                  -{discountPct}%
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-on-surface leading-snug line-clamp-1">{s.name}</p>
-                              <p className="text-[10px] text-on-surface-variant/45 mt-0.5">{s.brand}</p>
-                              <div className="flex items-center gap-1.5 mt-1">
-                                <p className="text-sm font-extrabold text-primary font-[family-name:var(--font-manrope)]">₹{s.price}</p>
-                                {s.mrp && s.mrp > s.price && (
-                                  <p className="text-[10px] text-on-surface-variant/35 line-through">₹{s.mrp}</p>
-                                )}
-                              </div>
-                            </div>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); void handleAddToCart(s.id); }}
-                              disabled={addingId === s.id || addedIds.has(s.id)}
-                              className={`flex items-center justify-center w-9 h-9 rounded-xl shrink-0 transition-all cursor-pointer ${
-                                addedIds.has(s.id) ? "bg-primary-container text-white" : "bg-primary-container/12 text-primary-container hover:bg-primary-container/25"
-                              } disabled:opacity-60`}
-                            >
-                              {addingId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : addedIds.has(s.id) ? <Check className="w-4 h-4" strokeWidth={2.5} /> : <ShoppingBag className="w-4 h-4" strokeWidth={2} />}
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Shop CTA */}
-            <div className="mb-4 animate-fade-in-up">
+            {/* Shop CTA — right below carousel */}
+            <div className="mt-4">
               <button
                 onClick={() => { setCartSelections(["main", "main", "main"]); setShowProtocolCart(true); }}
                 className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-primary-container text-sm font-bold text-white hover:bg-primary transition-colors duration-200 cursor-pointer"
@@ -1295,6 +1144,187 @@ export default function ProtocolPage() {
                 <ChevronRight className="w-3.5 h-3.5" strokeWidth={2} />
               </button>
             </div>
+
+            {/* Also pairs well */}
+            {protocol.supplements.length > 3 && (
+              <div className="mt-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50 mb-2 px-1">Also pairs well</p>
+                <div className="space-y-2">
+                  {protocol.supplements.slice(3, 5).map((s) => {
+                    const discountPct = s.mrp && s.mrp > s.price ? Math.round((1 - s.price / s.mrp) * 100) : 0;
+                    return (
+                      <div
+                        key={s.id}
+                        onClick={() => router.push(`/product/${s.id}`)}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/8 cursor-pointer hover:border-primary-container/25 transition-all active:scale-[0.99]"
+                      >
+                        <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-surface-container-low shrink-0">
+                          {s.image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={s.image} alt={s.name} className="w-full h-full object-cover" loading="lazy" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <span className="text-2xl">{getSupplementEmoji(s.name)}</span>
+                            </div>
+                          )}
+                          {discountPct >= 5 && (
+                            <span className="absolute top-0.5 left-0.5 bg-primary-container text-white text-[8px] font-extrabold px-1 py-0.5 rounded leading-none">-{discountPct}%</span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-on-surface leading-snug line-clamp-1">{s.name}</p>
+                          <p className="text-[10px] text-on-surface-variant/45 mt-0.5">{s.brand}</p>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <p className="text-sm font-extrabold text-primary font-[family-name:var(--font-manrope)]">₹{s.price}</p>
+                            {s.mrp && s.mrp > s.price && <p className="text-[10px] text-on-surface-variant/35 line-through">₹{s.mrp}</p>}
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); void handleAddToCart(s.id); }}
+                          disabled={addingId === s.id || addedIds.has(s.id)}
+                          className={`flex items-center justify-center w-9 h-9 rounded-xl shrink-0 transition-all cursor-pointer ${
+                            addedIds.has(s.id) ? "bg-primary-container text-white" : "bg-primary-container/12 text-primary-container hover:bg-primary-container/25"
+                          } disabled:opacity-60`}
+                        >
+                          {addingId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : addedIds.has(s.id) ? <Check className="w-4 h-4" strokeWidth={2.5} /> : <ShoppingBag className="w-4 h-4" strokeWidth={2} />}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Full protocol content ── */}
+        {true && (
+          <>
+
+            {/* Why these work — horizontal scroll */}
+            {ingredientList.length > 0 && (
+              <div className="mb-3 animate-fade-in-up">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50 mb-2 px-1">
+                  Why these work
+                </p>
+                <div className="flex gap-2.5 overflow-x-auto overscroll-x-contain hide-scrollbar pb-1">
+                  {ingredientList.map((item) => {
+                    const isExpanded = expandedReasonings.has(item.name);
+                    const cardStyle =
+                      item.priority === "essential"
+                        ? "bg-primary-container/10 border-primary-container/20"
+                        : item.priority === "recommended"
+                        ? "bg-amber-500/8 border-amber-500/20"
+                        : "bg-surface-container-low border-outline-variant/10";
+                    const badgeStyle =
+                      item.priority === "essential"
+                        ? "bg-primary-container text-white"
+                        : item.priority === "recommended"
+                        ? "bg-amber-500 text-white"
+                        : "bg-surface-container-high text-on-surface-variant/60";
+                    return (
+                      <button
+                        key={item.name}
+                        onClick={() => toggleReasoning(item.name)}
+                        className={`flex-shrink-0 w-[36vw] max-w-[148px] min-w-[120px] text-left rounded-2xl border p-3 transition-all duration-200 cursor-pointer active:scale-[0.98] ${cardStyle} ${isExpanded ? "min-w-[200px] max-w-[220px]" : ""}`}
+                      >
+                        <span className="text-xl block mb-2 leading-none">{getSupplementEmoji(item.name)}</span>
+                        <p className="text-[12px] font-bold text-on-surface leading-snug mb-1.5">{item.name}</p>
+                        <span className={`text-[8px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${badgeStyle}`}>
+                          {item.priority}
+                        </span>
+                        <p className="text-[10px] text-on-surface-variant/55 mt-1.5 leading-relaxed">{item.timing}</p>
+                        {isExpanded && (
+                          <p className="text-[10px] text-on-surface-variant/80 mt-2 leading-relaxed border-t border-outline-variant/10 pt-2">
+                            {item.why}
+                          </p>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Allergy soft warning */}
+            {profileAllergies.length > 0 && (
+              <div className="mb-3 animate-fade-in-up rounded-xl border border-orange-500/20 bg-orange-500/6 px-4 py-3.5 flex items-start gap-3">
+                <span className="text-lg shrink-0 leading-none mt-0.5">⚠️</span>
+                <div>
+                  <p className="text-xs font-semibold text-on-surface mb-0.5">
+                    You mentioned {profileAllergies.join(", ")} sensitivity
+                  </p>
+                  <p className="text-xs text-on-surface-variant/75 leading-relaxed">
+                    Check ingredient labels before purchasing — some supplement formulations may contain traces. When in doubt, contact the brand directly.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* ── How to take your protocol — shown after products ── */}
+            {protocol.dailyRoutine.length > 0 && (
+              <div className="mb-4 animate-fade-in-up">
+                <div className="mb-3 px-1">
+                  <p className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-1">
+                    How to take your protocol.
+                  </p>
+                  <p className="text-xs text-on-surface-variant/65 leading-relaxed">
+                    Timing and consistency matter. Here&apos;s how to build these into your day.
+                  </p>
+                </div>
+                <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-1">
+                  {protocol.dailyRoutine.map((item, i) => {
+                    const Icon = item.time === "morning" ? Sun : item.time === "afternoon" ? Zap : Moon;
+                    const timeLabel = item.time === "morning" ? "Morning" : item.time === "afternoon" ? "Afternoon" : "Evening";
+                    const cardStyle = item.time === "morning"
+                      ? "bg-amber-500/8 border-amber-500/15"
+                      : item.time === "afternoon"
+                      ? "bg-sky-500/8 border-sky-500/15"
+                      : "bg-indigo-500/8 border-indigo-500/15";
+                    const iconColor = item.time === "morning" ? "text-amber-600" : item.time === "afternoon" ? "text-sky-600" : "text-indigo-600";
+                    const { action } = splitRoutineText(item.text);
+                    return (
+                      <div key={i} className={`flex-shrink-0 w-[36vw] max-w-[148px] min-w-[124px] rounded-2xl border p-3.5 flex flex-col ${cardStyle}`}>
+                        <Icon className={`w-6 h-6 mb-3 ${iconColor}`} strokeWidth={1.5} />
+                        <p className={`text-[9px] font-bold uppercase tracking-wider mb-1.5 ${iconColor}`}>
+                          {timeLabel}
+                        </p>
+                        <p className="text-xs font-semibold text-on-surface leading-snug">{compressHabit(action)}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Blood report — level up card */}
+            {!profile?.bloodReport && (
+              <div className="mb-4 animate-fade-in-up">
+                <div className="rounded-2xl border border-outline-variant/12 bg-surface-container-lowest overflow-hidden">
+                  <div className="p-4">
+                    <p className="text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-widest mb-2">
+                      Level up your protocol
+                    </p>
+                    <p className="text-[15px] font-extrabold text-on-surface leading-snug mb-1.5 font-[family-name:var(--font-manrope)]">
+                      Your protocol is based on your profile. A blood report makes it exact.
+                    </p>
+                    <p className="text-xs text-on-surface-variant/65 leading-relaxed mb-3">
+                      We check your actual Vitamin D, Iron, B12, and thyroid levels — and rebuild your recommendations around real gaps, not estimated ones.
+                    </p>
+                    <div className="flex gap-1.5 flex-wrap mb-4">
+                      {["Vitamin D", "Iron", "B12", "Thyroid"].map((b) => (
+                        <span key={b} className="text-[10px] font-semibold text-primary-container bg-primary-container/10 px-2.5 py-1 rounded-full border border-primary-container/15">
+                          {b}
+                        </span>
+                      ))}
+                    </div>
+                    <button className="flex items-center gap-1 text-[12px] font-bold text-primary-container cursor-pointer hover:gap-2 transition-all duration-200">
+                      How it works <ChevronRight className="w-3.5 h-3.5" strokeWidth={2.5} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Severity escalation — expert consult card */}
             {isSevereCase && (
@@ -1327,109 +1357,6 @@ export default function ProtocolPage() {
               </div>
             )}
 
-            {/* Personalisation questions — at the bottom */}
-            {!allAnswered && (
-              <div id="protocol-question" className="mb-3">
-                {showingUpdate ? (
-                  <div className="feed-card-ai p-4 animate-fade-in-up">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary-container/20 flex items-center justify-center shrink-0">
-                        <Check className="w-4 h-4 text-primary-container" strokeWidth={2.5} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-on-surface">Protocol updated</p>
-                        <p className="text-xs text-on-surface-variant/70">
-                          {depthGain > 0 ? `+${depthGain}% more precise — keep going` : "Your answer has been factored in"}
-                        </p>
-                      </div>
-                      {depthGain > 0 && (
-                        <span className="text-xs font-extrabold text-primary-container font-[family-name:var(--font-manrope)] shrink-0">
-                          +{depthGain}%
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ) : sessionLimitReached ? (
-                  <div className="feed-card p-5 animate-fade-in-up">
-                    <div className="flex items-start gap-3 mb-3">
-                      <div className="w-8 h-8 rounded-full bg-primary-container/10 flex items-center justify-center shrink-0 mt-0.5">
-                        <Sparkles className="w-4 h-4 text-primary-container" strokeWidth={1.5} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-on-surface mb-0.5">That&apos;s good for today</p>
-                        <p className="text-xs text-on-surface-variant/70 leading-relaxed">
-                          Your protocol gets sharper every time you return. Come back tomorrow and it&apos;ll ask you one more thing.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="h-1.5 bg-surface-container-high rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-primary-container/60 to-primary-container rounded-full transition-all duration-700 ease-out" style={{ width: `${liveDepth}%` }} />
-                    </div>
-                    <p className="text-[11px] text-on-surface-variant/50 mt-1.5">Protocol at {liveDepth}%</p>
-                    {/* Bonus offer — shown only if more questions exist and bonus hasn't been taken */}
-                    {!bonusUnlocked && currentQuestion && (
-                      <button
-                        onClick={() => setBonusUnlocked(true)}
-                        className="mt-3 w-full py-2.5 rounded-xl border border-primary-container/25 text-xs font-semibold text-primary-container hover:bg-primary-container/8 transition-colors cursor-pointer"
-                      >
-                        Actually, one more thing →
-                      </button>
-                    )}
-                  </div>
-                ) : currentQuestion ? (
-                  <div key={currentQuestion.key} className="feed-card p-5 animate-fade-in-up">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Sparkles className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
-                      <span className="text-[11px] font-semibold text-primary-container uppercase tracking-wider">
-                        Personalising · Question {answeredCount + 1}
-                      </span>
-                    </div>
-                    <p className="text-base font-semibold text-on-surface leading-snug mb-4 font-[family-name:var(--font-manrope)]">
-                      {currentQuestion.question}
-                    </p>
-                    <div className="space-y-2">
-                      {currentQuestion.options.map((opt) => (
-                        <button
-                          key={opt.value}
-                          onClick={() => handleAnswer(currentQuestion.key, opt.value)}
-                          className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl bg-surface-container-low border border-outline-variant/10 text-sm font-medium text-on-surface hover:border-primary-container/40 cursor-pointer transition-all duration-200 active:scale-[0.99]"
-                        >
-                          <span>{opt.label}</span>
-                          <ChevronRight className="w-4 h-4 text-on-surface-variant/30" strokeWidth={1.5} />
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex items-center justify-between mt-4">
-                      <div className="flex gap-1.5">
-                        {Array.from({ length: answeredCount }).map((_, i) => (
-                          <div key={i} className="h-1.5 w-4 rounded-full bg-primary-container transition-all duration-300" />
-                        ))}
-                        <div className="h-1.5 w-4 rounded-full bg-primary-container/40 transition-all duration-300" />
-                      </div>
-                      <button
-                        onClick={() => handleSkip(currentQuestion.key)}
-                        className="text-[11px] font-medium text-on-surface-variant/40 hover:text-on-surface-variant/70 transition-colors cursor-pointer"
-                      >
-                        Skip
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            )}
-            {allAnswered && (
-              <div className="feed-card-ai p-4 mb-3 animate-fade-in-up">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-primary-container/20 flex items-center justify-center shrink-0">
-                    <Check className="w-3.5 h-3.5 text-primary-container" strokeWidth={2.5} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-on-surface">Protocol fully personalised</p>
-                    <p className="text-xs text-on-surface-variant">{protocol.confidenceMessage}</p>
-                  </div>
-                </div>
-              </div>
-            )}
           </>
         )}
 

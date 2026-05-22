@@ -148,13 +148,20 @@ export default function ConcernCard({ onSelect, onTextSubmit, sex, maxSelections
         <div className="mt-3 flex items-center gap-2 animate-fade-in-up flex-wrap">
           {picked.map((key) => {
             const def = concerns.find((c) => c.key === key);
+            const img = key === "Just curious" ? undefined : getGenderedConcernImage(key, sex);
             return (
-              <span
+              <div
                 key={key}
-                className="inline-block px-4 py-2.5 rounded-xl bg-primary-container/15 border border-primary-container/20 text-sm font-semibold text-primary-container"
+                className="flex items-center rounded-xl bg-primary-container/15 border border-primary-container/20 overflow-hidden"
               >
-                {def?.label ?? key}
-              </span>
+                {img && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={img} alt="" className="w-10 h-10 object-cover shrink-0" />
+                )}
+                <span className="px-3 py-2 text-sm font-semibold text-primary-container">
+                  {def?.label ?? key}
+                </span>
+              </div>
             );
           })}
           <button

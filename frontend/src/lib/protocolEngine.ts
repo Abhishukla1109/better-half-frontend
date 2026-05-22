@@ -1,6 +1,4 @@
-import { MM_PRODUCTS } from "@/lib/ai/mm-products";
-import { BW_PRODUCTS } from "@/lib/ai/bw-products";
-import { LJ_MOM_PRODUCTS } from "@/lib/ai/lj-mom-products";
+import { CATALOG_PRODUCTS } from "@/lib/ai/catalog";
 
 export type UserSegment = {
   gender: string;
@@ -32,11 +30,7 @@ export type Product = {
 
 export type MatchedProduct = Product & { matchScore: number };
 
-export const ALL_PRODUCTS: Product[] = [
-  ...MM_PRODUCTS,
-  ...BW_PRODUCTS,
-  ...LJ_MOM_PRODUCTS,
-];
+export const ALL_PRODUCTS: Product[] = CATALOG_PRODUCTS;
 
 // ── SEGMENT RESOLVER ──
 export function resolveSegment(

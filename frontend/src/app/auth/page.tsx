@@ -2,54 +2,74 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles } from "lucide-react";
+import { Sparkles, ArrowLeft } from "lucide-react";
+import { supabase } from "@/lib/supabase/client";
 
-const DEMO_EXISTING_PHONE = "9999999999";
-
-const DEMO_EXISTING_PROFILE = {
-  name: "Rahul",
-  sex: "male",
-  age: "25-34",
-  concern: "Hair / beard",
-  concerns: "Hair / beard,Energy / gut",
-  hair_concern_type: "thinning",
-  energy_concern_type: "low_energy",
-  diet: "non-veg",
-};
-
-function signIn(isExistingUser: boolean) {
-  localStorage.setItem("bh_auth", JSON.stringify({ loggedIn: true }));
-  if (isExistingUser) {
-    localStorage.setItem("bh_profile", JSON.stringify(DEMO_EXISTING_PROFILE));
-  }
-}
+type Step = "email" | "sent";
 
 export default function AuthPage() {
   const router = useRouter();
-  const [phone, setPhone] = useState("");
+  const [step, setStep] = useState<Step>("email");
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  // Already logged in — route to the right place
   useEffect(() => {
-    try {
-      const auth = localStorage.getItem("bh_auth");
-      if (auth) {
-        const profile = localStorage.getItem("bh_profile");
-        const p = profile ? JSON.parse(profile) : null;
-        router.replace(p?.diet ? "/protocol" : "/home");
+    // Handle magic link redirect (Supabase puts session in URL hash on return)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session) {
+          checkProfileAndRedirect(session.user.id);
+        }
       }
-    } catch {}
-  }, [router]);
+    );
 
-  const handlePhoneContinue = () => {
-    const cleaned = phone.replace(/\s/g, "");
-    const isExisting = cleaned === DEMO_EXISTING_PHONE;
-    signIn(isExisting);
-    router.replace(isExisting ? "/protocol" : "/home");
-  };
+    // Also catch an already-active session (e.g. page refresh)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) checkProfileAndRedirect(session.user.id);
+    });
 
-  const handleGoogle = () => {
-    signIn(false);
-    router.replace("/home");
+    return () => subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function checkProfileAndRedirect(userId: string) {
+    const { data } = await supabase
+      .from("profiles")
+      .select("data")
+      .eq("id", userId)
+      .single();
+
+    localStorage.setItem("bh_auth", JSON.stringify({ loggedIn: true }));
+
+    if (data?.data && Object.keys(data.data).length > 0) {
+      localStorage.setItem("bh_profile", JSON.stringify(data.data));
+      router.replace("/protocol");
+    } else {
+      router.replace("/home");
+    }
+  }
+
+  const handleSendLink = async () => {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed) return;
+    setLoading(true);
+    setError("");
+
+    const { error: err } = await supabase.auth.signInWithOtp({
+      email: trimmed,
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: `${window.location.origin}/auth`,
+      },
+    });
+
+    setLoading(false);
+    if (err) {
+      setError(err.message);
+    } else {
+      setStep("sent");
+    }
   };
 
   return (
@@ -61,77 +81,85 @@ export default function AuthPage() {
           <Sparkles className="w-6 h-6 text-primary-container" strokeWidth={1.5} />
         </div>
 
-        {/* Heading */}
-        <h1 className="text-[28px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] text-center leading-tight mb-2">
-          Welcome to BetterHalf
-        </h1>
-        <p className="text-sm text-on-surface-variant/70 text-center leading-relaxed mb-10">
-          Your personal health protocol, built by AI — free and instant.
-        </p>
+        {step === "email" ? (
+          <>
+            <h1 className="text-[28px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] text-center leading-tight mb-2">
+              Welcome to BetterHalf
+            </h1>
+            <p className="text-sm text-on-surface-variant/70 text-center leading-relaxed mb-10">
+              Your personal health protocol, built by AI — free and instant.
+            </p>
 
-        {/* Phone input */}
-        <div className="mb-4">
-          <p className="text-[11px] font-semibold text-on-surface-variant/60 uppercase tracking-wider mb-2">
-            Phone Number
-          </p>
-          <div className="flex items-center gap-2 border border-outline-variant/30 rounded-xl px-4 py-3.5 bg-surface-container-lowest focus-within:border-primary-container/50 transition-colors">
-            <span className="text-sm font-semibold text-on-surface-variant">+91</span>
-            <div className="w-px h-4 bg-outline-variant/30" />
-            <input
-              type="tel"
-              inputMode="numeric"
-              placeholder="98000 00000"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && phone.trim()) handlePhoneContinue(); }}
-              className="flex-1 bg-transparent text-sm text-on-surface placeholder:text-on-surface-variant/35 outline-none"
-              autoFocus
-            />
-          </div>
-        </div>
+            <div className="mb-4">
+              <p className="text-[11px] font-semibold text-on-surface-variant/60 uppercase tracking-wider mb-2">
+                Email address
+              </p>
+              <input
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setError(""); }}
+                onKeyDown={(e) => { if (e.key === "Enter" && email.trim()) handleSendLink(); }}
+                className="w-full border border-outline-variant/30 rounded-xl px-4 py-3.5 bg-surface-container-lowest text-sm text-on-surface placeholder:text-on-surface-variant/35 outline-none focus:border-primary-container/50 transition-colors"
+                autoFocus
+              />
+              {error && <p className="text-[12px] text-red-500 mt-2">{error}</p>}
+            </div>
 
-        {/* OTP CTA */}
-        <button
-          onClick={handlePhoneContinue}
-          disabled={!phone.trim()}
-          className="w-full flex items-center justify-between py-4 px-5 rounded-2xl bg-primary-container text-white font-bold text-sm hover:bg-primary transition-colors duration-200 cursor-pointer mb-6 disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <span>Continue</span>
-          <span className="text-lg leading-none">→</span>
-        </button>
+            <button
+              onClick={handleSendLink}
+              disabled={!email.trim() || loading}
+              className="w-full flex items-center justify-between py-4 px-5 rounded-2xl bg-primary-container text-white font-bold text-sm hover:bg-primary transition-colors duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <span>{loading ? "Sending…" : "Send sign-in link"}</span>
+              <span className="text-lg leading-none">→</span>
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={() => { setStep("email"); setError(""); }}
+              className="flex items-center gap-1 text-[13px] text-on-surface-variant/60 hover:text-primary-container mb-6 cursor-pointer transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" strokeWidth={2} />
+              Use a different email
+            </button>
 
-        {/* Divider */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex-1 h-px bg-outline-variant/20" />
-          <span className="text-xs text-on-surface-variant/40 font-medium">or</span>
-          <div className="flex-1 h-px bg-outline-variant/20" />
-        </div>
+            {/* Envelope illustration */}
+            <div className="flex items-center justify-center w-20 h-20 rounded-3xl bg-primary-container/10 mx-auto mb-8">
+              <svg className="w-9 h-9 text-primary-container" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+              </svg>
+            </div>
 
-        {/* Google CTA */}
-        <button
-          onClick={handleGoogle}
-          className="w-full flex items-center justify-center gap-3 py-3.5 rounded-2xl border border-outline-variant/25 text-sm font-semibold text-on-surface hover:bg-surface-container-low transition-colors cursor-pointer"
-        >
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
-            <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
-            <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
-            <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
-          </svg>
-          Continue with Google
-        </button>
+            <h1 className="text-[28px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] text-center leading-tight mb-3">
+              Check your inbox
+            </h1>
+            <p className="text-sm text-on-surface-variant/70 text-center leading-relaxed mb-8">
+              We sent a sign-in link to{" "}
+              <span className="font-semibold text-on-surface">{email}</span>.
+              Click it and you&apos;re in.
+            </p>
 
-        <p className="text-[10px] text-on-surface-variant/35 text-center mt-6">
+            <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/10 space-y-2">
+              <p className="text-[12px] text-on-surface-variant/60 leading-relaxed">
+                <span className="font-semibold text-on-surface-variant">Not seeing it?</span> Check your spam folder. The link expires in 60 minutes.
+              </p>
+            </div>
+
+            <button
+              onClick={handleSendLink}
+              disabled={loading}
+              className="w-full text-center text-[12px] text-on-surface-variant/50 hover:text-primary-container mt-5 py-2 cursor-pointer transition-colors disabled:opacity-40"
+            >
+              {loading ? "Sending…" : "Resend link"}
+            </button>
+          </>
+        )}
+
+        <p className="text-[10px] text-on-surface-variant/35 text-center mt-8">
           Free forever · No spam · Your data stays private
         </p>
-
-        {/* Demo hint */}
-        <div className="mt-8 p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/10">
-          <p className="text-[11px] text-on-surface-variant/60 text-center leading-relaxed">
-            <span className="font-semibold text-primary-container">Demo tip:</span> Enter{" "}
-            <span className="font-bold text-on-surface">9999999999</span> to see the existing customer experience — skips onboarding and loads a pre-built profile.
-          </p>
-        </div>
 
       </div>
     </main>

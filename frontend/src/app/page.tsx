@@ -94,6 +94,20 @@ export default function LandingPage() {
           <p className="text-[10px] text-on-surface-variant/35 text-center pt-1">
             Trusted by 2M+ Indians · Made by Mosaic Wellness
           </p>
+
+          <button
+            onClick={() => {
+              localStorage.setItem("bh_auth", "demo");
+              localStorage.setItem("bh_profile", JSON.stringify({
+                sex: "male", age: "25-34", concern: "Hair / beard",
+                diet: "non-veg", name: "Demo"
+              }));
+              router.push("/protocol");
+            }}
+            className="w-full text-center text-[11px] text-on-surface-variant/40 hover:text-on-surface-variant/70 transition-colors cursor-pointer py-1"
+          >
+            Skip to demo →
+          </button>
         </div>
 
       </div>

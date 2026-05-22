@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Home, Search, Sparkles, Stethoscope, BarChart3, LogOut } from "lucide-react";
+import { supabase } from "@/lib/supabase/client";
 
 const tabs = [
   { href: "/home", icon: Home, label: "Home" },
@@ -16,7 +17,8 @@ export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
     localStorage.removeItem("bh_auth");
     localStorage.removeItem("bh_profile");
     localStorage.removeItem("bh_onboarding_state");

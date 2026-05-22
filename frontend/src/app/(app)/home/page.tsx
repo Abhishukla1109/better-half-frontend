@@ -7,6 +7,7 @@ import GreetingCard from "@/components/feed/cards/GreetingCard";
 import ConcernCard from "@/components/feed/cards/ConcernCard";
 import ProfilingCard from "@/components/feed/cards/ProfilingCard";
 import UserMessageCard from "@/components/feed/cards/UserMessageCard";
+import { supabase } from "@/lib/supabase/client";
 
 type ProfileLevel = "L0" | "L1" | "L2" | "L3";
 
@@ -128,8 +129,21 @@ const SNEAK_PEEK = [
   { slug: "creatine-monohydrate", name: "Micronised Creatine Monohydrate",      price: 549,  original: 699,  img: "https://i.mscwlns.co/media/misc/pdp_rcl/2025071/Creatine%20Powder%20Lemon%20125gm_5bjt7h.png?tr=w-400"    },
 ];
 
+function bucketAge(age: number): string {
+  if (age <= 24) return "18-24";
+  if (age <= 34) return "25-34";
+  if (age <= 44) return "35-44";
+  return "45+";
+}
+
+function ageBucketLabel(bucket: string): string {
+  const map: Record<string, string> = { "18-24": "18–24", "25-34": "25–34", "35-44": "35–44", "45+": "45+" };
+  return map[bucket] ?? bucket;
+}
+
 export default function HomePage() {
   const [showSplash, setShowSplash] = useState(true);
+  const [ageSlider, setAgeSlider] = useState(26);
   const [level, setLevel] = useState<ProfileLevel>("L0");
   const [profile, setProfile] = useState<Partial<UserProfile>>({});
   const [userMessages, setUserMessages] = useState<string[]>([]);
@@ -300,6 +314,14 @@ export default function HomePage() {
     setProfile((p) => ({ ...p, diet }));
     setLevel("L3");
     localStorage.setItem("bh_profile", JSON.stringify(fullProfile));
+
+    // Persist to Supabase (fire-and-forget, doesn't block UI)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        supabase.from("profiles").upsert({ id: session.user.id, data: fullProfile }).then(() => {});
+      }
+    });
+
     setGeneratingPhase("generating");
     setShowGenerating(true);
     setTimeout(() => setGeneratingPhase("ready"), 2800);
@@ -430,7 +452,7 @@ export default function HomePage() {
             {[
               { icon: "✦", label: "Personalised supplement protocol" },
               { icon: "⏱", label: "Ready in 60 seconds" },
-              { icon: "★", label: "Free, no sign-up needed" },
+              { icon: "★", label: "Follow up, not forgotten" },
             ].map((item) => (
               <div key={item.label} className="flex flex-col items-center gap-1 flex-1 text-center">
                 <span className="text-[15px] leading-none text-primary-container">{item.icon}</span>
@@ -613,20 +635,66 @@ export default function HomePage() {
 
         {/* Step 2: Age — shown after gender */}
         {profile.sex && (
-          <div id="card-age">
-            <ProfilingCard
-              question="And roughly how old are you?"
-              reason="This helps me calibrate recommendations for your life stage."
-              options={[
-                { label: "18–24", value: "18-24" },
-                { label: "25–34", value: "25-34" },
-                { label: "35–44", value: "35-44" },
-                { label: "45+",   value: "45+"   },
-              ]}
-              onSelect={handleAgeSelect}
-              onSkip={() => handleAgeSelect("unknown")}
-              delay={200}
-            />
+          <div id="card-age" className="feed-card-ai p-5 animate-fade-in-up" style={{ animationDelay: "200ms" }}>
+            <p className="text-base text-on-surface leading-relaxed">And roughly how old are you?</p>
+
+            {profile.age ? (
+              <div className="mt-3 flex items-center gap-2 animate-fade-in-up">
+                <span className="inline-block px-4 py-2.5 rounded-xl bg-primary-container/15 border border-primary-container/20 text-sm font-semibold text-primary-container">
+                  {ageBucketLabel(profile.age)} years old
+                </span>
+                <button
+                  onClick={() => {
+                    setProfile((p) => ({ ...p, age: undefined, concern: undefined, concerns: undefined }));
+                    setSelectedConcerns([]);
+                    setLevel("L0");
+                  }}
+                  className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-surface-container-low cursor-pointer transition-colors"
+                  aria-label="Edit age"
+                >
+                  <svg className="w-3.5 h-3.5 text-on-surface-variant/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="mt-6 mb-1 flex flex-col items-center">
+                  <span className="text-[64px] font-extrabold text-primary-container leading-none tracking-tight">{ageSlider}</span>
+                  <span className="text-xs text-on-surface-variant/50 mt-1 uppercase tracking-widest font-semibold">years old</span>
+                </div>
+
+                <div className="px-1 mt-5 mb-5">
+                  <input
+                    type="range"
+                    min={18}
+                    max={65}
+                    value={ageSlider}
+                    onChange={(e) => setAgeSlider(Number(e.target.value))}
+                    className="w-full h-[6px] rounded-full cursor-pointer appearance-none"
+                    style={{
+                      accentColor: "var(--color-primary-container)",
+                      background: `linear-gradient(to right, var(--color-primary-container) 0%, var(--color-primary-container) ${((ageSlider - 18) / (65 - 18)) * 100}%, #e4e2de ${((ageSlider - 18) / (65 - 18)) * 100}%, #e4e2de 100%)`,
+                    }}
+                  />
+                  <div className="flex justify-between mt-2">
+                    <span className="text-[11px] text-on-surface-variant/40 font-medium">18</span>
+                    <span className="text-[11px] text-on-surface-variant/40 font-medium">65+</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handleAgeSelect(bucketAge(ageSlider))}
+                  className="w-full py-3 rounded-xl bg-primary-container text-sm font-semibold text-white cursor-pointer hover:bg-primary transition-colors duration-200"
+                >
+                  Continue
+                </button>
+                <button
+                  onClick={() => handleAgeSelect("unknown")}
+                  className="mt-2 text-xs text-on-surface-variant/50 cursor-pointer hover:text-on-surface-variant transition-colors"
+                >
+                  Rather not say
+                </button>
+              </>
+            )}
           </div>
         )}
 
@@ -692,10 +760,10 @@ export default function HomePage() {
               question="What does your diet look like mostly?"
               reason="Diet type directly affects which nutrients you might be missing."
               options={[
-                { label: "Vegetarian", value: "veg"     },
-                { label: "Non-veg",    value: "non-veg" },
-                { label: "Vegan",      value: "vegan"   },
-                { label: "Eggetarian", value: "egg"     },
+                { label: "Vegetarian", value: "veg",     emoji: "🥦" },
+                { label: "Non-veg",    value: "non-veg", emoji: "🍗" },
+                { label: "Vegan",      value: "vegan",   emoji: "🌱" },
+                { label: "Eggetarian", value: "egg",     emoji: "🥚" },
               ]}
               onSelect={handleDietSelect}
               onSkip={() => handleDietSelect("unknown")}

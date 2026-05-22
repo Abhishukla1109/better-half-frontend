@@ -5,6 +5,7 @@ import { useState } from "react";
 interface ProfilingOption {
   label: string;
   value: string;
+  emoji?: string;
 }
 
 interface ProfilingCardProps {
@@ -38,9 +39,9 @@ export default function ProfilingCard({
     onSkip?.();
   };
 
-  const selectedLabel = selected === "skipped"
-    ? "Rather not say"
-    : options.find((o) => o.value === selected)?.label;
+  const selectedOption = options.find((o) => o.value === selected);
+  const selectedLabel = selected === "skipped" ? "Rather not say" : selectedOption?.label;
+  const selectedEmoji = selectedOption?.emoji;
 
   return (
     <div
@@ -65,9 +66,16 @@ export default function ProfilingCard({
               <button
                 key={opt.value}
                 onClick={() => handleSelect(opt.value)}
-                className="chip-option min-h-[44px] px-4 py-2.5 rounded-xl bg-surface-container-low border border-outline-variant/15 text-sm font-medium text-on-surface hover:border-primary-container/40 cursor-pointer text-left transition-colors duration-200"
+                className={`chip-option rounded-xl bg-surface-container-low border border-outline-variant/15 text-sm font-medium text-on-surface hover:border-primary-container/40 cursor-pointer text-left transition-colors duration-200 ${
+                  opt.emoji && layout === "grid"
+                    ? "flex flex-col items-start gap-1.5 px-4 pt-4 pb-3 min-h-[84px]"
+                    : "min-h-[44px] px-4 py-2.5"
+                }`}
               >
-                {opt.label}
+                {opt.emoji && layout === "grid" && (
+                  <span className="text-2xl leading-none">{opt.emoji}</span>
+                )}
+                <span>{opt.label}</span>
               </button>
             ))}
           </div>
@@ -82,7 +90,8 @@ export default function ProfilingCard({
         </>
       ) : (
         <div className="mt-3 flex items-center gap-2 animate-fade-in-up">
-          <span className="inline-block px-4 py-2.5 rounded-xl bg-primary-container/15 border border-primary-container/20 text-sm font-semibold text-primary-container">
+          <span className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-container/15 border border-primary-container/20 text-sm font-semibold text-primary-container">
+            {selectedEmoji && <span className="text-base leading-none">{selectedEmoji}</span>}
             {selectedLabel}
           </span>
           <button
