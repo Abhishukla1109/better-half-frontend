@@ -6,7 +6,7 @@ import { Home, Search, Sparkles, Stethoscope, BarChart3, LogOut } from "lucide-r
 import { supabase } from "@/lib/supabase/client";
 
 const tabs = [
-  { href: "/home", icon: Home, label: "Home" },
+  { href: "/protocol", icon: Home, label: "Home" },
   { href: "/explore", icon: Search, label: "Shop" },
   { href: "/protocol", icon: Sparkles, label: "Ask", isCenter: true },
   { href: "/experts", icon: Stethoscope, label: "Experts" },
@@ -19,11 +19,12 @@ export default function BottomNav() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    localStorage.removeItem("bh_auth");
-    localStorage.removeItem("bh_profile");
-    localStorage.removeItem("bh_onboarding_state");
-    localStorage.removeItem("bh_protocol_visits");
-    router.replace("/auth");
+    [
+      "bh_auth", "bh_profile", "bh_profiles", "bh_active_profile",
+      "bh_onboarding_state", "bh_protocol_visits", "bh_today_answers",
+      "bh_theme", "bh_add_mode", "bh_protocol_built",
+    ].forEach((k) => localStorage.removeItem(k));
+    window.location.replace("/");
   };
 
   return (
@@ -79,11 +80,12 @@ export default function BottomNav() {
         className="hidden lg:flex fixed top-0 left-0 h-dvh w-[240px] xl:w-[280px] bg-surface border-r border-outline-variant/10 flex-col py-8 px-4 z-50"
         aria-label="Main navigation"
       >
-        {/* Logo */}
+        {/* Logo + tagline */}
         <div className="px-4 mb-10">
           <span className="text-xl font-extrabold tracking-tight text-primary font-[family-name:var(--font-manrope)]">
             BetterHalf
           </span>
+          <p className="text-[11px] text-on-surface-variant/45 mt-0.5 font-medium">Your AI health companion</p>
         </div>
 
         {/* Nav items */}

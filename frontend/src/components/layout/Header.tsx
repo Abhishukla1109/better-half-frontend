@@ -11,10 +11,7 @@ export default function Header() {
   const router = useRouter();
 
   const handleLogoClick = useCallback(() => {
-    localStorage.removeItem("bh_onboarding_state");
-    localStorage.removeItem("bh_profile");
-    localStorage.removeItem("bh_protocol_built");
-    router.push("/home");
+    router.push("/protocol");
   }, [router]);
 
   useEffect(() => {
@@ -47,14 +44,16 @@ export default function Header() {
       data-header-visible={visible}
     >
       <div className="max-w-4xl mx-auto flex items-center justify-between h-12 px-4">
-        {/* Logo — acts as home/restart button */}
+        {/* Logo — hidden on desktop where the sidebar already shows it */}
         <button
           onClick={handleLogoClick}
-          className="text-base font-extrabold tracking-tight text-primary font-[family-name:var(--font-manrope)] cursor-pointer"
+          className="lg:hidden text-base font-extrabold tracking-tight text-primary font-[family-name:var(--font-manrope)] cursor-pointer"
           aria-label="Go to home"
         >
           BetterHalf
         </button>
+        {/* Spacer so right icons stay flush right on desktop */}
+        <div className="hidden lg:block" />
 
         {/* Right actions */}
         <div className="flex items-center gap-2">
@@ -69,10 +68,11 @@ export default function Header() {
             <Bell className="w-5 h-5 text-on-surface-variant" strokeWidth={1.5} />
           </button>
 
-          {/* Profile avatar */}
+          {/* Profile avatar — opens family switcher sidebar */}
           <button
-            className="flex items-center justify-center w-9 h-9 rounded-full bg-primary-container cursor-pointer"
-            aria-label="Profile"
+            onClick={() => window.dispatchEvent(new Event("bh-profile-sidebar-open"))}
+            className="flex items-center justify-center w-9 h-9 rounded-full bg-primary-container cursor-pointer hover:opacity-90 transition-opacity"
+            aria-label="Switch profile"
           >
             <User className="w-4 h-4 text-on-primary-container" strokeWidth={1.5} />
           </button>

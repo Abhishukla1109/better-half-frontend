@@ -10,6 +10,9 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     async function check() {
+      // /home is the onboarding entry screen — accessible without auth
+      if (window.location.pathname === "/home") { setReady(true); return; }
+
       // Real Supabase session
       const { data: { session } } = await supabase.auth.getSession();
       if (session) { setReady(true); return; }
@@ -26,7 +29,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) setReady(true);
-      else if (event === "SIGNED_OUT") router.replace("/auth");
+      else if (event === "SIGNED_OUT" && window.location.pathname !== "/home") router.replace("/auth");
     });
 
     return () => subscription.unsubscribe();

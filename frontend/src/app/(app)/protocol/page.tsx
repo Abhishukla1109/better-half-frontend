@@ -16,12 +16,14 @@ import {
   Lock,
   Stethoscope,
   Loader2,
+  X,
 } from "lucide-react";
-import type { GeneratedProtocol, UserProfile } from "@/lib/ai/types";
+import type { GeneratedProtocol, UserProfile, ProtocolSupplement } from "@/lib/ai/types";
 import { calculateProfileDepth } from "@/lib/ai/profile-depth";
 import { selectNextQuestion, countFollowUpAnswers } from "@/lib/ai/question-bank";
 import { useCart } from "@/context/CartContext";
 import { resolveVariantId } from "@/lib/shopify/variant-resolver";
+import { ALL_PRODUCTS } from "@/lib/protocolEngine";
 
 /* ── Concern title map ─────────────────────────────────────── */
 const CONCERN_TITLE_MAP: Record<string, string> = {
@@ -32,6 +34,74 @@ const CONCERN_TITLE_MAP: Record<string, string> = {
   "Hormones": "hormonal balance",
   "Sleep / mind": "sleep & mind",
 };
+
+/* Onboarding concern label → product concern values (same as explore page) */
+const ONBOARDING_CONCERN_MAP: Record<string, string[]> = {
+  "Hair / beard": ["hair", "beard"],
+  "Skin / acne": ["skin"],
+  "Energy / gut": ["energy"],
+  "Weight": ["weight"],
+  "Hormones": ["hormones"],
+  "Sleep / mind": ["sleep"],
+};
+
+/* Friendly display label per onboarding concern */
+const CONCERN_DISPLAY: Record<string, string> = {
+  "Hair / beard": "Hair & Beard",
+  "Skin / acne": "Skin & Acne",
+  "Energy / gut": "Energy & Gut",
+  "Weight": "Weight",
+  "Hormones": "Hormones",
+  "Sleep / mind": "Sleep & Mind",
+};
+
+/* Emoji per concern */
+const CONCERN_EMOJI: Record<string, string> = {
+  "Hair / beard": "💆",
+  "Skin / acne": "✨",
+  "Energy / gut": "⚡",
+  "Weight": "🏋️",
+  "Hormones": "🔬",
+  "Sleep / mind": "🌙",
+};
+
+/* Trust badge derived from supplement data */
+function getTrustBadge(s: ProtocolSupplement): { label: string; style: string } | null {
+  if (s.priority === "essential") return { label: "Doctor's pick", style: "bg-primary-container/10 text-primary-container" };
+  if (s.reviewCount && s.reviewCount >= 1000) return { label: "Bestseller", style: "bg-amber-500/10 text-amber-600" };
+  if (s.rating && s.rating >= 4.5) return { label: "Top rated", style: "bg-emerald-500/10 text-emerald-600" };
+  if (s.priority === "recommended") return { label: "Recommended", style: "bg-surface-container text-on-surface-variant/60" };
+  return null;
+}
+
+function buildProfileSubtitle(profile: UserProfile | null): string | null {
+  if (!profile) return null;
+  const parts: string[] = [];
+  if (profile.age) {
+    const ageStr = String(profile.age).replace(/-/g, "–");
+    parts.push(`${ageStr} yr old`);
+  }
+  const diet = profile.diet?.toLowerCase();
+  if (diet && diet !== "non-veg" && diet !== "non-vegetarian") parts.push(diet);
+  if (profile.sex === "female") parts.push("woman");
+  else if (profile.sex === "male") parts.push("man");
+  const concerns = parseConcernList(profile);
+  const focusLabels = concerns.slice(0, 2).map((c) => CONCERN_TITLE_MAP[c] ?? c.toLowerCase());
+  const focus = focusLabels.length === 1 ? focusLabels[0]
+    : focusLabels.length >= 2 ? `${focusLabels[0]} & ${focusLabels[1]}`
+    : null;
+  const base = parts.filter(Boolean).join(" ");
+  if (!base && !focus) return null;
+  if (!focus) return `Built for a ${base}`;
+  return base ? `Built for a ${base} focused on ${focus}` : `Focused on ${focus}`;
+}
+
+function getSocialCount(s: ProtocolSupplement): string {
+  const base = s.reviewCount ?? 1800;
+  const n = Math.round((base * 0.43) / 100) * 100;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k+`;
+  return `${n}+`;
+}
 
 function buildProtocolTitle(profile: UserProfile | null): string {
   if (!profile) return "Your Protocol";
@@ -485,6 +555,47 @@ export default function ProtocolPage() {
   /* ── Derived state ─────────────────────────────────────────── */
   const concernList = useMemo(() => parseConcernList(profile), [profile]);
 
+  // Group supplements by user concern — only when 2+ concerns
+  const groupedSupplements = useMemo(() => {
+    if (!protocol || concernList.length <= 1) return null;
+    const pool = protocol.supplements.slice(0, 5);
+    const groups = concernList.map((label) => ({
+      label,
+      displayLabel: CONCERN_DISPLAY[label] ?? label,
+      concernValues: ONBOARDING_CONCERN_MAP[label] ?? [],
+      supplements: [] as ProtocolSupplement[],
+    }));
+    const assigned = new Set<string>();
+    for (const group of groups) {
+      for (const s of pool) {
+        if (assigned.has(s.id)) continue;
+        const productConcerns = ALL_PRODUCTS.find((p) => p.id === s.id)?.concern ?? [];
+        if (productConcerns.some((c) => group.concernValues.includes(c))) {
+          group.supplements.push(s);
+          assigned.add(s.id);
+        }
+      }
+    }
+    // Unassigned supplements go to first group
+    for (const s of pool) {
+      if (!assigned.has(s.id)) groups[0].supplements.push(s);
+    }
+    return groups.filter((g) => g.supplements.length > 0);
+  }, [protocol, concernList]);
+
+  const profileSubtitle = useMemo(() => buildProfileSubtitle(profile), [profile]);
+
+  // Possessive owner label: "Priya's" when viewing someone else's profile, "Your" for self
+  const possUpper = profile?.name ? `${profile.name}'s` : "Your";
+  const possLower = profile?.name ? `${profile.name}'s` : "your";
+
+  // Rank-based display score: position 0 keeps real score, each subsequent pick decrements
+  const displayScoreMap = useMemo(() => {
+    if (!protocol) return new Map<string, number>();
+    const pool = protocol.supplements.slice(0, 5);
+    return new Map(pool.map((s, i) => [s.id, Math.max(s.matchScore - i * 11, 62)]));
+  }, [protocol]);
+
   // Allergy warning — check current session answers first, then persisted profile
   const allergyCheckAnswer = answers.allergies_check ?? profile?.allergies_check;
   const profileAllergies = useMemo(() => {
@@ -598,7 +709,7 @@ export default function ProtocolPage() {
       <div className="min-h-dvh pb-24 overflow-x-clip">
         <div className="sticky top-12 z-20 px-4 py-3 bg-surface/95 backdrop-blur-sm border-b border-outline-variant/10">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-semibold text-on-surface-variant">Building your protocol…</span>
+            <span className="text-xs font-semibold text-on-surface-variant">Building {possLower} protocol…</span>
           </div>
           <div className="h-1.5 bg-surface-container-high rounded-full overflow-hidden">
             <div className="h-full w-1/3 bg-gradient-to-r from-primary-container to-primary rounded-full animate-pulse" />
@@ -637,125 +748,165 @@ export default function ProtocolPage() {
       {/* ── Protocol Cart Sheet ── */}
       {showProtocolCart && protocol && (() => {
         const mainPicks = protocol.supplements.slice(0, 3);
+
+        // Build concern-grouped structure preserving cartSelections index
+        const popupGroups: { label: string; emoji: string; items: { s: typeof mainPicks[0]; idx: number }[] }[] = [];
+        if (concernList.length <= 1) {
+          popupGroups.push({
+            label: concernList[0] ? (CONCERN_DISPLAY[concernList[0]] ?? concernList[0]) : "Your Picks",
+            emoji: concernList[0] ? (CONCERN_EMOJI[concernList[0]] ?? "✦") : "✦",
+            items: mainPicks.map((s, idx) => ({ s, idx })),
+          });
+        } else {
+          const assigned = new Set<number>();
+          for (const label of concernList) {
+            const concernValues = ONBOARDING_CONCERN_MAP[label] ?? [];
+            const items: { s: typeof mainPicks[0]; idx: number }[] = [];
+            for (let idx = 0; idx < mainPicks.length; idx++) {
+              if (assigned.has(idx)) continue;
+              const productConcerns = ALL_PRODUCTS.find((p) => p.id === mainPicks[idx].id)?.concern ?? [];
+              if (productConcerns.some((c) => concernValues.includes(c))) {
+                items.push({ s: mainPicks[idx], idx });
+                assigned.add(idx);
+              }
+            }
+            if (items.length > 0) {
+              popupGroups.push({ label: CONCERN_DISPLAY[label] ?? label, emoji: CONCERN_EMOJI[label] ?? "✦", items });
+            }
+          }
+          for (let idx = 0; idx < mainPicks.length; idx++) {
+            if (!assigned.has(idx) && popupGroups.length > 0) {
+              popupGroups[0].items.push({ s: mainPicks[idx], idx });
+            }
+          }
+        }
+
         const cartTotal = mainPicks.reduce((sum, s, i) => {
-          const alt    = s.alternative;
-          const active = cartSelections[i] === "alt" && alt ? alt : s;
+          const active = cartSelections[i] === "alt" && s.alternative ? s.alternative : s;
           return sum + active.price;
         }, 0);
+
         return (
           <div className="fixed inset-0 z-[60] flex flex-col justify-end" onClick={() => setShowProtocolCart(false)}>
-            <div className="bg-surface rounded-t-3xl shadow-2xl max-h-[90dvh] flex flex-col animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-surface rounded-t-3xl shadow-2xl max-h-[92dvh] flex flex-col animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
 
-              {/* Drag handle + header */}
-              <div className="px-5 pt-4 pb-3 border-b border-outline-variant/10 shrink-0">
-                <div className="w-10 h-1 rounded-full bg-outline-variant/30 mx-auto mb-4" />
-                <div className="flex items-center justify-between">
+              {/* Tinted header */}
+              <div className="shrink-0 rounded-t-3xl overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(21,89,74,0.12) 0%, rgba(21,89,74,0.05) 100%)" }}>
+                <div className="w-10 h-1 rounded-full bg-outline-variant/25 mx-auto mt-3.5 mb-0" />
+                <div className="flex items-start justify-between px-5 pt-4 pb-4">
                   <div>
-                    <h2 className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">Your Protocol Pack</h2>
-                    <p className="text-[11px] text-on-surface-variant/60 mt-0.5">{mainPicks.length} products · Free delivery · Doctor-approved</p>
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
+                      <span className="text-[10px] font-bold text-primary-container uppercase tracking-wider">Your Protocol</span>
+                    </div>
+                    <h2 className="text-[19px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-tight">
+                      Protocol Pack
+                    </h2>
+                    <p className="text-[11px] text-on-surface-variant/60 mt-0.5">
+                      {mainPicks.length} picks · Free delivery · Doctor-approved
+                    </p>
                   </div>
                   <button
                     onClick={() => setShowProtocolCart(false)}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-container-low hover:bg-surface-container cursor-pointer transition-colors text-on-surface-variant font-bold text-sm"
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-container/60 hover:bg-surface-container-high cursor-pointer transition-colors mt-0.5"
+                    aria-label="Close"
                   >
-                    ✕
+                    <X className="w-4 h-4 text-on-surface-variant" strokeWidth={2} />
                   </button>
                 </div>
               </div>
 
-              {/* Product list */}
-              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-                {mainPicks.map((main, i) => {
-                  const alt    = main.alternative;
-                  const isAlt  = cartSelections[i] === "alt";
-                  const active = isAlt && alt ? alt : main;
-                  // What to show in the swap row (the other option)
-                  const swapItem = isAlt
-                    ? { image: main.image, name: main.name, price: main.price, reason: "Original pick" }
-                    : alt ? { image: alt.image, name: alt.name, price: alt.price, reason: alt.reason } : null;
-                  const activeId   = active.id;
-                  const activePrio = main.priority; // priority belongs to the slot
-                  return (
-                    <div key={main.id} className="rounded-2xl border border-outline-variant/12 bg-surface-container-lowest overflow-hidden">
-
-                      {/* Active product row */}
-                      <div className="flex items-start gap-3 p-4">
-                        {/* Image */}
-                        <div className="w-[72px] h-[72px] rounded-xl overflow-hidden bg-surface-container-low shrink-0">
-                          {active.image
-                            ? <img src={active.image} alt={active.name} className="w-full h-full object-cover" /> /* eslint-disable-line @next/next/no-img-element */
-                            : <div className="w-full h-full flex items-center justify-center text-2xl leading-none">{getSupplementEmoji(active.name)}</div>}
-                        </div>
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[13px] font-bold text-on-surface leading-snug line-clamp-2">{active.name}</p>
-                          <p className="text-[11px] text-on-surface-variant/50 mt-0.5">{active.brand}</p>
-                          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                            <span className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{active.price}</span>
-                            {active.mrp > active.price && (
-                              <span className="text-[11px] text-on-surface-variant/35 line-through">₹{active.mrp}</span>
-                            )}
-                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${activePrio === "essential" ? "text-emerald-700 bg-emerald-50" : activePrio === "recommended" ? "text-blue-600 bg-blue-50" : "text-on-surface-variant/60 bg-surface-container-high"}`}>
-                              {activePrio}
-                            </span>
-                          </div>
-                        </div>
-                        {/* Individual add-to-cart */}
-                        <button
-                          onClick={() => void handleAddToCart(activeId)}
-                          disabled={addingId === activeId || addedIds.has(activeId)}
-                          className={`flex items-center justify-center w-9 h-9 rounded-xl shrink-0 transition-all cursor-pointer ${
-                            addedIds.has(activeId) ? "bg-primary-container text-white" : "bg-primary-container/15 text-primary-container hover:bg-primary-container/25"
-                          } disabled:opacity-60`}
-                          aria-label={addedIds.has(activeId) ? "Added" : "Add to cart"}
-                        >
-                          {addingId === activeId
-                            ? <Loader2 className="w-4 h-4 animate-spin" />
-                            : addedIds.has(activeId)
-                            ? <Check className="w-4 h-4" strokeWidth={2.5} />
-                            : <ShoppingBag className="w-4 h-4" strokeWidth={2} />}
-                        </button>
-                      </div>
-
-                      {/* Alternative swap row */}
-                      {swapItem && (
-                        <div className="border-t border-outline-variant/10 px-4 py-2.5 bg-surface-container-low/30 flex items-center gap-2.5">
-                          {/* Thumbnail */}
-                          <div className="w-9 h-9 rounded-lg overflow-hidden bg-surface-container-low shrink-0">
-                            {swapItem.image
-                              ? <img src={swapItem.image} alt={swapItem.name} className="w-full h-full object-cover" /> /* eslint-disable-line @next/next/no-img-element */
-                              : <div className="w-full h-full" />}
-                          </div>
-                          {/* Alt info */}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[11px] font-semibold text-on-surface/80 truncate">{swapItem.name}</p>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="text-[11px] font-bold text-on-surface/70">₹{swapItem.price}</span>
-                              <span className="text-[9px] font-semibold text-primary-container bg-primary-container/10 px-1.5 py-0.5 rounded-full truncate max-w-[100px]">
-                                {swapItem.reason}
-                              </span>
-                            </div>
-                          </div>
-                          {/* Switch button */}
-                          <button
-                            onClick={() => setCartSelections((prev) => { const next = [...prev]; next[i] = next[i] === "alt" ? "main" : "alt"; return next; })}
-                            className="text-[11px] font-bold text-primary-container bg-primary-container/10 px-3 py-1.5 rounded-full hover:bg-primary-container/20 transition-colors cursor-pointer shrink-0"
-                          >
-                            {isAlt ? "← Original" : "Switch →"}
-                          </button>
-                        </div>
-                      )}
+              {/* Concern-grouped 2-col card grid */}
+              <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2">
+                {popupGroups.map((group) => (
+                  <div key={group.label} className="mb-5">
+                    {/* Concern label */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-[15px] leading-none">{group.emoji}</span>
+                      <span className="text-[12px] font-bold text-on-surface">{group.label}</span>
+                      <div className="flex-1 h-px bg-outline-variant/15" />
                     </div>
-                  );
-                })}
+
+                    {/* Cards */}
+                    {group.items.map(({ s, idx }) => {
+                      const alt = s.alternative;
+                      const isAlt = cartSelections[idx] === "alt";
+                      const toggle = () => setCartSelections((prev) => {
+                        const next = [...prev]; next[idx] = next[idx] === "alt" ? "main" : "alt"; return next;
+                      });
+                      const trustBadge = getTrustBadge(s);
+                      return (
+                        <div key={s.id} className={`grid gap-2 mb-1 ${alt ? "grid-cols-2" : "grid-cols-1"}`}>
+                          {/* Main pick — compact horizontal card */}
+                          <button
+                            onClick={() => { if (isAlt) toggle(); }}
+                            className={`relative flex items-center gap-2.5 p-2.5 rounded-2xl border-2 transition-all text-left cursor-pointer active:scale-[0.98] ${
+                              !isAlt ? "border-primary-container" : "border-outline-variant/12 opacity-55"
+                            }`}
+                            style={!isAlt ? { background: "rgba(21,89,74,0.05)" } : {}}
+                          >
+                            {!isAlt && (
+                              <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-primary-container flex items-center justify-center z-10">
+                                <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+                              </div>
+                            )}
+                            <div className="w-12 h-12 rounded-xl overflow-hidden bg-surface-container-low shrink-0">
+                              {s.image
+                                // eslint-disable-next-line @next/next/no-img-element
+                                ? <img src={s.image} alt={s.name} className="w-full h-full object-cover" loading="lazy" />
+                                : <div className="w-full h-full flex items-center justify-center text-xl leading-none">{getSupplementEmoji(s.name)}</div>}
+                            </div>
+                            <div className="flex-1 min-w-0 pr-3">
+                              <p className="text-[8px] font-bold text-primary-container/60 uppercase tracking-wider leading-none mb-0.5">{s.brand}</p>
+                              <p className="text-[11px] font-bold text-on-surface leading-snug line-clamp-2 mb-1">{s.name}</p>
+                              {trustBadge && (
+                                <span className={`inline-block text-[8px] font-bold px-1.5 py-0.5 rounded-md leading-none mb-1 ${trustBadge.style}`}>{trustBadge.label}</span>
+                              )}
+                              <p className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
+                            </div>
+                          </button>
+
+                          {/* Alternative — compact horizontal card */}
+                          {alt && (
+                            <button
+                              onClick={() => { if (!isAlt) toggle(); }}
+                              className={`relative flex items-center gap-2.5 p-2.5 rounded-2xl border-2 transition-all text-left cursor-pointer active:scale-[0.98] ${
+                                isAlt ? "border-primary-container" : "border-outline-variant/12 opacity-55"
+                              }`}
+                              style={isAlt ? { background: "rgba(21,89,74,0.05)" } : {}}
+                            >
+                              {isAlt && (
+                                <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-primary-container flex items-center justify-center z-10">
+                                  <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+                                </div>
+                              )}
+                              <div className="w-12 h-12 rounded-xl overflow-hidden bg-surface-container-low shrink-0">
+                                {alt.image
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  ? <img src={alt.image} alt={alt.name} className="w-full h-full object-cover" loading="lazy" />
+                                  : <div className="w-full h-full flex items-center justify-center text-xl leading-none">{getSupplementEmoji(alt.name)}</div>}
+                              </div>
+                              <div className="flex-1 min-w-0 pr-3">
+                                <p className="text-[8px] font-bold text-primary-container/60 uppercase tracking-wider leading-none mb-0.5">{alt.brand}</p>
+                                <p className="text-[11px] font-bold text-on-surface leading-snug line-clamp-2 mb-1">{alt.name}</p>
+                                <span className="inline-block text-[8px] font-bold text-primary-container bg-primary-container/10 px-1.5 py-0.5 rounded-md leading-none mb-1 truncate max-w-full">{alt.reason}</span>
+                                <p className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{alt.price}</p>
+                              </div>
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
 
               {/* Footer */}
-              <div className="px-5 pt-3 pb-6 border-t border-outline-variant/10 bg-surface shrink-0">
+              <div className="px-5 pt-3 pb-7 border-t border-outline-variant/10 bg-surface shrink-0">
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <span className="text-sm font-semibold text-on-surface-variant">Subtotal</span>
-                    <p className="text-[10px] text-on-surface-variant/40 mt-0.5">Based on your current selection</p>
+                    <p className="text-[10px] text-on-surface-variant/40 mt-0.5">Based on your selection</p>
                   </div>
                   <span className="text-xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">₹{cartTotal.toLocaleString("en-IN")}</span>
                 </div>
@@ -827,7 +978,7 @@ export default function ProtocolPage() {
                     That&apos;s good for today
                   </p>
                   <p className="text-sm text-on-surface-variant/70 leading-relaxed mb-5">
-                    Your protocol gets sharper every time you return. Come back tomorrow for one more question.
+                    {possUpper} protocol gets sharper every time you return. Come back tomorrow for one more question.
                   </p>
                   <div className="h-1.5 bg-surface-container-high rounded-full overflow-hidden mb-1.5">
                     <div className="h-full bg-gradient-to-r from-primary-container/60 to-primary-container rounded-full transition-all duration-700 ease-out" style={{ width: `${liveDepth}%` }} />
@@ -884,7 +1035,7 @@ export default function ProtocolPage() {
 
         {/* ── Back to edit onboarding ── */}
         <button
-          onClick={() => router.push("/home?edit=true")}
+          onClick={() => { window.location.href = "/home?edit=true"; }}
           className="flex items-center gap-1.5 mb-4 text-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" strokeWidth={1.5} />
@@ -903,7 +1054,7 @@ export default function ProtocolPage() {
               <div className="flex items-center gap-1.5">
                 <Sparkles className="w-3 h-3 text-primary-container" strokeWidth={1.5} />
                 <span className="text-[10px] font-bold text-primary-container uppercase tracking-widest">
-                  Your Protocol
+                  {possUpper} Protocol
                 </span>
               </div>
               <span className="text-sm font-extrabold text-primary-container font-[family-name:var(--font-manrope)]">
@@ -1020,112 +1171,216 @@ export default function ProtocolPage() {
 
         {/* ── Product picks — right after habits ── */}
         {protocol.supplements.length > 0 && (
-          <div ref={picksRef} className="mb-4 animate-fade-in-up" style={{ animationDelay: "120ms" }}>
-            <div className="mb-3 px-1">
-              <p className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-1">
-                Your picks.
+          <div
+            ref={picksRef}
+            className="mb-4 rounded-2xl overflow-hidden border border-primary-container/10 animate-fade-in-up"
+            style={{ animationDelay: "120ms", background: "linear-gradient(175deg, rgba(21,89,74,0.09) 0%, rgba(21,89,74,0.04) 45%, rgba(21,89,74,0.01) 100%)" }}
+          >
+
+            {/* Section header — shares the outer gradient */}
+            <div className="px-4 pt-4 pb-3.5">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Sparkles className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
+                <span className="text-[10px] font-bold text-primary-container uppercase tracking-wider">AI-matched picks</span>
+              </div>
+              <p className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-tight mb-1">
+                {possUpper} protocol picks.
               </p>
-              <p className="text-xs text-on-surface-variant/65 leading-relaxed">
-                Matched to your concerns — formulated for Indian bodies.
-              </p>
+              {profileSubtitle ? (
+                <>
+                  <p className="text-[12px] text-primary-container/80 font-semibold leading-relaxed">{profileSubtitle}</p>
+                  <p className="text-[10px] text-on-surface-variant/40 leading-none mt-0.5">Scored from 6.5M Indian health journeys</p>
+                </>
+              ) : (
+                <p className="text-[12px] text-on-surface-variant/60 leading-relaxed">
+                  Ranked across {concernList.length} concern{concernList.length !== 1 ? "s" : ""} · Scored from 6.5M Indian health journeys
+                </p>
+              )}
             </div>
 
-            <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-2">
-              {protocol.supplements.slice(0, 3).map((s) => {
-                const saving = s.mrp && s.mrp > s.price ? s.mrp - s.price : 0;
-                const discountPct = s.mrp && s.mrp > s.price
-                  ? Math.round((1 - s.price / s.mrp) * 100)
-                  : 0;
-                const reviewLabel = s.reviewCount
-                  ? s.reviewCount >= 1000
-                    ? `${(s.reviewCount / 1000).toFixed(1)}k`
-                    : `${s.reviewCount}`
-                  : null;
-                return (
-                  <div
-                    key={s.id}
-                    onClick={() => router.push(`/product/${s.id}`)}
-                    className="flex-shrink-0 w-[52vw] max-w-[210px] min-w-[168px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 overflow-hidden cursor-pointer hover:border-primary-container/30 transition-all duration-200 active:scale-[0.98]"
-                  >
-                    <div className="relative w-full h-[168px] bg-surface-container-low">
-                      {s.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={s.image} alt={s.name} className="w-full h-full object-cover" loading="lazy" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-5xl leading-none">{getSupplementEmoji(s.name)}</span>
-                        </div>
-                      )}
-                      {discountPct >= 5 && (
-                        <span className="absolute top-2 left-2 bg-primary-container text-white text-[10px] font-extrabold px-2 py-0.5 rounded-md leading-none">
-                          {discountPct}% OFF
-                        </span>
-                      )}
-                      {s.matchScore >= 70 && (
-                        <span className="absolute top-2 right-2 bg-black/55 backdrop-blur-sm text-white text-[9px] font-extrabold px-2 py-0.5 rounded-md leading-none tracking-wide">
-                          {s.matchScore}% MATCH
-                        </span>
-                      )}
+            {/* Hairline divider between header and cards */}
+            <div className="mx-4 h-px bg-primary-container/10 mb-3" />
+
+            {/* Concern-grouped or flat product cards */}
+            {groupedSupplements ? (
+              <div className="space-y-5 pb-4">
+                {groupedSupplements.map((group) => (
+                  <div key={group.label}>
+                    <div className="flex items-center gap-2 px-4 mb-2.5">
+                      <span className="text-[16px] leading-none">{CONCERN_EMOJI[group.label] ?? "✦"}</span>
+                      <span className="text-[12px] font-bold text-on-surface">{group.displayLabel}</span>
+                      <span className="text-[10px] text-on-surface-variant/40">· {group.supplements.length} matched</span>
+                      <div className="flex-1 h-px bg-outline-variant/15" />
                     </div>
-                    <div className="p-3">
-                      {s.rating && (
-                        <div className="flex items-center gap-1 mb-1.5">
-                          <span className="text-[11px] leading-none">⭐</span>
-                          <span className="text-xs font-bold text-on-surface">{s.rating}</span>
-                          {reviewLabel && (
-                            <span className="text-[10px] text-on-surface-variant/45">({reviewLabel})</span>
-                          )}
-                        </div>
-                      )}
-                      <p className="text-[13px] font-bold text-on-surface leading-snug line-clamp-2 mb-0.5">{s.name}</p>
-                      <p className="text-[10px] text-on-surface-variant/45 mb-2.5">{s.brand}</p>
-                      <div className="flex items-end justify-between gap-1">
-                        <div>
-                          <p className="text-base font-extrabold text-primary font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
-                          {s.mrp && s.mrp > s.price && (
-                            <div className="flex items-center gap-1 mt-0.5">
-                              <p className="text-[10px] text-on-surface-variant/40 line-through">₹{s.mrp}</p>
-                              <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded leading-none">Save ₹{saving}</span>
+                    <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-1 pl-4">
+                      {group.supplements.map((s) => {
+                        const discountPct = s.mrp && s.mrp > s.price ? Math.round((1 - s.price / s.mrp) * 100) : 0;
+                        const reviewLabel = s.reviewCount ? (s.reviewCount >= 1000 ? `${(s.reviewCount / 1000).toFixed(1)}k` : `${s.reviewCount}`) : null;
+                        const trustBadge = getTrustBadge(s);
+                        const displayScore = displayScoreMap.get(s.id) ?? s.matchScore;
+                        return (
+                          <div
+                            key={s.id}
+                            onClick={() => router.push(`/product/${s.id}`)}
+                            className="flex-shrink-0 w-[52vw] max-w-[200px] min-w-[160px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 overflow-hidden cursor-pointer hover:border-primary-container/30 transition-all duration-200 active:scale-[0.98]"
+                          >
+                            <div className="relative w-full h-[148px] bg-surface-container-low">
+                              {s.image ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={s.image} alt={s.name} className="w-full h-full object-cover" loading="lazy" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <span className="text-5xl leading-none">{getSupplementEmoji(s.name)}</span>
+                                </div>
+                              )}
+                              {discountPct >= 5 && (
+                                <span className="absolute top-2 left-2 bg-primary-container text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-md leading-none">{discountPct}% OFF</span>
+                              )}
+                              {displayScore >= 70 && (
+                                <div className="absolute top-2 right-2 bg-primary-container/90 text-white text-[11px] font-extrabold px-2 py-1 rounded-full leading-none tabular-nums">
+                                  {displayScore}%
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); void handleAddToCart(s.id); }}
-                          disabled={addingId === s.id || addedIds.has(s.id)}
-                          className={`flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 cursor-pointer shrink-0 ${
-                            addedIds.has(s.id) ? "bg-primary-container text-white" : "bg-primary-container/15 text-primary-container hover:bg-primary-container/30"
-                          } disabled:opacity-60`}
-                          aria-label={addedIds.has(s.id) ? "Added to cart" : "Add to cart"}
-                        >
-                          {addingId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : addedIds.has(s.id) ? <Check className="w-4 h-4" strokeWidth={2.5} /> : <ShoppingBag className="w-4 h-4" strokeWidth={2} />}
-                        </button>
-                      </div>
+                            <div className="p-3">
+                              <p className="text-[9px] font-bold text-primary-container/60 uppercase tracking-wider mb-0.5">{s.brand}</p>
+                              <p className="text-[12px] font-bold text-on-surface leading-snug line-clamp-2 mb-0.5">{s.name}</p>
+                              {s.reasoning && (
+                                <p className="text-[9px] italic text-on-surface-variant/55 leading-snug line-clamp-2 mb-1">{s.reasoning}</p>
+                              )}
+                              {trustBadge && (
+                                <span className={`inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-md mb-1 leading-none ${trustBadge.style}`}>{trustBadge.label}</span>
+                              )}
+                              {s.rating && (
+                                <div className="flex items-center gap-1 mb-1">
+                                  <span className="text-amber-400 text-[10px] leading-none">★</span>
+                                  <span className="text-[10px] font-bold text-on-surface">{s.rating}</span>
+                                  {reviewLabel && <span className="text-[9px] text-on-surface-variant/40">({reviewLabel})</span>}
+                                </div>
+                              )}
+                              <p className="text-[9px] text-on-surface-variant/45 leading-none mb-1.5">👥 {getSocialCount(s)} similar</p>
+                              <div className="flex items-end justify-between gap-1">
+                                <div>
+                                  <p className="text-[15px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
+                                  {s.mrp && s.mrp > s.price && <p className="text-[9px] text-on-surface-variant/35 line-through mt-0.5">₹{s.mrp}</p>}
+                                </div>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); void handleAddToCart(s.id); }}
+                                  disabled={addingId === s.id || addedIds.has(s.id)}
+                                  className={`flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 cursor-pointer shrink-0 ${addedIds.has(s.id) ? "bg-primary-container text-white" : "bg-primary-container/15 text-primary-container hover:bg-primary-container/30"} disabled:opacity-60`}
+                                  aria-label={addedIds.has(s.id) ? "Added" : "Add to cart"}
+                                >
+                                  {addingId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : addedIds.has(s.id) ? <Check className="w-4 h-4" strokeWidth={2.5} /> : <ShoppingBag className="w-4 h-4" strokeWidth={2} />}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                );
-              })}
-
-              {/* View all card */}
-              <div
-                onClick={() => {
-                  const picks = protocol.supplements.slice(0, 3).map((s) => s.id).join(",");
-                  router.push(`/explore?picks=${encodeURIComponent(picks)}`);
-                }}
-                className="flex-shrink-0 w-[38vw] max-w-[156px] min-w-[128px] rounded-2xl border border-primary-container/20 border-dashed flex flex-col items-center justify-center gap-2.5 cursor-pointer hover:bg-primary-container/4 transition-colors"
-                style={{ minHeight: 260 }}
-              >
-                <div className="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center">
-                  <ShoppingBag className="w-5 h-5 text-primary-container/70" strokeWidth={1.5} />
+                ))}
+              </div>
+            ) : (
+              /* Single concern — flat horizontal scroll */
+              <div className="pb-4">
+              {concernList.length === 1 && (
+                <div className="flex items-center gap-2 px-4 mb-2.5">
+                  <span className="text-[16px] leading-none">{CONCERN_EMOJI[concernList[0]] ?? "✦"}</span>
+                  <span className="text-[12px] font-bold text-on-surface">{CONCERN_DISPLAY[concernList[0]] ?? concernList[0]}</span>
+                  <span className="text-[10px] text-on-surface-variant/40">· {protocol.supplements.length} matched</span>
+                  <div className="flex-1 h-px bg-outline-variant/15" />
                 </div>
-                <div className="text-center px-2">
-                  <p className="text-[11px] font-bold text-primary-container/80 leading-snug">View all</p>
-                  <p className="text-[10px] text-on-surface-variant/40 mt-0.5">50+ products</p>
+              )}
+              <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-2 pl-4">
+                {protocol.supplements.slice(0, 5).map((s) => {
+                  const discountPct = s.mrp && s.mrp > s.price ? Math.round((1 - s.price / s.mrp) * 100) : 0;
+                  const reviewLabel = s.reviewCount ? (s.reviewCount >= 1000 ? `${(s.reviewCount / 1000).toFixed(1)}k` : `${s.reviewCount}`) : null;
+                  const trustBadge = getTrustBadge(s);
+                  const displayScore = displayScoreMap.get(s.id) ?? s.matchScore;
+                  return (
+                    <div
+                      key={s.id}
+                      onClick={() => router.push(`/product/${s.id}`)}
+                      className="flex-shrink-0 w-[52vw] max-w-[200px] min-w-[160px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 overflow-hidden cursor-pointer hover:border-primary-container/30 transition-all duration-200 active:scale-[0.98]"
+                    >
+                      <div className="relative w-full h-[148px] bg-surface-container-low">
+                        {s.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={s.image} alt={s.name} className="w-full h-full object-cover" loading="lazy" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <span className="text-5xl leading-none">{getSupplementEmoji(s.name)}</span>
+                          </div>
+                        )}
+                        {discountPct >= 5 && (
+                          <span className="absolute top-2 left-2 bg-primary-container text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-md leading-none">{discountPct}% OFF</span>
+                        )}
+                        {displayScore >= 70 && (
+                          <div className="absolute top-2 right-2 bg-primary-container/90 text-white text-[11px] font-extrabold px-2 py-1 rounded-full leading-none tabular-nums">
+                            {displayScore}%
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-3">
+                        <p className="text-[9px] font-bold text-primary-container/60 uppercase tracking-wider mb-0.5">{s.brand}</p>
+                        <p className="text-[12px] font-bold text-on-surface leading-snug line-clamp-2 mb-0.5">{s.name}</p>
+                        {s.reasoning && (
+                          <p className="text-[9px] italic text-on-surface-variant/55 leading-snug line-clamp-2 mb-1">{s.reasoning}</p>
+                        )}
+                        {trustBadge && (
+                          <span className={`inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-md mb-1 leading-none ${trustBadge.style}`}>{trustBadge.label}</span>
+                        )}
+                        {s.rating && (
+                          <div className="flex items-center gap-1 mb-1">
+                            <span className="text-amber-400 text-[10px] leading-none">★</span>
+                            <span className="text-[10px] font-bold text-on-surface">{s.rating}</span>
+                            {reviewLabel && <span className="text-[9px] text-on-surface-variant/40">({reviewLabel})</span>}
+                          </div>
+                        )}
+                        <p className="text-[9px] text-on-surface-variant/45 leading-none mb-1.5">👥 {getSocialCount(s)} similar</p>
+                        <div className="flex items-end justify-between gap-1">
+                          <div>
+                            <p className="text-[15px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
+                            {s.mrp && s.mrp > s.price && <p className="text-[9px] text-on-surface-variant/35 line-through mt-0.5">₹{s.mrp}</p>}
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); void handleAddToCart(s.id); }}
+                            disabled={addingId === s.id || addedIds.has(s.id)}
+                            className={`flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 cursor-pointer shrink-0 ${addedIds.has(s.id) ? "bg-primary-container text-white" : "bg-primary-container/15 text-primary-container hover:bg-primary-container/30"} disabled:opacity-60`}
+                            aria-label={addedIds.has(s.id) ? "Added" : "Add to cart"}
+                          >
+                            {addingId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : addedIds.has(s.id) ? <Check className="w-4 h-4" strokeWidth={2.5} /> : <ShoppingBag className="w-4 h-4" strokeWidth={2} />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* View all card */}
+                <div
+                  onClick={() => {
+                    const picks = protocol.supplements.slice(0, 3).map((s) => s.id).join(",");
+                    router.push(`/explore?picks=${encodeURIComponent(picks)}`);
+                  }}
+                  className="flex-shrink-0 w-[32vw] max-w-[136px] min-w-[112px] rounded-2xl border border-primary-container/20 border-dashed flex flex-col items-center justify-center gap-2.5 cursor-pointer hover:bg-primary-container/4 transition-colors"
+                  style={{ minHeight: 240 }}
+                >
+                  <div className="w-9 h-9 rounded-full bg-primary-container/10 flex items-center justify-center">
+                    <ShoppingBag className="w-4 h-4 text-primary-container/70" strokeWidth={1.5} />
+                  </div>
+                  <div className="text-center px-2">
+                    <p className="text-[10px] font-bold text-primary-container/80 leading-snug">View all</p>
+                    <p className="text-[9px] text-on-surface-variant/40 mt-0.5">50+ products</p>
+                  </div>
                 </div>
               </div>
-            </div>
+              </div>
+            )}
 
-            {/* Shop CTA — right below carousel */}
-            <div className="mt-4">
+            {/* Shop CTA */}
+            <div className="mt-2">
               <button
                 onClick={() => { setCartSelections(["main", "main", "main"]); setShowProtocolCart(true); }}
                 className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-primary-container text-sm font-bold text-white hover:bg-primary transition-colors duration-200 cursor-pointer"
@@ -1144,56 +1399,6 @@ export default function ProtocolPage() {
                 <ChevronRight className="w-3.5 h-3.5" strokeWidth={2} />
               </button>
             </div>
-
-            {/* Also pairs well */}
-            {protocol.supplements.length > 3 && (
-              <div className="mt-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50 mb-2 px-1">Also pairs well</p>
-                <div className="space-y-2">
-                  {protocol.supplements.slice(3, 5).map((s) => {
-                    const discountPct = s.mrp && s.mrp > s.price ? Math.round((1 - s.price / s.mrp) * 100) : 0;
-                    return (
-                      <div
-                        key={s.id}
-                        onClick={() => router.push(`/product/${s.id}`)}
-                        className="flex items-center gap-3 p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/8 cursor-pointer hover:border-primary-container/25 transition-all active:scale-[0.99]"
-                      >
-                        <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-surface-container-low shrink-0">
-                          {s.image ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={s.image} alt={s.name} className="w-full h-full object-cover" loading="lazy" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <span className="text-2xl">{getSupplementEmoji(s.name)}</span>
-                            </div>
-                          )}
-                          {discountPct >= 5 && (
-                            <span className="absolute top-0.5 left-0.5 bg-primary-container text-white text-[8px] font-extrabold px-1 py-0.5 rounded leading-none">-{discountPct}%</span>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-on-surface leading-snug line-clamp-1">{s.name}</p>
-                          <p className="text-[10px] text-on-surface-variant/45 mt-0.5">{s.brand}</p>
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <p className="text-sm font-extrabold text-primary font-[family-name:var(--font-manrope)]">₹{s.price}</p>
-                            {s.mrp && s.mrp > s.price && <p className="text-[10px] text-on-surface-variant/35 line-through">₹{s.mrp}</p>}
-                          </div>
-                        </div>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); void handleAddToCart(s.id); }}
-                          disabled={addingId === s.id || addedIds.has(s.id)}
-                          className={`flex items-center justify-center w-9 h-9 rounded-xl shrink-0 transition-all cursor-pointer ${
-                            addedIds.has(s.id) ? "bg-primary-container text-white" : "bg-primary-container/12 text-primary-container hover:bg-primary-container/25"
-                          } disabled:opacity-60`}
-                        >
-                          {addingId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : addedIds.has(s.id) ? <Check className="w-4 h-4" strokeWidth={2.5} /> : <ShoppingBag className="w-4 h-4" strokeWidth={2} />}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </div>
         )}
 
@@ -1266,7 +1471,7 @@ export default function ProtocolPage() {
               <div className="mb-4 animate-fade-in-up">
                 <div className="mb-3 px-1">
                   <p className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-1">
-                    How to take your protocol.
+                    How to take {possLower} protocol.
                   </p>
                   <p className="text-xs text-on-surface-variant/65 leading-relaxed">
                     Timing and consistency matter. Here&apos;s how to build these into your day.
@@ -1303,10 +1508,10 @@ export default function ProtocolPage() {
                 <div className="rounded-2xl border border-outline-variant/12 bg-surface-container-lowest overflow-hidden">
                   <div className="p-4">
                     <p className="text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-widest mb-2">
-                      Level up your protocol
+                      Level up {possLower} protocol
                     </p>
                     <p className="text-[15px] font-extrabold text-on-surface leading-snug mb-1.5 font-[family-name:var(--font-manrope)]">
-                      Your protocol is based on your profile. A blood report makes it exact.
+                      {possUpper} protocol is based on {profile?.name ? "their" : "your"} profile. A blood report makes it exact.
                     </p>
                     <p className="text-xs text-on-surface-variant/65 leading-relaxed mb-3">
                       We check your actual Vitamin D, Iron, B12, and thyroid levels — and rebuild your recommendations around real gaps, not estimated ones.
@@ -1356,6 +1561,23 @@ export default function ProtocolPage() {
                 </div>
               </div>
             )}
+
+            {/* Add family member */}
+            <div className="mb-4 animate-fade-in-up">
+              <button
+                onClick={() => { localStorage.setItem("bh_add_mode", "1"); window.location.href = "/home"; }}
+                className="w-full flex items-center gap-3.5 px-4 py-4 rounded-2xl border border-outline-variant/12 bg-surface-container-lowest hover:bg-primary-container/5 hover:border-primary-container/20 transition-all cursor-pointer text-left"
+              >
+                <div className="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-lg shrink-0">
+                  👨‍👩‍👧
+                </div>
+                <div className="flex-1">
+                  <p className="text-[13px] font-bold text-on-surface">Build a protocol for family</p>
+                  <p className="text-[11px] text-on-surface-variant/50 mt-0.5">Add your partner or kids — each gets their own personalised plan</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-on-surface-variant/30 shrink-0" strokeWidth={1.5} />
+              </button>
+            </div>
 
           </>
         )}
