@@ -10,7 +10,7 @@ import { calculateProfileDepth } from "@/lib/ai/profile-depth";
 /* ── Energy bar options ── */
 const ENERGY_OPTIONS = [
   { key: "energised" as const, emoji: "⚡", label: "Energised",   style: "bg-emerald-100 border-emerald-200 text-emerald-800", msg: "That's the energy we want to see. Keep it up!" },
-  { key: "okay"      as const, emoji: "😊", label: "Doing okay", style: "bg-sky-100 border-sky-200 text-sky-800",             msg: "Consistent is good. Your protocol is working quietly." },
+  { key: "okay"      as const, emoji: "😊", label: "Doing okay", style: "bg-sky-100 border-sky-200 text-sky-800",             msg: "Consistent is good. The protocol is working quietly." },
   { key: "sluggish"  as const, emoji: "😑", label: "Bit low",    style: "bg-amber-100 border-amber-200 text-amber-800",       msg: "Check your sleep & hydration today. Supplements will help." },
   { key: "drained"   as const, emoji: "🥱", label: "Drained",    style: "bg-rose-100 border-rose-200 text-rose-800",          msg: "Take it easy today. Rest is part of the protocol too." },
 ];
@@ -384,7 +384,9 @@ export default function InsightsPage() {
     if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); } else setCalMonth(m => m + 1);
   };
 
-  const possessive = activeMember?.name ? `${activeMember.name}'s` : "Your";
+  const isKid = activeMember?.type === "child";
+  const possessive = activeMember?.name ? `${activeMember.name}'s` : isKid ? "Their" : "Your";
+  const possessiveLower = activeMember?.name ? `${activeMember.name}'s` : isKid ? "their" : "your";
 
   // SVG ring
   const RING_R = 38, RING_CIRC = 2 * Math.PI * RING_R;
@@ -472,7 +474,7 @@ export default function InsightsPage() {
 
         {/* ── Energy Bar ── */}
         <div className="rounded-3xl bg-white border border-outline-variant/10 p-4" style={{ background: "linear-gradient(145deg, #f0f4ff, #fff)" }}>
-          <p className="text-[13px] font-bold text-on-surface mb-3">How&apos;s your energy today?</p>
+          <p className="text-[13px] font-bold text-on-surface mb-3">How&apos;s {possessiveLower} energy today?</p>
           <div className="grid grid-cols-2 gap-2">
             {ENERGY_OPTIONS.map(opt => {
               const sel = energyLevel === opt.key;
@@ -550,13 +552,17 @@ export default function InsightsPage() {
         <div className="rounded-3xl bg-white border border-outline-variant/10 px-5 py-4">
           {todayChecked === undefined ? (
             <>
-              <p className="text-[13px] font-semibold text-on-surface mb-3">Did you take your supplements today?</p>
+              <p className="text-[13px] font-semibold text-on-surface mb-3">
+                {isKid
+                  ? `Did ${activeMember?.name || "they"} take their supplements today?`
+                  : "Did you take your supplements today?"}
+              </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => handleCheckin(true)}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-[13px] font-bold hover:bg-emerald-100 transition-colors cursor-pointer"
                 >
-                  <CheckCircle2 className="w-4 h-4" strokeWidth={2} /> Yes, I did
+                  <CheckCircle2 className="w-4 h-4" strokeWidth={2} /> {isKid ? "Yes, they did" : "Yes, I did"}
                 </button>
                 <button
                   onClick={() => handleCheckin(false)}
@@ -588,7 +594,7 @@ export default function InsightsPage() {
             <div className="flex items-baseline justify-between mb-3 px-0.5">
               <div>
                 <p className="text-[10px] font-bold text-on-surface-variant/35 uppercase tracking-widest">Daily Protocol</p>
-                <p className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mt-0.5">Your Current Stack</p>
+                <p className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mt-0.5">{possessive} Current Stack</p>
               </div>
               <span className="text-[11px] font-semibold text-primary-container">{supplements.length} products</span>
             </div>
@@ -738,7 +744,7 @@ export default function InsightsPage() {
           <div>
             <div className="mb-3 px-0.5">
               <p className="text-[10px] font-bold text-on-surface-variant/35 uppercase tracking-widest">Level Up</p>
-              <p className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mt-0.5">Boost Your Results</p>
+              <p className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mt-0.5">Boost {possessive} Results</p>
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5 snap-x snap-mandatory" style={{ scrollbarWidth: "none" }}>
               {complementary.map(p => {
