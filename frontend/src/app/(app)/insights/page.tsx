@@ -598,6 +598,10 @@ export default function InsightsPage() {
               {supplements.map(s => {
                 const edu = EDUCATION[s.category] ?? EDUCATION.nutrition;
                 const isActive = expandedCard === s.id;
+                const daysLeft = Math.max(1, 30 - (visitCount % 30 || 0));
+                const pct = (daysLeft / 30) * 100;
+                const barColor   = daysLeft > 15 ? "#10b981" : daysLeft > 8 ? "#f59e0b" : "#f43f5e";
+                const statusText = daysLeft > 15 ? "Stocked up" : daysLeft > 8 ? "Getting low" : "Reorder soon";
                 return (
                   <button
                     key={s.id}
@@ -627,6 +631,16 @@ export default function InsightsPage() {
                           style={{ color: edu.color, transform: isActive ? "rotate(180deg)" : "rotate(0deg)" }}
                           strokeWidth={2.5}
                         />
+                      </div>
+                      {/* Stock bar */}
+                      <div className="mt-2.5 pt-2.5 border-t" style={{ borderColor: `${edu.bannerFrom}20` }}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[9px] font-bold" style={{ color: barColor }}>{statusText}</span>
+                          <span className="text-[9px] font-semibold text-on-surface-variant/45">{daysLeft}d left</span>
+                        </div>
+                        <div className="h-1 rounded-full overflow-hidden" style={{ background: `${edu.bannerFrom}15` }}>
+                          <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: barColor }} />
+                        </div>
                       </div>
                     </div>
                   </button>
@@ -758,57 +772,6 @@ export default function InsightsPage() {
           </div>
         )}
 
-        {/* ── Stock Running Out ── */}
-        {supplements.length > 0 && (
-          <div>
-            <div className="mb-3 px-0.5">
-              <p className="text-[10px] font-bold text-on-surface-variant/35 uppercase tracking-widest">Supply Tracker</p>
-              <p className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mt-0.5">Your Stock</p>
-            </div>
-            <div className="rounded-3xl bg-white border border-outline-variant/10 overflow-hidden divide-y divide-gray-50">
-              {supplements.map(s => {
-                const edu = EDUCATION[s.category] ?? EDUCATION.nutrition;
-                const daysLeft = Math.max(1, 30 - (visitCount % 30 || 0));
-                const pct = (daysLeft / 30) * 100;
-                const barColor   = daysLeft > 15 ? "#10b981" : daysLeft > 8 ? "#f59e0b" : "#f43f5e";
-                const statusText = daysLeft > 15 ? "Stocked up" : daysLeft > 8 ? "Getting low" : "Reorder soon";
-                const statusStyle = daysLeft > 15
-                  ? { color: "#065f46", background: "#ecfdf5" }
-                  : daysLeft > 8
-                  ? { color: "#92400e", background: "#fffbeb" }
-                  : { color: "#9f1239", background: "#fff1f2" };
-                return (
-                  <div key={s.id} className="flex items-center gap-3 px-4 py-3.5">
-                    <div className="w-12 h-12 rounded-2xl overflow-hidden shrink-0 flex items-center justify-center"
-                      style={{ background: `${edu.bannerFrom}15` }}>
-                      {s.image && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={s.image} alt={s.name} className="w-11 h-11 object-contain" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-bold text-on-surface leading-none truncate">{s.name.split(" ").slice(0, 3).join(" ")}</p>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <div className="flex-1 h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                          <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: barColor }} />
-                        </div>
-                        <span className="text-[10px] font-bold shrink-0" style={{ color: barColor }}>{daysLeft}d left</span>
-                      </div>
-                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-md mt-1 inline-block" style={statusStyle}>{statusText}</span>
-                    </div>
-                    {s.url && (
-                      <a href={s.url} target="_blank" rel="noopener noreferrer"
-                        className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-2xl text-[11px] font-bold transition-colors"
-                        style={{ color: edu.color, background: `${edu.bannerFrom}12`, border: `1px solid ${edu.bannerFrom}35` }}>
-                        <ShoppingBag className="w-3 h-3" strokeWidth={2.5} /> Shop
-                      </a>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
         {/* Empty state */}
         {supplements.length === 0 && profileLoaded && (

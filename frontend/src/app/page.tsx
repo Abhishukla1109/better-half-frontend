@@ -89,11 +89,11 @@ export default function LandingPage() {
           />
           <div className="relative max-w-[440px]">
             <p className="text-[11px] font-bold text-primary-container uppercase tracking-widest mb-5">AI Health Companion</p>
-            <h1 className="text-[44px] lg:text-[52px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-[1.05] tracking-tight mb-5">
+            <h1 className="text-[34px] lg:text-[52px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-[1.05] tracking-tight mb-4">
               Your health,<br />
               <span className="text-primary-container">finally personal.</span>
             </h1>
-            <p className="text-[16px] text-on-surface-variant/65 leading-relaxed mb-10">
+            <p className="text-[15px] lg:text-[16px] text-on-surface-variant/65 leading-relaxed mb-8 lg:mb-10">
               Answer 4 questions. Get a supplement protocol, daily habits, and AI coaching — built specifically for your body.
             </p>
             <button
@@ -223,27 +223,105 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* ── Mobile fallback ───────────────────────────── */}
-        <div className="lg:hidden px-6 pb-12">
-          <div className="rounded-2xl border border-outline-variant/10 overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(21,89,74,0.08) 0%, rgba(21,89,74,0.03) 100%)" }}>
-            <div className="p-4">
+        {/* ── Mobile: horizontal scroll of all 4 feature cards ── */}
+        <div className="lg:hidden pb-12">
+          <div className="flex gap-3 overflow-x-auto px-6 pb-1" style={{ scrollbarWidth: "none" }}>
+
+            {/* Card 1 — Protocol */}
+            <div className="snap-start shrink-0 w-[220px] rounded-2xl p-4 flex flex-col"
+              style={{ background: "linear-gradient(145deg, rgba(21,89,74,0.12) 0%, rgba(21,89,74,0.05) 100%)", border: "1px solid rgba(21,89,74,0.12)" }}>
               <div className="flex items-center gap-1.5 mb-2">
                 <Sparkles className="w-3 h-3 text-primary-container" strokeWidth={1.5} />
-                <span className="text-[9px] font-bold text-primary-container uppercase tracking-wider">Sample protocol · 91% match</span>
+                <span className="text-[9px] font-bold text-primary-container uppercase tracking-wider">Your Protocol</span>
+                <span className="ml-auto text-[11px] font-extrabold text-primary-container">91%</span>
               </div>
-              <p className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-3">Hair Health &amp; Sleep &amp; Mind</p>
+              <p className="text-[15px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-2.5">
+                Hair Health &amp;<br />Sleep &amp; Mind
+              </p>
+              <div className="flex gap-1 flex-wrap mb-3">
+                {["💇 Hair", "🌙 Sleep", "⚡ Energy"].map((c) => (
+                  <span key={c} className="text-[10px] font-semibold text-primary-container bg-primary-container/12 px-2 py-0.5 rounded-full">{c}</span>
+                ))}
+              </div>
+              <div className="mt-auto">
+                <div className="flex gap-1">
+                  {[1,2,3,4,5,6].map((i) => (
+                    <div key={i} className={`flex-1 h-1 rounded-full ${i <= 4 ? "bg-primary-container" : "bg-primary-container/15"}`} />
+                  ))}
+                </div>
+                <p className="text-[9px] text-on-surface-variant/40 mt-1">4 of 6 insights unlocked</p>
+              </div>
+            </div>
+
+            {/* Card 2 — Supplements */}
+            <div className="snap-start shrink-0 w-[220px] rounded-2xl bg-white border border-outline-variant/10 overflow-hidden flex flex-col shadow-sm">
+              <div className="px-4 pt-4 pb-2.5 border-b border-outline-variant/8">
+                <p className="text-[9px] font-bold text-primary-container uppercase tracking-wider">AI-matched picks</p>
+                <p className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mt-0.5">Your supplements</p>
+              </div>
               {[
-                { img: "/images/products/biotin.jpg",      name: "Biotin Hair Gummies",  price: "₹499" },
-                { img: "/images/products/ashwagandha.jpg", name: "Ashwagandha KSM-66",   price: "₹629" },
-              ].map((item) => (
-                <div key={item.name} className="flex items-center gap-3 bg-surface/80 rounded-xl px-3 py-2.5 mb-2 last:mb-0">
+                { img: "/images/products/biotin.jpg",      name: "Biotin Hair Gummies", price: "₹499", pct: "88%" },
+                { img: "/images/products/ashwagandha.jpg", name: "Ashwagandha KSM-66",  price: "₹629", pct: "76%" },
+              ].map((p) => (
+                <div key={p.name} className="flex items-center gap-2.5 px-4 py-2.5 border-b border-outline-variant/6 last:border-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={item.img} alt={item.name} className="w-9 h-9 rounded-lg object-cover shrink-0" />
-                  <p className="flex-1 text-[11px] font-bold text-on-surface leading-none truncate">{item.name}</p>
-                  <p className="text-[12px] font-extrabold text-on-surface shrink-0">{item.price}</p>
+                  <img src={p.img} alt={p.name} className="w-9 h-9 rounded-xl object-cover shrink-0 bg-surface-container" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-bold text-on-surface leading-snug truncate">{p.name}</p>
+                    <p className="text-[11px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">{p.price}</p>
+                  </div>
+                  <span className="text-[9px] font-bold text-white bg-primary-container px-1.5 py-0.5 rounded-full shrink-0">{p.pct}</span>
                 </div>
               ))}
             </div>
+
+            {/* Card 3 — Daily Routine */}
+            <div className="snap-start shrink-0 w-[220px] rounded-2xl bg-white border border-outline-variant/10 p-4 flex flex-col shadow-sm">
+              <p className="text-[9px] font-bold text-on-surface-variant/40 uppercase tracking-wider mb-2">Daily routine</p>
+              <p className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-3">Built around your day</p>
+              <div className="space-y-2">
+                <div className="flex items-start gap-2.5 rounded-xl bg-amber-50 border border-amber-100/80 px-3 py-2.5">
+                  <Sun className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" strokeWidth={1.5} />
+                  <div>
+                    <p className="text-[8px] font-bold text-amber-600 uppercase tracking-wider leading-none mb-0.5">Morning</p>
+                    <p className="text-[11px] font-semibold text-on-surface leading-snug">Take with breakfast for best absorption</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5 rounded-xl bg-indigo-50 border border-indigo-100/80 px-3 py-2.5">
+                  <Moon className="w-3.5 h-3.5 text-indigo-400 shrink-0 mt-0.5" strokeWidth={1.5} />
+                  <div>
+                    <p className="text-[8px] font-bold text-indigo-500 uppercase tracking-wider leading-none mb-0.5">Evening</p>
+                    <p className="text-[11px] font-semibold text-on-surface leading-snug">Dim lights 1hr before target bedtime</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 4 — AI Coaching */}
+            <div className="snap-start shrink-0 w-[200px] rounded-2xl p-4 flex flex-col justify-between"
+              style={{ background: "linear-gradient(145deg, rgba(21,89,74,0.10) 0%, rgba(21,89,74,0.04) 100%)", border: "1px solid rgba(21,89,74,0.10)" }}>
+              <div>
+                <div className="w-8 h-8 rounded-xl bg-primary-container/15 flex items-center justify-center mb-3">
+                  <Sparkles className="w-4 h-4 text-primary-container" strokeWidth={1.5} />
+                </div>
+                <p className="text-[9px] font-bold text-primary-container uppercase tracking-wider mb-1.5">AI Coaching</p>
+                <p className="text-[15px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug">
+                  Gets smarter every visit
+                </p>
+              </div>
+              <div className="mt-4 space-y-1.5">
+                {[
+                  { value: "6.5M+", label: "Indian health journeys" },
+                  { value: "< 60s", label: "To your first protocol" },
+                ].map((s) => (
+                  <div key={s.value} className="flex items-center justify-between bg-surface/60 rounded-xl px-3 py-2">
+                    <p className="text-[10px] text-on-surface-variant/60">{s.label}</p>
+                    <p className="text-[13px] font-extrabold text-primary-container font-[family-name:var(--font-manrope)]">{s.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
         </div>
 
