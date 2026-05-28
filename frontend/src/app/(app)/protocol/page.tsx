@@ -21,6 +21,7 @@ import { selectNextQuestion, countFollowUpAnswers } from "@/lib/ai/question-bank
 import { useCart } from "@/context/CartContext";
 import { resolveVariantId } from "@/lib/shopify/variant-resolver";
 import { ALL_PRODUCTS } from "@/lib/protocolEngine";
+import { supabase } from "@/lib/supabase/client";
 
 /* ── Concern title map ─────────────────────────────────────── */
 const CONCERN_TITLE_MAP: Record<string, string> = {
@@ -385,6 +386,10 @@ export default function ProtocolPage() {
   const [savedAnswerCount, setSavedAnswerCount] = useState(0);
   // Prevent double re-fetch within a session
   const hasRefetched = useRef(false);
+  // Prevent auto-opening question sheet more than once per page load
+  const hasAutoOpened = useRef(false);
+  // Daily nudge tracking: answered today or too many skips → don't auto-open again
+  const [nudgeState, setNudgeState] = useState<{ date: string; answered: boolean; skipCount: number } | null>(null);
   // Cart
   const { addItem } = useCart();
   const [addingId, setAddingId] = useState<string | null>(null);
@@ -450,6 +455,26 @@ export default function ProtocolPage() {
       }
     } catch { /* non-critical */ }
 
+    // Daily nudge state — tracks if user answered or exhausted skips today
+    try {
+      const today = new Date().toDateString();
+      const nudgeRaw = localStorage.getItem("bh_question_nudge");
+      if (nudgeRaw) {
+        const nd = JSON.parse(nudgeRaw) as { date: string; answered: boolean; skipCount: number };
+        if (nd.date === today) {
+          setNudgeState(nd);
+        } else {
+          const fresh = { date: today, answered: false, skipCount: 0 };
+          setNudgeState(fresh);
+          localStorage.setItem("bh_question_nudge", JSON.stringify(fresh));
+        }
+      } else {
+        const fresh = { date: today, answered: false, skipCount: 0 };
+        setNudgeState(fresh);
+        localStorage.setItem("bh_question_nudge", JSON.stringify(fresh));
+      }
+    } catch { /* non-critical */ }
+
     fetch("/api/protocol", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -486,17 +511,43 @@ export default function ProtocolPage() {
       } catch { /* non-critical */ }
       return next;
     });
+    // Sync updated profile back to Supabase (fire-and-forget — no effect on demo users without a session)
+    try {
+      const raw = localStorage.getItem("bh_profile");
+      if (raw) {
+        const updatedProfile = JSON.parse(raw);
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session) {
+            supabase.from("profiles").upsert({ id: session.user.id, data: updatedProfile }).then(() => {});
+          }
+        });
+      }
+    } catch { /* non-critical */ }
+    // Mark answered in daily nudge state
+    setNudgeState((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, answered: true };
+      try { localStorage.setItem("bh_question_nudge", JSON.stringify(updated)); } catch { /* non-critical */ }
+      return updated;
+    });
     setShowingUpdate(true);
     setTimeout(() => {
       setShowingUpdate(false);
       setDepthGain(0);
-    }, 900);
+      setShowQuestionSheet(false);
+    }, 1800);
   }, []);
 
   const handleSkip = useCallback((key: string) => {
     setSkippedKeys((prev) => new Set([...prev, key]));
-    setShowingUpdate(true);
-    setTimeout(() => setShowingUpdate(false), 700);
+    // Track daily skip count for nudge throttling
+    setNudgeState((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, skipCount: prev.skipCount + 1 };
+      try { localStorage.setItem("bh_question_nudge", JSON.stringify(updated)); } catch { /* non-critical */ }
+      return updated;
+    });
+    setShowQuestionSheet(false);
   }, []);
 
   const toggleReasoning = useCallback((id: string) => {
@@ -661,8 +712,8 @@ export default function ProtocolPage() {
     [answers, profile],
   );
 
-  // Smart question cadence: day 1 → 2 questions, return visits → 1
-  const sessionQuestionLimit = visitCount === 1 ? 2 : 1;
+  // One question per session, every visit
+  const sessionQuestionLimit = 1;
   const effectiveLimit = sessionQuestionLimit + (bonusUnlocked ? 1 : 0);
 
   // Merge real answers + skipped sentinels so selectNextQuestion skips both
@@ -672,8 +723,8 @@ export default function ProtocolPage() {
   }, [answers, skippedKeys]);
 
   const currentQuestion = useMemo(
-    () => profile ? selectNextQuestion(profile, answersWithSkipped, concernList, profile.age ?? "25-34") : null,
-    [profile, answersWithSkipped, concernList],
+    () => profile ? selectNextQuestion(profile, answersWithSkipped, concernList, profile.age ?? "25-34", visitCount) : null,
+    [profile, answersWithSkipped, concernList, visitCount],
   );
   const answeredCount = useMemo(() => countFollowUpAnswers(answers), [answers]);
   const allAnswered = answeredCount > 0 && currentQuestion === null;
@@ -749,6 +800,19 @@ export default function ProtocolPage() {
   useEffect(() => {
     if (introPlayed.current) setDisplayDepth(liveDepth);
   }, [liveDepth]);
+
+  // Auto-open question sheet every visit unless already answered or skipped twice today
+  useEffect(() => {
+    if (loading || !protocol || !profile) return;
+    if (hasAutoOpened.current) return;
+    if (!currentQuestion) return;
+    if (!nudgeState) return;
+    if (nudgeState.answered) return;
+    if (nudgeState.skipCount >= 2) return;
+    hasAutoOpened.current = true;
+    const t = setTimeout(() => setShowQuestionSheet(true), 700);
+    return () => clearTimeout(t);
+  }, [loading, protocol, profile, currentQuestion, nudgeState]);
 
   useEffect(() => {
     if (protocol?.supplements?.length) {
@@ -938,7 +1002,7 @@ export default function ProtocolPage() {
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
                   <span className="text-[11px] font-semibold text-primary-container uppercase tracking-wider">
-                    {showingUpdate ? "Updated" : sessionLimitReached ? "That's good for today" : `Personalising · Question ${answeredCount + 1}`}
+                    {showingUpdate ? "Protocol deepened ✓" : sessionLimitReached ? "That's good for today" : "Make your protocol deeper"}
                   </span>
                 </div>
                 <button
@@ -958,7 +1022,7 @@ export default function ProtocolPage() {
                     <Check className="w-5 h-5 text-primary-container" strokeWidth={2.5} />
                   </div>
                   <div className="flex-1">
-                    <p className="text-base font-semibold text-on-surface">Protocol updated</p>
+                    <p className="text-base font-semibold text-on-surface">Protocol deepened</p>
                     <p className="text-sm text-on-surface-variant/70">
                       {depthGain > 0 ? `+${depthGain}% more precise` : "Your answer has been factored in"}
                     </p>

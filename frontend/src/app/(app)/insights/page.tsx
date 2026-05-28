@@ -16,6 +16,13 @@ const ENERGY_OPTIONS = [
 ];
 type EnergyKey = typeof ENERGY_OPTIONS[number]["key"];
 
+const ENERGY_DOT_COLOR: Record<string, string> = {
+  energised: "#10b981",
+  okay:      "#0ea5e9",
+  sluggish:  "#f59e0b",
+  drained:   "#f43f5e",
+};
+
 /* ── Education map ── */
 const EDUCATION: Record<string, {
   openingLine: string;
@@ -297,6 +304,7 @@ export default function InsightsPage() {
   const [energyLevel, setEnergyLevel]   = useState<EnergyKey | null>(null);
   const [energyMsg, setEnergyMsg]       = useState<string | null>(null);
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [energyHistory, setEnergyHistory] = useState<{ date: string; key: EnergyKey | null; dayLabel: string }[]>([]);
 
   const today   = new Date().toDateString();
   const todayChecked = checkins[today];
@@ -305,6 +313,14 @@ export default function InsightsPage() {
   const calCells = useMemo(() => getMonthCells(calYear, calMonth), [calYear, calMonth]);
 
   const vitalMsg = VITALITY_MESSAGES.find(m => vitality >= m.min)?.msg ?? VITALITY_MESSAGES[3].msg;
+
+  const adherence = useMemo(() => {
+    const days = Math.min(visitCount || 0, 30);
+    if (days === 0) return null;
+    const keys = Array.from({ length: days }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - i); return d.toDateString(); });
+    const taken = keys.filter(k => checkins[k] === true).length;
+    return { taken, total: days, pct: Math.round((taken / days) * 100) };
+  }, [checkins, visitCount]);
 
   useEffect(() => {
     setCheckins(loadCheckins());
@@ -318,6 +334,13 @@ export default function InsightsPage() {
         const opt = ENERGY_OPTIONS.find(o => o.key === saved);
         if (opt) { setEnergyLevel(opt.key); setEnergyMsg(opt.msg); }
       }
+    } catch {}
+    try {
+      const history = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        return { date: d.toDateString(), key: localStorage.getItem(`bh_energy_${d.toDateString()}`) as EnergyKey | null, dayLabel: ["S","M","T","W","T","F","S"][d.getDay()] };
+      }).reverse();
+      setEnergyHistory(history);
     } catch {}
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -347,6 +370,7 @@ export default function InsightsPage() {
     setEnergyLevel(opt.key);
     setEnergyMsg(opt.msg);
     try { localStorage.setItem(`bh_energy_${today}`, opt.key); } catch {}
+    setEnergyHistory(prev => prev.map(h => h.date === today ? { ...h, key: opt.key } : h));
   };
 
   // Complementary products (same concern, not in stack, correct gender)
@@ -499,6 +523,33 @@ export default function InsightsPage() {
               {energyMsg}
             </p>
           )}
+          {energyHistory.some(h => h.key) && (
+            <div className="mt-3 pt-3 border-t border-outline-variant/8">
+              <p className="text-[10px] font-semibold text-on-surface-variant/40 uppercase tracking-wider mb-2.5">This week</p>
+              <div className="grid grid-cols-7">
+                {energyHistory.map((h, i) => {
+                  const isToday = h.date === today;
+                  const opt = ENERGY_OPTIONS.find(o => o.key === h.key);
+                  const color = h.key ? ENERGY_DOT_COLOR[h.key] : null;
+                  return (
+                    <div key={i} className="flex flex-col items-center gap-1">
+                      <div
+                        className="w-7 h-7 rounded-full flex items-center justify-center"
+                        style={color
+                          ? { background: `${color}18`, boxShadow: isToday ? `0 0 0 2px ${color}55` : "none" }
+                          : { background: isToday ? "rgba(0,0,0,0.04)" : "transparent", boxShadow: isToday ? "0 0 0 1.5px rgba(0,0,0,0.1)" : "none" }}
+                      >
+                        {opt
+                          ? <span className="text-[13px] leading-none">{opt.emoji}</span>
+                          : <span className="w-1.5 h-1.5 rounded-full bg-gray-200 block" />}
+                      </div>
+                      <span className={`text-[9px] font-bold ${isToday ? "text-primary-container" : "text-on-surface-variant/30"}`}>{h.dayLabel}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Warm message */}
@@ -547,6 +598,18 @@ export default function InsightsPage() {
               <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-rose-200" /><span className="text-[10px] text-on-surface-variant/40">Missed</span></div>
               <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-gray-100" /><span className="text-[10px] text-on-surface-variant/40">No data</span></div>
             </div>
+            {adherence && adherence.total >= 3 && (
+              <div className="mt-3.5 pt-3 border-t border-outline-variant/8">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] font-semibold text-on-surface-variant/50">Consistency</span>
+                  <span className="text-[13px] font-extrabold font-[family-name:var(--font-manrope)]" style={{ color: adherence.pct >= 70 ? "#10b981" : adherence.pct >= 40 ? "#f59e0b" : "#f43f5e" }}>{adherence.pct}%</span>
+                </div>
+                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${adherence.pct}%`, background: adherence.pct >= 70 ? "#10b981" : adherence.pct >= 40 ? "#f59e0b" : "#f43f5e" }} />
+                </div>
+                <p className="text-[10px] text-on-surface-variant/35 mt-1">{adherence.taken} of {adherence.total} days on protocol</p>
+              </div>
+            )}
           </div>
         </div>
 

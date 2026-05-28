@@ -30,6 +30,8 @@ interface QuestionNode {
   priority: number;
   // Override priority for specific age groups
   agePriority?: Record<string, number>;
+  // Only surface after this many protocol days (for progress/feedback questions)
+  minDays?: number;
 }
 
 /* ── Full question content ─────────────────────────────────── */
@@ -645,6 +647,136 @@ export const QUESTION_BANK: Record<string, BankQuestion> = {
     ],
   },
 
+  /* ───── PROGRESS / FEEDBACK (fired after N days) ────────── */
+  protocol_effect: {
+    key: "protocol_effect",
+    question: "It's been a while — have you noticed any changes since starting your protocol?",
+    options: [
+      { label: "Yes, feeling better", value: "improving" },
+      { label: "Too early to tell", value: "early" },
+      { label: "Not really yet", value: "no_change" },
+      { label: "Actually feeling worse", value: "worse" },
+    ],
+  },
+  energy_shift: {
+    key: "energy_shift",
+    question: "Compared to when you started, how's your energy holding up?",
+    options: [
+      { label: "Noticeably better", value: "better" },
+      { label: "About the same", value: "same" },
+      { label: "Still struggling", value: "low" },
+    ],
+  },
+  biggest_barrier: {
+    key: "biggest_barrier",
+    question: "What's been the hardest part of staying consistent with your protocol?",
+    options: [
+      { label: "Forgetting to take them", value: "forgetfulness" },
+      { label: "Not sure it's working", value: "doubt" },
+      { label: "Cost is a concern", value: "cost" },
+      { label: "I've been consistent", value: "consistent" },
+    ],
+  },
+
+  /* ───── BLOOD TEST / KNOWN DEFICIENCY ───────────────────── */
+  blood_test_recency: {
+    key: "blood_test_recency",
+    question: "Have you had a blood test done in the past year?",
+    options: [
+      { label: "Yes, recently", value: "yes" },
+      { label: "Not in a while", value: "old" },
+      { label: "Never", value: "never" },
+    ],
+  },
+  known_deficiency: {
+    key: "known_deficiency",
+    question: "Did your blood report flag any deficiencies?",
+    options: [
+      { label: "Vitamin D", value: "vit_d" },
+      { label: "B12", value: "b12" },
+      { label: "Iron / haemoglobin", value: "iron" },
+      { label: "Multiple things", value: "multiple" },
+      { label: "All looked normal", value: "normal" },
+    ],
+  },
+
+  /* ───── EXERCISE (shared for non-weight concerns) ────────── */
+  exercise_frequency: {
+    key: "exercise_frequency",
+    question: "How often do you exercise or do any physical activity in a week?",
+    options: [
+      { label: "Rarely or never", value: "none" },
+      { label: "1–2 times a week", value: "low" },
+      { label: "3–4 times a week", value: "moderate" },
+      { label: "5 or more times", value: "high" },
+    ],
+  },
+
+  /* ───── FAMILY HISTORY ───────────────────────────────────── */
+  family_thyroid: {
+    key: "family_thyroid",
+    question: "Does thyroid disease run in your family?",
+    options: [
+      { label: "Yes", value: "yes" },
+      { label: "No", value: "no" },
+      { label: "Not sure", value: "unsure" },
+    ],
+  },
+  family_diabetes: {
+    key: "family_diabetes",
+    question: "Has anyone in your immediate family been diagnosed with diabetes?",
+    options: [
+      { label: "Yes", value: "yes" },
+      { label: "No", value: "no" },
+      { label: "Not sure", value: "unsure" },
+    ],
+  },
+
+  /* ───── SUPPLEMENT TIMING ────────────────────────────────── */
+  supplement_timing: {
+    key: "supplement_timing",
+    question: "When do you usually take your supplements?",
+    options: [
+      { label: "Morning with food", value: "morning_food" },
+      { label: "Morning on empty stomach", value: "morning_empty" },
+      { label: "Evening or night", value: "evening" },
+      { label: "I keep forgetting", value: "forget" },
+    ],
+  },
+
+  /* ───── FEMALE — EXTENDED ────────────────────────────────── */
+  thyroid_symptoms_f: {
+    key: "thyroid_symptoms_f",
+    question: "Have you noticed any of these lately?",
+    options: [
+      { label: "Unexplained fatigue & sluggishness", value: "fatigue" },
+      { label: "Unexpected weight changes", value: "weight" },
+      { label: "Hair thinning or falling more than usual", value: "hair" },
+      { label: "Feeling cold all the time", value: "cold" },
+      { label: "None of these", value: "none" },
+    ],
+  },
+  pcos_indicators: {
+    key: "pcos_indicators",
+    question: "Do you have irregular periods along with acne and difficulty managing weight?",
+    options: [
+      { label: "Yes, all three", value: "yes" },
+      { label: "Some of these", value: "partial" },
+      { label: "I've been told I have PCOS", value: "diagnosed" },
+      { label: "No", value: "no" },
+    ],
+  },
+  perimenopause_status: {
+    key: "perimenopause_status",
+    question: "Have you been experiencing any of these recently?",
+    options: [
+      { label: "Hot flashes or night sweats", value: "hot_flashes" },
+      { label: "Periods becoming irregular", value: "irregular" },
+      { label: "Mood changes or anxiety", value: "mood" },
+      { label: "None of these", value: "none" },
+    ],
+  },
+
   /* ── Safety questions (shared, low-priority) ────────────── */
   allergies_check: {
     key: "allergies_check",
@@ -930,9 +1062,49 @@ const QUESTION_NODES: QuestionNode[] = [
     ageGroups: ["25-34", "35-44"],
   },
 
+  /* ── Female extended — thyroid, PCOS, perimenopause ─────── */
+  {
+    key: "thyroid_symptoms_f", concerns: ["Hormones", "Energy / gut"], tier: "branch", priority: 4,
+    condition: { key: "sex", values: ["female"] },
+  },
+  {
+    key: "pcos_indicators", concerns: ["Hormones"], tier: "branch", priority: 3,
+    condition: { key: "period_regularity", values: ["irregular", "very_irregular"] },
+  },
+  {
+    key: "perimenopause_status", concerns: ["Hormones"], tier: "branch", priority: 5,
+    condition: { key: "sex", values: ["female"] },
+    ageGroups: ["35-44", "45+"],
+  },
+
   /* ── Safety — asked early (after lifestyle signals, before branch questions) ── */
   { key: "allergies_check", concerns: ["Hair / beard", "Skin / acne", "Energy / gut", "Weight", "Hormones", "Sleep / mind"], tier: "shared", priority: 7 },
   { key: "medication_check", concerns: ["Hair / beard", "Skin / acne", "Energy / gut", "Weight", "Hormones", "Sleep / mind"], tier: "shared", priority: 8 },
+
+  /* ── Blood test / deficiency ────────────────────────────── */
+  { key: "blood_test_recency", concerns: ["Hair / beard", "Skin / acne", "Energy / gut", "Weight", "Hormones", "Sleep / mind"], tier: "shared", priority: 9 },
+  {
+    key: "known_deficiency", concerns: ["Hair / beard", "Skin / acne", "Energy / gut", "Weight", "Hormones", "Sleep / mind"], tier: "branch", priority: 5,
+    condition: { key: "blood_test_recency", values: ["yes"] },
+  },
+
+  /* ── Exercise frequency (shared for non-weight concerns) ── */
+  { key: "exercise_frequency", concerns: ["Energy / gut", "Hormones", "Sleep / mind"], tier: "shared", priority: 10 },
+
+  /* ── Sun exposure for vitamin D (energy + hormones) ─────── */
+  { key: "sun_exposure", concerns: ["Energy / gut", "Hormones"], tier: "branch", priority: 13 },
+
+  /* ── Family history ─────────────────────────────────────── */
+  { key: "family_thyroid", concerns: ["Hormones", "Energy / gut"], tier: "branch", priority: 6 },
+  { key: "family_diabetes", concerns: ["Weight", "Energy / gut"], tier: "branch", priority: 6 },
+
+  /* ── Supplement timing ──────────────────────────────────── */
+  { key: "supplement_timing", concerns: ["Hair / beard", "Skin / acne", "Energy / gut", "Weight", "Hormones", "Sleep / mind"], tier: "shared", priority: 11 },
+
+  /* ── Progress / feedback (minDays gates when they appear) ── */
+  { key: "protocol_effect", concerns: ["Hair / beard", "Skin / acne", "Energy / gut", "Weight", "Hormones", "Sleep / mind"], tier: "shared", priority: 12, minDays: 7 },
+  { key: "energy_shift", concerns: ["Energy / gut"], tier: "branch", priority: 14, minDays: 7 },
+  { key: "biggest_barrier", concerns: ["Hair / beard", "Skin / acne", "Energy / gut", "Weight", "Hormones", "Sleep / mind"], tier: "shared", priority: 13, minDays: 14 },
 ];
 
 /* ── Selection engine ──────────────────────────────────────── */
@@ -951,6 +1123,7 @@ export function selectNextQuestion(
   followUpAnswers: Record<string, string>,
   allConcerns: string[],
   age: string,
+  visitCount = 0,
 ): BankQuestion | null {
   const merged: Record<string, string> = {};
   for (const [k, v] of Object.entries(profile)) {
@@ -962,6 +1135,7 @@ export function selectNextQuestion(
 
   const isAnswered = (key: string) => Boolean(merged[key]);
   const matchesAge = (node: QuestionNode) => !node.ageGroups || node.ageGroups.includes(age);
+  const meetsMinDays = (node: QuestionNode) => !node.minDays || visitCount >= node.minDays;
   const conditionMet = (node: QuestionNode) => {
     if (!node.condition) return true;
     const val = merged[node.condition.key];
@@ -975,6 +1149,7 @@ export function selectNextQuestion(
       .filter(n => n.concerns.includes(concern) && n.tier === "triage")
       .filter(n => !isAnswered(n.key))
       .filter(n => matchesAge(n))
+      .filter(n => meetsMinDays(n))
       .filter(n => conditionMet(n))
       .sort((a, b) => {
         const pa = a.agePriority?.[age] ?? a.priority;
@@ -990,6 +1165,7 @@ export function selectNextQuestion(
     .filter(n => n.concerns.some(c => concernSet.has(c)))
     .filter(n => !isAnswered(n.key))
     .filter(n => matchesAge(n))
+    .filter(n => meetsMinDays(n))
     .filter(n => conditionMet(n))
     .sort((a, b) => a.priority - b.priority);
 
@@ -1006,6 +1182,7 @@ export function selectNextQuestion(
       .filter(n => n.concerns.includes(concern) && n.tier === "branch")
       .filter(n => !isAnswered(n.key))
       .filter(n => matchesAge(n))
+      .filter(n => meetsMinDays(n))
       .filter(n => conditionMet(n))
       .sort((a, b) => a.priority - b.priority);
 
