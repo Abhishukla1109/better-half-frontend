@@ -78,8 +78,14 @@ function buildProfileSubtitle(profile: UserProfile | null): string | null {
     const ageStr = String(profile.age).replace(/-/g, "–");
     parts.push(`${ageStr} yr old`);
   }
+  const DIET_LABELS: Record<string, string> = {
+    veg: "vegetarian", vegetarian: "vegetarian",
+    egg: "eggetarian", eggetarian: "eggetarian",
+    vegan: "vegan",
+  };
   const diet = profile.diet?.toLowerCase();
-  if (diet && diet !== "non-veg" && diet !== "non-vegetarian") parts.push(diet);
+  const dietLabel = diet ? DIET_LABELS[diet] : undefined;
+  if (dietLabel) parts.push(dietLabel);
   if (profile.sex === "female") parts.push("woman");
   else if (profile.sex === "male") parts.push("man");
   const concerns = parseConcernList(profile);
