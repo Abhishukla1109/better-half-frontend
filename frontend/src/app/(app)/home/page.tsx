@@ -224,9 +224,6 @@ export default function HomePage() {
     typeof window !== "undefined" && window.location.search.includes("edit=true")
   );
 
-  const [isKidsEditMode] = useState(() =>
-    typeof window !== "undefined" && window.location.search.includes("kids_edit=true")
-  );
 
   const applyTheme = (t: "male" | "female" | "child") => {
     localStorage.setItem("bh_theme", t);
@@ -276,24 +273,6 @@ export default function HomePage() {
             }
           } catch { /* non-critical */ }
           setMemberFlow(detectedFlow);
-        }
-      } catch { /* non-critical */ }
-      setRestored(true);
-      return;
-    }
-
-    // Kids edit mode: pre-populate from active member and drop straight into kids flow
-    if (isKidsEditMode) {
-      try {
-        const raw = localStorage.getItem("bh_profile");
-        if (raw) {
-          const p = JSON.parse(raw) as Record<string, string>;
-          if (p.name) setChildName(p.name);
-          if (p.childAge) setChildAge(p.childAge as "2-5" | "6-12" | "13+");
-          if (p.concern) setChildConcern(p.concern);
-          setChildNameSubmitted(true);
-          applyTheme("child");
-          setMemberFlow("kids");
         }
       } catch { /* non-critical */ }
       setRestored(true);
@@ -722,11 +701,6 @@ export default function HomePage() {
           kidsOnboardingDone: "true",
         };
         localStorage.setItem("bh_profile", JSON.stringify(childProfile));
-        if (isKidsEditMode && activeMember) {
-          updateMemberProfile(activeMember.id, childProfile);
-          router.replace("/kids");
-          return;
-        }
         addMember({
           id: `kid-${Date.now()}`,
           type: "child",

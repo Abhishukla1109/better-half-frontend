@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShoppingBag, ArrowLeft } from "lucide-react";
+import { ShoppingBag, ArrowLeft, X } from "lucide-react";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { LJ_PRODUCTS } from "@/lib/ai/lj-products";
 import type { Product } from "@/lib/protocolEngine";
@@ -148,10 +148,35 @@ const EDU_TIPS: Record<string, { emoji: string; title: string; body: string }[]>
   ],
 };
 
+/* ── Concern options per age (for edit sheet) ── */
+const EDIT_CONCERNS: Record<string, { key: string; emoji: string; label: string }[]> = {
+  "2-5":  [
+    { key: "immunity", emoji: "🛡️", label: "Fewer colds" },
+    { key: "growth",   emoji: "🌱", label: "Healthy growth" },
+    { key: "sleep",    emoji: "😴", label: "Better sleep" },
+    { key: "energy",   emoji: "⚡", label: "More energy" },
+  ],
+  "6-12": [
+    { key: "focus",     emoji: "🧠", label: "Focus at school" },
+    { key: "immunity",  emoji: "🛡️", label: "Fewer colds" },
+    { key: "growth",    emoji: "📏", label: "Height & growth" },
+    { key: "energy",    emoji: "⚡", label: "Energy all day" },
+    { key: "sleep",     emoji: "😴", label: "Better sleep" },
+    { key: "nutrition", emoji: "🥗", label: "Fussy eater" },
+  ],
+  "13+":  [
+    { key: "energy",   emoji: "⚡", label: "Energy & focus" },
+    { key: "skin",     emoji: "✨", label: "Skin & acne" },
+    { key: "hair",     emoji: "💇", label: "Hair health" },
+    { key: "sleep",    emoji: "😴", label: "Better sleep" },
+    { key: "immunity", emoji: "🛡️", label: "Immunity" },
+  ],
+};
+
 /* ── Page ── */
 export default function KidsHomePage() {
   const router = useRouter();
-  const { activeMember, activeProfile } = useActiveProfile();
+  const { activeMember, activeProfile, updateMemberProfile } = useActiveProfile();
 
   const childAge    = activeMember?.childAge ?? "6-12";
   const childName   = activeMember?.name;
@@ -159,6 +184,11 @@ export default function KidsHomePage() {
   const profile     = activeProfile as Record<string, unknown>;
   const concern     = (profile?.concern as string) ?? "immunity";
   const onboarded   = profile?.kidsOnboardingDone;
+
+  // Edit sheet state
+  const [showEdit, setShowEdit] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editConcern, setEditConcern] = useState("");
 
   useEffect(() => {
     if (!activeMember) return;
@@ -169,6 +199,35 @@ export default function KidsHomePage() {
       router.replace("/home");
     }
   }, [activeMember, onboarded, router]);
+
+  const openEdit = () => {
+    setEditName(childName ?? "");
+    setEditConcern(concern);
+    setShowEdit(true);
+  };
+
+  const saveEdit = () => {
+    if (!activeMember) return;
+    const patch: Record<string, string> = { concern: editConcern, kidsOnboardingDone: "true" };
+    if (editName.trim()) patch.name = editName.trim();
+    updateMemberProfile(activeMember.id, patch);
+    // Also update the top-level name field directly in localStorage so activeMember.name refreshes
+    if (editName.trim()) {
+      try {
+        const raw = localStorage.getItem("bh_profiles");
+        if (raw) {
+          const profiles = JSON.parse(raw) as Array<Record<string, unknown>>;
+          const updated = profiles.map(p =>
+            p.id === activeMember.id ? { ...p, name: editName.trim() } : p
+          );
+          localStorage.setItem("bh_profiles", JSON.stringify(updated));
+        }
+      } catch { /* non-critical */ }
+    }
+    setShowEdit(false);
+    // Reload to pick up the updated name from activeMember
+    window.location.reload();
+  };
 
   const { primary, rest } = useMemo(() => getKidsRecs(childAge, concern), [childAge, concern]);
   const habits = useMemo(() => getHabits(concern, childAge), [concern, childAge]);
@@ -185,13 +244,14 @@ export default function KidsHomePage() {
   if (!activeMember || activeMember.type !== "child" || !onboarded) return null;
 
   return (
+    <>
     <div className="min-h-dvh pb-28 lg:pb-10" style={{ background: "#fffbf5" }}>
       <div className="max-w-xl mx-auto pt-8 lg:pt-12 space-y-5">
 
         {/* ── Edit profile ── */}
         <div className="px-5">
           <button
-            onClick={() => { window.location.href = "/home?kids_edit=true"; }}
+            onClick={openEdit}
             className="flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" strokeWidth={1.5} />
@@ -389,5 +449,68 @@ export default function KidsHomePage() {
 
       </div>
     </div>
+
+    {/* ── Edit profile sheet ── */}
+    {showEdit && (
+      <>
+        <div className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-[2px]" onClick={() => setShowEdit(false)} />
+        <div className="fixed bottom-0 left-0 right-0 z-[61] bg-white rounded-t-3xl px-5 pt-4 pb-12 max-w-xl mx-auto shadow-2xl animate-fade-in-up">
+
+          {/* Handle */}
+          <div className="w-10 h-1 bg-outline-variant/25 rounded-full mx-auto mb-4" />
+
+          {/* Header */}
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
+              Edit {childName ? `${childName}'s` : "child's"} profile
+            </h2>
+            <button onClick={() => setShowEdit(false)} className="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center cursor-pointer">
+              <X className="w-4 h-4 text-on-surface-variant" />
+            </button>
+          </div>
+
+          {/* Name */}
+          <div className="mb-4">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant/45 mb-1.5">Name</p>
+            <input
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              placeholder={childName ?? "Their name"}
+              className="w-full bg-surface-container-low rounded-xl px-4 py-3 border border-outline-variant/15 text-sm text-on-surface outline-none"
+            />
+          </div>
+
+          {/* Main focus */}
+          <div className="mb-6">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant/45 mb-2">Main focus</p>
+            <div className="grid grid-cols-2 gap-2">
+              {(EDIT_CONCERNS[childAge] ?? EDIT_CONCERNS["6-12"]).map(c => (
+                <button
+                  key={c.key}
+                  onClick={() => setEditConcern(c.key)}
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-2xl border-2 text-left cursor-pointer transition-all text-[13px] font-semibold ${
+                    editConcern === c.key
+                      ? "border-orange-400 bg-orange-50 text-orange-700"
+                      : "border-outline-variant/15 bg-surface-container-lowest text-on-surface"
+                  }`}
+                >
+                  <span>{c.emoji}</span> {c.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button
+            onClick={saveEdit}
+            className="w-full py-4 rounded-2xl text-white font-bold text-sm cursor-pointer hover:opacity-90 transition-opacity"
+            style={{ background: "#f97316" }}
+          >
+            Save changes
+          </button>
+        </div>
+      </>
+    )}
+    </>
   );
 }
