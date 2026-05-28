@@ -959,7 +959,7 @@ export default function HomePage() {
             <>
               <p className="text-base text-on-surface leading-relaxed">
                 {isEditMode
-                  ? (name ? `Update ${name}'s name` : "Update their name")
+                  ? (name ? `Update ${name}'s name` : memberFlow === "partner" ? "Update their name" : "Update your name")
                   : (memberFlow === "partner" ? "What's your partner's name?" : "What should I call you?")}
               </p>
               <div className="mt-3 flex items-center gap-2 bg-surface-container-low rounded-xl px-4 py-3 border border-outline-variant/15">
