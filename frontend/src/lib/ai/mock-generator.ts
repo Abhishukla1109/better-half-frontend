@@ -36,7 +36,7 @@ function buildFollowUpString(profile: UserProfile): string | undefined {
   if (p.hair_primary === "thinning") parts.push("thinning density breakage");
   if (p.hair_primary === "receding") parts.push("receding hairline dht hair fall");
   if (p.hair_primary === "dandruff") parts.push("dandruff scalp itchy oily");
-  if (p.hair_primary === "beard") parts.push("patchy beard slow growth beard growth testosterone");
+  if (p.hair_primary === "beard") parts.push("low beard less dense beard patchy beard slow growth beard growth");
   if (p.hair_primary === "greying") parts.push("greying premature");
   if (p.hair_illness === "yes") parts.push("hair fall recovery post-illness");
   if (p.scalp_type === "oily") parts.push("oily scalp dandruff");
@@ -639,10 +639,7 @@ function buildSupplements(
   profile: UserProfile,
   narrative: ConcernNarrative,
 ): ProtocolSupplement[] {
-  const p = profile as Record<string, unknown>;
-  let concern = CONCERN_MAP[profile.concern ?? ""] || "energy";
-  // Beard is catalogued separately from hair — switch the concern pool
-  if (concern === "hair" && p.hair_primary === "beard") concern = "beard";
+  const concern = CONCERN_MAP[profile.concern ?? ""] || "energy";
   const segments = resolveSegment(
     profile.sex || "male",
     profile.age || "25-34",
@@ -759,22 +756,17 @@ function buildMultiConcernSupplements(
 
   const followUp = buildFollowUpString(profile);
 
-  const p2 = profile as Record<string, unknown>;
-  const concernData = allConcerns.map((rawConcern) => {
-    let mappedConcern = CONCERN_MAP[rawConcern] || "energy";
-    if (mappedConcern === "hair" && p2.hair_primary === "beard") mappedConcern = "beard";
-    return {
-      rawConcern,
-      narrative: CONCERN_NARRATIVES[rawConcern] ?? primaryNarrative,
-      matched: calculateProtocolMatch({
-        gender: profile.sex || "male",
-        age: profile.age || "25-34",
-        diet: profile.diet || "non-veg",
-        concern: mappedConcern,
-        followUp,
-      }),
-    };
-  });
+  const concernData = allConcerns.map((rawConcern) => ({
+    rawConcern,
+    narrative: CONCERN_NARRATIVES[rawConcern] ?? primaryNarrative,
+    matched: calculateProtocolMatch({
+      gender: profile.sex || "male",
+      age: profile.age || "25-34",
+      diet: profile.diet || "non-veg",
+      concern: CONCERN_MAP[rawConcern] || "energy",
+      followUp,
+    }),
+  }));
 
   function addProduct(product: MatchedProduct, narrative: ConcernNarrative, rawConcern: string): boolean {
     if (seen.has(product.id) || result.length >= MAX) return false;
