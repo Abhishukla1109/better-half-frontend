@@ -284,7 +284,7 @@ export default function HomePage() {
         const raw = localStorage.getItem("bh_profile");
         if (raw) {
           const p = JSON.parse(raw);
-          if (p?.diet) { router.replace("/protocol"); return; }
+          if (p?.diet) { router.replace(p.memberType === "child" || p.sex === "child" ? "/kids" : "/protocol"); return; }
         }
       } catch {}
     }

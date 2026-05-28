@@ -2,7 +2,7 @@
 
 import { useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ShoppingBag, RefreshCw } from "lucide-react";
+import { ShoppingBag, ArrowLeft } from "lucide-react";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { LJ_PRODUCTS } from "@/lib/ai/lj-products";
 import type { Product } from "@/lib/protocolEngine";
@@ -188,6 +188,17 @@ export default function KidsHomePage() {
     <div className="min-h-dvh pb-28 lg:pb-10" style={{ background: "#fffbf5" }}>
       <div className="max-w-xl mx-auto pt-8 lg:pt-12 space-y-5">
 
+        {/* ── Edit profile ── */}
+        <div className="px-5">
+          <button
+            onClick={() => window.dispatchEvent(new Event("bh-profile-sidebar-open"))}
+            className="flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.5} />
+            <span>Edit profile</span>
+          </button>
+        </div>
+
         {/* ── Hero banner ── */}
         <div
           className="mx-5 rounded-3xl p-5 relative overflow-hidden"
@@ -198,22 +209,12 @@ export default function KidsHomePage() {
           <div className="absolute -right-2 -bottom-8 w-20 h-20 rounded-full opacity-10" style={{ background: "#fb923c" }} />
 
           <div className="relative z-10">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-3">
                 <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#ea580c" }}>Little Joys</span>
                 <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ color: "#c2410c", background: "rgba(255,255,255,0.7)", border: "1px solid #fed7aa" }}>
                   {ageLabel}
                 </span>
               </div>
-              <button
-                onClick={() => router.push("/kids/onboarding")}
-                className="p-1.5 rounded-xl cursor-pointer transition-opacity hover:opacity-70"
-                style={{ background: "rgba(255,255,255,0.6)", border: "1px solid #fed7aa" }}
-                title="Update focus"
-              >
-                <RefreshCw className="w-3.5 h-3.5" style={{ color: "#ea580c" }} strokeWidth={2} />
-              </button>
-            </div>
 
             <h1 className="text-[26px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-tight tracking-tight mb-1">
               {childName ? `${childName}'s Wellness` : "Your Child's Wellness"}

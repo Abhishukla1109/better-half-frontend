@@ -409,6 +409,11 @@ export default function ProtocolPage() {
       const raw = localStorage.getItem("bh_profile");
       if (!raw) { router.replace("/home"); return; }
       stored = JSON.parse(raw) as UserProfile;
+      // Child profiles belong on /kids, not here
+      if ((stored as Record<string, unknown>).memberType === "child" || (stored as Record<string, unknown>).sex === "child") {
+        router.replace("/kids");
+        return;
+      }
       setProfile(stored);
     } catch {
       router.replace("/home");
