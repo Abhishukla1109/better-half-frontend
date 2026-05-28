@@ -191,7 +191,7 @@ export default function KidsHomePage() {
         {/* ── Edit profile ── */}
         <div className="px-5">
           <button
-            onClick={() => window.dispatchEvent(new Event("bh-profile-sidebar-open"))}
+            onClick={() => { window.location.href = "/home?kids_edit=true"; }}
             className="flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" strokeWidth={1.5} />
