@@ -1150,12 +1150,35 @@ export default function ProtocolPage() {
               />
             </div>
 
-            {/* Insight line */}
-            {protocol.warmMessage && (
-              <p className="text-[13px] text-on-surface/80 leading-relaxed font-medium">
-                {firstSentence(protocol.warmMessage)}
-              </p>
-            )}
+            {/* Insight chips — visual signals derived from profile, replaces prose sentence */}
+            {(() => {
+              const p = profile as Record<string, unknown> | null;
+              const chips: { icon: string; label: string; style: string }[] = [];
+              const diet = String(profile?.diet || "").toLowerCase();
+              if (diet && !diet.includes("non") && (diet.includes("veg") || diet.includes("vegan")))
+                chips.push({ icon: "🌱", label: "Veg diet ✓", style: "bg-emerald-500/10 text-emerald-700 border-emerald-500/15" });
+              else if (diet.includes("non"))
+                chips.push({ icon: "🍗", label: "Non-veg", style: "bg-orange-500/10 text-orange-700 border-orange-500/15" });
+              else if (diet.includes("egg"))
+                chips.push({ icon: "🥚", label: "Eggetarian", style: "bg-amber-500/10 text-amber-700 border-amber-500/15" });
+              if (p?.stress_level === "high")
+                chips.push({ icon: "⚡", label: "Stress flagged", style: "bg-red-500/10 text-red-600 border-red-500/15" });
+              else if (p?.sleep_quality === "rarely_good")
+                chips.push({ icon: "😴", label: "Sleep gap", style: "bg-indigo-500/10 text-indigo-700 border-indigo-500/15" });
+              else if (liveDepth < 55)
+                chips.push({ icon: "✦", label: "Still personalising", style: "bg-primary-container/10 text-primary-container border-primary-container/15" });
+              if (chips.length === 0) return null;
+              return (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {chips.slice(0, 2).map((chip, i) => (
+                    <span key={i} className={`flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border ${chip.style}`}>
+                      <span className="text-[10px] leading-none">{chip.icon}</span>
+                      {chip.label}
+                    </span>
+                  ))}
+                </div>
+              );
+            })()}
 
             {/* Sharpen bar */}
             {allAnswered ? (
@@ -1202,11 +1225,8 @@ export default function ProtocolPage() {
         {protocol.lifestyle.length > 0 && (
           <div className="mb-4 animate-fade-in-up" style={{ animationDelay: "80ms" }}>
             <div className="mb-3 px-1">
-              <p className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-1">
+              <p className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug">
                 Habits before supplements.
-              </p>
-              <p className="text-xs text-on-surface-variant/65 leading-relaxed">
-                Daily habits move the needle more than any pill. Start here — supplements accelerate what&apos;s already moving.
               </p>
             </div>
             <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-1">
