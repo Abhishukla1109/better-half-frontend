@@ -79,13 +79,18 @@ export default function ProfileSidebar() {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    [
-      "bh_auth", "bh_profile", "bh_profiles", "bh_active_profile",
-      "bh_onboarding_state", "bh_protocol_visits", "bh_today_answers",
-      "bh_theme", "bh_add_mode", "bh_protocol_built",
-    ].forEach((k) => localStorage.removeItem(k));
-    window.location.replace("/");
+    // Clear every bh_* key — handles current + any future keys including nudge, energy logs, etc.
+    Object.keys(localStorage).filter(k => k.startsWith("bh_")).forEach(k => localStorage.removeItem(k));
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      // Real signed-in user → sign out of Supabase, go to auth
+      await supabase.auth.signOut();
+      window.location.replace("/auth");
+    } else {
+      // Demo user → just restart onboarding as a fresh new user
+      window.location.replace("/home");
+    }
   };
 
   return (
