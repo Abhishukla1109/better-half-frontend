@@ -1,4 +1,5 @@
 import { CATALOG_PRODUCTS } from "@/lib/ai/catalog";
+import { LJ_PRODUCTS } from "@/lib/ai/lj-products";
 
 export type UserSegment = {
   gender: string;
@@ -30,7 +31,7 @@ export type Product = {
 
 export type MatchedProduct = Product & { matchScore: number };
 
-export const ALL_PRODUCTS: Product[] = CATALOG_PRODUCTS;
+export const ALL_PRODUCTS: Product[] = [...CATALOG_PRODUCTS, ...LJ_PRODUCTS];
 
 // ── SEGMENT RESOLVER ──
 export function resolveSegment(

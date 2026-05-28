@@ -633,10 +633,10 @@ export default function HomePage() {
                 : "We've built a personalised plan based on your profile."}
             </p>
             <button
-              onClick={() => router.replace(isKids ? "/explore" : "/protocol")}
+              onClick={() => router.replace(isKids ? "/kids/onboarding" : "/protocol")}
               className="w-full py-4 rounded-2xl bg-primary-container text-white font-bold text-base hover:bg-primary transition-colors duration-200 cursor-pointer"
             >
-              {isKids ? "Shop Little Joys picks →" : "View my protocol →"}
+              {isKids ? `Set up ${childName ? `${childName}'s` : "their"} wellness →` : "View my protocol →"}
             </button>
           </div>
         )}

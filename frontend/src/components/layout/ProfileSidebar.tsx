@@ -54,7 +54,12 @@ export default function ProfileSidebar() {
     localStorage.setItem("bh_theme", member.type);
     window.dispatchEvent(new Event("bh-theme-change"));
     setOpen(false);
-    window.location.href = member.type === "child" ? "/explore" : "/protocol";
+    // Stay on the current section; only swap between home variants
+    const cur = window.location.pathname;
+    const isHome = cur === "/protocol" || cur === "/kids" || cur.startsWith("/kids/");
+    window.location.href = isHome
+      ? (member.type === "child" ? "/kids" : "/protocol")
+      : cur;
   };
 
   const handleDelete = (id: string) => {

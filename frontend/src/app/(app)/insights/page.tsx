@@ -1,50 +1,823 @@
+"use client";
+
+import { useState, useEffect, useMemo } from "react";
+import { Flame, CheckCircle2, XCircle, ChevronLeft, ChevronRight, ChevronDown, ShoppingBag } from "lucide-react";
+import { useActiveProfile } from "@/hooks/useActiveProfile";
+import { calculateProtocolMatch, ALL_PRODUCTS } from "@/lib/protocolEngine";
+import type { MatchedProduct } from "@/lib/protocolEngine";
+import { calculateProfileDepth } from "@/lib/ai/profile-depth";
+
+/* ── Energy bar options ── */
+const ENERGY_OPTIONS = [
+  { key: "energised" as const, emoji: "⚡", label: "Energised",   style: "bg-emerald-100 border-emerald-200 text-emerald-800", msg: "That's the energy we want to see. Keep it up!" },
+  { key: "okay"      as const, emoji: "😊", label: "Doing okay", style: "bg-sky-100 border-sky-200 text-sky-800",             msg: "Consistent is good. Your protocol is working quietly." },
+  { key: "sluggish"  as const, emoji: "😑", label: "Bit low",    style: "bg-amber-100 border-amber-200 text-amber-800",       msg: "Check your sleep & hydration today. Supplements will help." },
+  { key: "drained"   as const, emoji: "🥱", label: "Drained",    style: "bg-rose-100 border-rose-200 text-rose-800",          msg: "Take it easy today. Rest is part of the protocol too." },
+];
+type EnergyKey = typeof ENERGY_OPTIONS[number]["key"];
+
+/* ── Education map ── */
+const EDUCATION: Record<string, {
+  openingLine: string;
+  what: string;
+  ingredients: { emoji: string; label: string }[];
+  facts: { stat: string; label: string }[];
+  timeline: { label: string; desc: string }[];
+  timing: string;
+  color: string;
+  bannerFrom: string;
+  bannerTo: string;
+}> = {
+  hair: {
+    openingLine: "Your most important supplement right now.",
+    what: "Strengthens hair from root to tip by supporting keratin production and blocking DHT.",
+    ingredients: [
+      { emoji: "🧬", label: "Biotin 10,000mcg" },
+      { emoji: "⚡", label: "Zinc" },
+      { emoji: "🍊", label: "Vitamin C" },
+    ],
+    facts: [
+      { stat: "67%", label: "stronger hair shaft in 12 weeks" },
+      { stat: "28%", label: "less cortisol — main trigger of hair fall" },
+    ],
+    timeline: [
+      { label: "Week 1–2", desc: "Reduced fall" },
+      { label: "Week 4–6", desc: "Thickness" },
+      { label: "Week 10–12", desc: "Full cycle" },
+    ],
+    timing: "After lunch with a glass of water",
+    color: "#d97706",
+    bannerFrom: "#f59e0b",
+    bannerTo: "#f97316",
+  },
+  sleep: {
+    openingLine: "Better sleep changes everything else.",
+    what: "Activates your brain's natural off-switch for deeper, uninterrupted sleep.",
+    ingredients: [
+      { emoji: "🌙", label: "Magnesium Bisglycinate" },
+      { emoji: "🧠", label: "Vitamin B6" },
+      { emoji: "💤", label: "L-Theanine" },
+    ],
+    facts: [
+      { stat: "2×", label: "deeper sleep within the first week" },
+      { stat: "78%", label: "of Indians are magnesium-deficient" },
+    ],
+    timeline: [
+      { label: "Day 3–5", desc: "Calmer mind" },
+      { label: "Week 2", desc: "Uninterrupted" },
+      { label: "Week 4", desc: "Rhythm set" },
+    ],
+    timing: "30 minutes before bed",
+    color: "#6366f1",
+    bannerFrom: "#818cf8",
+    bannerTo: "#8b5cf6",
+  },
+  hormones: {
+    openingLine: "The root of fatigue, drive, and mood — all in one.",
+    what: "Clinically proven adaptogen that reduces cortisol and supports natural testosterone.",
+    ingredients: [
+      { emoji: "🌿", label: "KSM-66 Ashwagandha" },
+      { emoji: "💪", label: "Withanolides 5%" },
+      { emoji: "🔬", label: "Shilajit Extract" },
+    ],
+    facts: [
+      { stat: "28%", label: "cortisol reduction in 8 weeks" },
+      { stat: "4×",  label: "better absorption vs standard extract" },
+    ],
+    timeline: [
+      { label: "Week 2",   desc: "Less stress" },
+      { label: "Week 4–6", desc: "Energy & drive" },
+      { label: "Week 8",   desc: "Balanced" },
+    ],
+    timing: "Evening with warm milk or water",
+    color: "#16a34a",
+    bannerFrom: "#4ade80",
+    bannerTo: "#10b981",
+  },
+  energy: {
+    openingLine: "Closes the gap most people never know they have.",
+    what: "Closes common micronutrient gaps that silently drain your energy all day.",
+    ingredients: [
+      { emoji: "🩸", label: "Iron Bisglycinate" },
+      { emoji: "🍊", label: "Vitamin C" },
+      { emoji: "⚡", label: "B-complex" },
+    ],
+    facts: [
+      { stat: "67%", label: "better iron absorption with Vitamin C" },
+      { stat: "3×",  label: "more efficient than diet changes alone" },
+    ],
+    timeline: [
+      { label: "Week 1",   desc: "Less fatigue" },
+      { label: "Week 2–3", desc: "Energy lift" },
+      { label: "Week 4",   desc: "All-day stable" },
+    ],
+    timing: "Morning with breakfast",
+    color: "#ea580c",
+    bannerFrom: "#fb923c",
+    bannerTo: "#f59e0b",
+  },
+  nutrition: {
+    openingLine: "Fill the gaps your diet leaves behind, every day.",
+    what: "Fills the daily nutrition gaps that diet alone rarely covers.",
+    ingredients: [
+      { emoji: "🌞", label: "Vitamin D3" },
+      { emoji: "🧬", label: "B12" },
+      { emoji: "⚡", label: "Zinc" },
+    ],
+    facts: [
+      { stat: "80%", label: "of urban Indians are Vitamin D deficient" },
+      { stat: "3×",  label: "more efficient than dietary changes alone" },
+    ],
+    timeline: [
+      { label: "Week 1",   desc: "Baseline fills" },
+      { label: "Week 3–4", desc: "Better immunity" },
+      { label: "Week 6–8", desc: "Optimised" },
+    ],
+    timing: "Morning with breakfast",
+    color: "#0d9488",
+    bannerFrom: "#2dd4bf",
+    bannerTo: "#22d3ee",
+  },
+  skin: {
+    openingLine: "Great skin starts in your gut — not on your face.",
+    what: "Balances the gut-skin axis — the real root cause of most adult acne.",
+    ingredients: [
+      { emoji: "🦠", label: "50B CFU Probiotics" },
+      { emoji: "🌱", label: "16 Strains" },
+      { emoji: "🧬", label: "Prebiotics" },
+    ],
+    facts: [
+      { stat: "70%",   label: "of immunity lives in your gut" },
+      { stat: "6 wks", label: "to noticeably clearer skin" },
+    ],
+    timeline: [
+      { label: "Week 2",   desc: "Less breakouts" },
+      { label: "Week 4–5", desc: "Calmer skin" },
+      { label: "Week 6–8", desc: "Clearer texture" },
+    ],
+    timing: "Before breakfast on empty stomach",
+    color: "#e11d48",
+    bannerFrom: "#fb7185",
+    bannerTo: "#f472b6",
+  },
+  weight: {
+    openingLine: "Fuel harder workouts. Build more. Burn more.",
+    what: "Fuels performance and muscle recovery while supporting lean body composition.",
+    ingredients: [
+      { emoji: "💪", label: "Creatine Monohydrate" },
+      { emoji: "🔬", label: "Micronised 200 mesh" },
+      { emoji: "⚡", label: "Pure & unflavoured" },
+    ],
+    facts: [
+      { stat: "5g",    label: "most researched supplement dose in sports science" },
+      { stat: "2–3 wks", label: "to measurable strength gains" },
+    ],
+    timeline: [
+      { label: "Week 1",  desc: "Cell hydration" },
+      { label: "Week 2–3", desc: "Strength gains" },
+      { label: "Week 4+", desc: "Lean mass" },
+    ],
+    timing: "Post-workout or morning",
+    color: "#2563eb",
+    bannerFrom: "#60a5fa",
+    bannerTo: "#818cf8",
+  },
+  beard: {
+    openingLine: "Give your beard the nutrients your diet skips.",
+    what: "Provides the micronutrients beard follicles need for density and growth.",
+    ingredients: [
+      { emoji: "🧬", label: "Biotin" },
+      { emoji: "⚡", label: "Zinc" },
+      { emoji: "🌱", label: "Vitamin E" },
+    ],
+    facts: [
+      { stat: "10–12 wks", label: "to denser, fuller coverage" },
+      { stat: "#1",        label: "cause of patchy beard: Zinc deficiency" },
+    ],
+    timeline: [
+      { label: "Week 2–3",  desc: "Stronger strands" },
+      { label: "Week 6–8",  desc: "Denser coverage" },
+      { label: "Week 10–12", desc: "Fuller beard" },
+    ],
+    timing: "After lunch with water",
+    color: "#b45309",
+    bannerFrom: "#fbbf24",
+    bannerTo: "#f97316",
+  },
+};
+
+const CONCERN_MAP: Record<string, string> = {
+  "Hair / beard": "hair",
+  "Skin / acne": "skin",
+  "Energy / gut": "energy",
+  "Weight": "weight",
+  "Hormones": "hormones",
+  "Sleep / mind": "sleep",
+};
+
+const CONCERN_BAR_COLOR: Record<string, string> = {
+  hair: "bg-amber-500",
+  sleep: "bg-indigo-500",
+  hormones: "bg-green-600",
+  energy: "bg-orange-500",
+  nutrition: "bg-teal-500",
+  skin: "bg-rose-500",
+  weight: "bg-blue-500",
+  beard: "bg-amber-600",
+};
+
+const CONCERN_LABELS: Record<string, string> = {
+  "Hair / beard": "Hair",
+  "Skin / acne": "Skin",
+  "Energy / gut": "Energy",
+  "Weight": "Weight",
+  "Hormones": "Hormones",
+  "Sleep / mind": "Sleep",
+};
+
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DAY_HEADERS = ["S","M","T","W","T","F","S"];
+
+/* ── Helpers ── */
+type Checkins = Record<string, boolean>;
+
+function loadCheckins(): Checkins {
+  try { return JSON.parse(localStorage.getItem("bh_checkins") ?? "{}"); }
+  catch { return {}; }
+}
+function saveCheckins(c: Checkins) {
+  try { localStorage.setItem("bh_checkins", JSON.stringify(c)); } catch {}
+}
+function calcStreak(checkins: Checkins): number {
+  let streak = 0;
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  for (let i = 0; i < 365; i++) {
+    if (checkins[d.toDateString()] === true) { streak++; d.setDate(d.getDate() - 1); }
+    else break;
+  }
+  if (checkins[new Date().toDateString()] === true) streak++;
+  return streak;
+}
+function getMonthCells(year: number, month: number): (Date | null)[] {
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells: (Date | null)[] = Array(firstDay).fill(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d));
+  return cells;
+}
+function calcVitality(checkins: Checkins, depthTotal: number, visitCount: number): number {
+  const last30 = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - i); return d.toDateString();
+  });
+  const checked = last30.filter(k => checkins[k] === true).length;
+  return Math.round(Math.min((checked / 30) * 40 + (depthTotal / 100) * 30 + (Math.min(visitCount, 90) / 90) * 30, 100));
+}
+
+const VITALITY_MESSAGES = [
+  { min: 80, msg: "You're building real momentum. The compounding effects are kicking in." },
+  { min: 60, msg: "Good progress. A few more consistent days and you'll really feel the difference." },
+  { min: 40, msg: "You've started the journey. Small daily habits are what make protocols work." },
+  { min: 0,  msg: "Every great health journey starts here. Check in daily and your score climbs." },
+];
+
+/* ── Page ── */
 export default function InsightsPage() {
-  const dimensions = [
-    { name: "Energy", icon: "bolt" },
-    { name: "Gut", icon: "gastroenterology" },
-    { name: "Hormones", icon: "monitoring" },
-    { name: "Immunity", icon: "shield" },
-    { name: "Mind", icon: "psychology" },
-    { name: "Sleep", icon: "bedtime" },
-  ];
+  const { activeMember } = useActiveProfile();
+
+  const [checkins, setCheckins]         = useState<Checkins>({});
+  const [visitCount, setVisitCount]     = useState(0);
+  const [supplements, setSupplements]   = useState<MatchedProduct[]>([]);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [depthTotal, setDepthTotal]     = useState(10);
+  const [calMonth, setCalMonth]         = useState(new Date().getMonth());
+  const [calYear, setCalYear]           = useState(new Date().getFullYear());
+  const [userConcerns, setUserConcerns] = useState<string[]>([]);
+  const [userGender, setUserGender]     = useState("male");
+  const [energyLevel, setEnergyLevel]   = useState<EnergyKey | null>(null);
+  const [energyMsg, setEnergyMsg]       = useState<string | null>(null);
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+
+  const today   = new Date().toDateString();
+  const todayChecked = checkins[today];
+  const streak   = useMemo(() => calcStreak(checkins), [checkins]);
+  const vitality = useMemo(() => calcVitality(checkins, depthTotal, visitCount), [checkins, depthTotal, visitCount]);
+  const calCells = useMemo(() => getMonthCells(calYear, calMonth), [calYear, calMonth]);
+
+  const vitalMsg = VITALITY_MESSAGES.find(m => vitality >= m.min)?.msg ?? VITALITY_MESSAGES[3].msg;
+
+  useEffect(() => {
+    setCheckins(loadCheckins());
+    try {
+      const vRaw = localStorage.getItem("bh_protocol_visits");
+      if (vRaw) setVisitCount((JSON.parse(vRaw) as { count: number }).count);
+    } catch {}
+    try {
+      const saved = localStorage.getItem(`bh_energy_${new Date().toDateString()}`);
+      if (saved) {
+        const opt = ENERGY_OPTIONS.find(o => o.key === saved);
+        if (opt) { setEnergyLevel(opt.key); setEnergyMsg(opt.msg); }
+      }
+    } catch {}
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const profile: any = JSON.parse(localStorage.getItem("bh_profile") ?? "null");
+      if (!profile) { setProfileLoaded(true); return; }
+      const depth = calculateProfileDepth(profile);
+      setDepthTotal(depth.total);
+      const gender: string = profile.sex ?? "male";
+      setUserGender(gender);
+      const rawConcern: string  = profile.concern ?? "";
+      const rawConcerns: string[] = Array.isArray(profile.concerns) ? profile.concerns : [];
+      setUserConcerns(rawConcerns.length > 0 ? rawConcerns : rawConcern ? [rawConcern] : []);
+      const concern = CONCERN_MAP[rawConcern] || "energy";
+      const matched = calculateProtocolMatch({ gender, age: profile.age ?? "25-34", diet: profile.diet ?? "non-veg", concern });
+      setSupplements(matched);
+    } catch {}
+    setProfileLoaded(true);
+  }, []);
+
+  const handleCheckin = (val: boolean) => {
+    const updated = { ...checkins, [today]: val };
+    setCheckins(updated);
+    saveCheckins(updated);
+  };
+
+  const handleEnergy = (opt: typeof ENERGY_OPTIONS[number]) => {
+    setEnergyLevel(opt.key);
+    setEnergyMsg(opt.msg);
+    try { localStorage.setItem(`bh_energy_${today}`, opt.key); } catch {}
+  };
+
+  // Complementary products (same concern, not in stack, correct gender)
+  const complementary = useMemo(() => {
+    if (!supplements.length) return [];
+    const stackIds = new Set(supplements.map(s => s.id));
+    const concerns = supplements.flatMap(s => s.concern);
+    return ALL_PRODUCTS
+      .filter(p =>
+        !stackIds.has(p.id) &&
+        p.concern.some(c => concerns.includes(c)) &&
+        (p.gender.includes(userGender) || p.gender.includes("all")) &&
+        p.brand !== "Little Joys",
+      )
+      .sort((a, b) => b.baseScore - a.baseScore)
+      .slice(0, 4);
+  }, [supplements, userGender]);
+
+  // Per-concern scores
+  const concernScores = useMemo(() =>
+    userConcerns.map(c => {
+      const key = CONCERN_MAP[c] ?? c.toLowerCase();
+      const hash = key.split("").reduce((a, ch) => a + ch.charCodeAt(0), 0);
+      return { label: CONCERN_LABELS[c] ?? c, key, score: Math.max(10, Math.min(100, vitality + (hash % 11) - 5)) };
+    }),
+    [userConcerns, vitality],
+  );
+
+  const prevMonth = () => {
+    if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); } else setCalMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    const now = new Date();
+    if (calYear > now.getFullYear() || (calYear === now.getFullYear() && calMonth >= now.getMonth())) return;
+    if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); } else setCalMonth(m => m + 1);
+  };
+
+  const possessive = activeMember?.name ? `${activeMember.name}'s` : "Your";
+
+  // SVG ring
+  const RING_R = 38, RING_CIRC = 2 * Math.PI * RING_R;
+  const ringDash = (vitality / 100) * RING_CIRC;
+
+  if (!profileLoaded) return null;
 
   return (
-    <div className="px-6 pt-8 lg:pt-12 lg:px-10">
-      <h1 className="text-2xl lg:text-3xl font-extrabold text-primary tracking-tight font-[family-name:var(--font-manrope)]">
-        Insights
-      </h1>
-      <p className="text-on-surface-variant mt-2 mb-8">
-        Your longitudinal health picture.
-      </p>
+    <div className="min-h-dvh bg-[#faf9fb] pb-28 lg:pb-10">
+      <div className="max-w-xl mx-auto px-5 pt-8 lg:pt-12 space-y-5">
 
-      {/* Health dimension dials: 3 cols mobile, 6 on desktop */}
-      <div className="grid grid-cols-3 md:grid-cols-6 gap-3 lg:gap-4">
-        {dimensions.map((dim) => (
-          <div
-            key={dim.name}
-            className="flex flex-col items-center gap-2 p-4 lg:p-6 bg-surface-container-lowest rounded-xl shadow-sm"
-          >
-            <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-surface-container-low flex items-center justify-center">
-              <span className="material-symbols-outlined text-outline-variant">
-                {dim.icon}
-              </span>
+        {/* ── Header ── */}
+        <div>
+          <p className="text-[11px] font-bold text-primary-container uppercase tracking-widest mb-1">Health Tracking</p>
+          <h1 className="text-[28px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-tight tracking-tight">
+            {possessive} Insights
+          </h1>
+        </div>
+
+        {/* ── Streak + Vitality ── */}
+        <div className="grid grid-cols-2 gap-3">
+
+          {/* Streak */}
+          <div className="rounded-3xl bg-white border border-orange-100 p-4 flex flex-col gap-3 min-h-[190px]" style={{ background: "linear-gradient(145deg, #fff8f0, #fff)" }}>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
+                <Flame className="w-4 h-4 text-orange-500" strokeWidth={1.5} />
+              </div>
+              <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider">Streak</span>
             </div>
-            <span className="text-xs font-semibold text-on-surface-variant">
-              {dim.name}
-            </span>
-            <span className="text-lg font-bold text-outline-variant">—</span>
+            <div>
+              <p className="text-[42px] font-extrabold text-on-surface leading-none font-[family-name:var(--font-manrope)]">{streak}</p>
+              <p className="text-[11px] text-on-surface-variant/50 mt-1">days in a row</p>
+            </div>
+            <div className="mt-auto space-y-1.5">
+              {visitCount > 0 && (
+                <p className="text-[10px] font-semibold text-primary-container bg-primary-container/8 px-2.5 py-1 rounded-lg">
+                  Day {visitCount} on protocol
+                </p>
+              )}
+              {streak >= 7 && (
+                <p className="text-[10px] font-bold text-orange-500 bg-orange-50 px-2.5 py-1 rounded-lg">🔥 On a roll</p>
+              )}
+            </div>
           </div>
-        ))}
-      </div>
 
-      {/* Check-in history placeholder */}
-      <div className="mt-8 p-6 lg:p-8 bg-surface-container-lowest rounded-xl shadow-sm">
-        <h2 className="text-sm font-bold uppercase tracking-widest text-on-surface-variant mb-4">
-          Check-in History
-        </h2>
-        <p className="text-sm text-outline-variant">
-          Start checking in daily to see your 30-day trend heatmap here.
-        </p>
+          {/* Vitality */}
+          <div className="rounded-3xl bg-white border border-purple-100 p-4 flex flex-col gap-2 min-h-[190px]" style={{ background: "linear-gradient(145deg, #f8f5ff, #fff)" }}>
+            <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Vitality</span>
+            <div className="flex items-center justify-center flex-1">
+              <svg width="88" height="88" viewBox="0 0 90 90">
+                <circle cx="45" cy="45" r={RING_R} fill="none" stroke="#ede9fe" strokeWidth="7" />
+                <circle cx="45" cy="45" r={RING_R} fill="none" stroke="url(#vg)" strokeWidth="7"
+                  strokeLinecap="round"
+                  strokeDasharray={`${ringDash} ${RING_CIRC}`}
+                  transform="rotate(-90 45 45)"
+                />
+                <defs>
+                  <linearGradient id="vg" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#7c3aed" />
+                    <stop offset="100%" stopColor="#a78bfa" />
+                  </linearGradient>
+                </defs>
+                <text x="45" y="42" textAnchor="middle" fill="#1c1b1f" fontSize="17" fontWeight="800" fontFamily="Manrope,sans-serif">{vitality}</text>
+                <text x="45" y="54" textAnchor="middle" fill="#9ca3af" fontSize="8" fontWeight="600">/ 100</text>
+              </svg>
+            </div>
+            {concernScores.length > 0 && (
+              <div className="space-y-1.5">
+                {concernScores.slice(0, 2).map(c => (
+                  <div key={c.key}>
+                    <div className="flex justify-between mb-0.5">
+                      <span className="text-[9px] font-semibold text-on-surface-variant/55">{c.label}</span>
+                      <span className="text-[9px] font-bold text-on-surface-variant/55">{c.score}</span>
+                    </div>
+                    <div className="h-1 bg-purple-50 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full ${CONCERN_BAR_COLOR[c.key] ?? "bg-primary-container"} transition-all duration-700`} style={{ width: `${c.score}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Energy Bar ── */}
+        <div className="rounded-3xl bg-white border border-outline-variant/10 p-4" style={{ background: "linear-gradient(145deg, #f0f4ff, #fff)" }}>
+          <p className="text-[13px] font-bold text-on-surface mb-3">How&apos;s your energy today?</p>
+          <div className="grid grid-cols-2 gap-2">
+            {ENERGY_OPTIONS.map(opt => {
+              const sel = energyLevel === opt.key;
+              return (
+                <button
+                  key={opt.key}
+                  onClick={() => handleEnergy(opt)}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-2xl border transition-all duration-200 cursor-pointer ${
+                    sel ? opt.style : "bg-white border-outline-variant/15 text-on-surface-variant hover:bg-surface-container"
+                  }`}
+                >
+                  <span className="text-[18px] leading-none">{opt.emoji}</span>
+                  <span className="text-[12px] font-semibold">{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          {energyMsg && (
+            <p className="text-[12px] text-on-surface-variant/65 mt-3 leading-snug px-0.5 animate-in fade-in slide-in-from-bottom-1 duration-300">
+              {energyMsg}
+            </p>
+          )}
+        </div>
+
+        {/* Warm message */}
+        <p className="text-[13px] text-on-surface-variant/60 leading-relaxed px-0.5">{vitalMsg}</p>
+
+        {/* ── Calendar ── */}
+        <div className="rounded-3xl bg-white border border-outline-variant/10 overflow-hidden">
+          <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-outline-variant/8">
+            <button onClick={prevMonth} className="w-7 h-7 rounded-xl hover:bg-surface-container flex items-center justify-center transition-colors cursor-pointer">
+              <ChevronLeft className="w-4 h-4 text-on-surface-variant/50" />
+            </button>
+            <p className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">{MONTH_NAMES[calMonth]} {calYear}</p>
+            <button onClick={nextMonth} className="w-7 h-7 rounded-xl hover:bg-surface-container flex items-center justify-center transition-colors cursor-pointer">
+              <ChevronRight className="w-4 h-4 text-on-surface-variant/50" />
+            </button>
+          </div>
+          <div className="px-4 py-4">
+            <div className="grid grid-cols-7 mb-2">
+              {DAY_HEADERS.map((d, i) => (
+                <div key={i} className="text-center text-[10px] font-bold text-on-surface-variant/30 uppercase">{d}</div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-y-1">
+              {calCells.map((d, i) => {
+                if (!d) return <div key={`e-${i}`} />;
+                const key = d.toDateString();
+                const val = checkins[key];
+                const isToday = key === today;
+                const isFuture = d > new Date();
+                return (
+                  <div key={key} className="flex flex-col items-center gap-0.5 py-0.5">
+                    <span className={`text-[10px] font-semibold leading-none ${isToday ? "text-violet-600 font-extrabold" : "text-on-surface-variant/40"}`}>{d.getDate()}</span>
+                    <div className={`w-5 h-5 rounded-md transition-all ${
+                      isFuture ? "opacity-0" :
+                      val === true ? "bg-violet-400" :
+                      val === false ? "bg-rose-200" :
+                      isToday ? "bg-violet-100 ring-1 ring-violet-300" :
+                      "bg-gray-100"
+                    }`} />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex items-center gap-4 mt-3">
+              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-violet-400" /><span className="text-[10px] text-on-surface-variant/40">Taken</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-rose-200" /><span className="text-[10px] text-on-surface-variant/40">Missed</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-gray-100" /><span className="text-[10px] text-on-surface-variant/40">No data</span></div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Daily check-in ── */}
+        <div className="rounded-3xl bg-white border border-outline-variant/10 px-5 py-4">
+          {todayChecked === undefined ? (
+            <>
+              <p className="text-[13px] font-semibold text-on-surface mb-3">Did you take your supplements today?</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleCheckin(true)}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-[13px] font-bold hover:bg-emerald-100 transition-colors cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4" strokeWidth={2} /> Yes, I did
+                </button>
+                <button
+                  onClick={() => handleCheckin(false)}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-gray-500 text-[13px] font-semibold hover:bg-gray-100 transition-colors cursor-pointer"
+                >
+                  <XCircle className="w-4 h-4" strokeWidth={2} /> Missed today
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className={`flex items-center gap-3 py-2 px-3 rounded-2xl ${todayChecked ? "bg-emerald-50" : "bg-gray-50"}`}>
+              {todayChecked
+                ? <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" strokeWidth={2} />
+                : <XCircle className="w-5 h-5 text-gray-400 shrink-0" strokeWidth={2} />
+              }
+              <div>
+                <p className={`text-[13px] font-semibold ${todayChecked ? "text-emerald-700" : "text-gray-500"}`}>
+                  {todayChecked ? "Taken today — great work." : "Missed today. Back on track tomorrow."}
+                </p>
+                <button onClick={() => handleCheckin(!todayChecked)} className="text-[11px] text-on-surface-variant/40 hover:text-on-surface-variant transition-colors cursor-pointer mt-0.5">Undo</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Current Stack ── */}
+        {supplements.length > 0 && (
+          <div>
+            <div className="flex items-baseline justify-between mb-3 px-0.5">
+              <div>
+                <p className="text-[10px] font-bold text-on-surface-variant/35 uppercase tracking-widest">Daily Protocol</p>
+                <p className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mt-0.5">Your Current Stack</p>
+              </div>
+              <span className="text-[11px] font-semibold text-primary-container">{supplements.length} products</span>
+            </div>
+
+            {/* Horizontal scroll */}
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5 snap-x snap-mandatory" style={{ scrollbarWidth: "none" }}>
+              {supplements.map(s => {
+                const edu = EDUCATION[s.category] ?? EDUCATION.nutrition;
+                const isActive = expandedCard === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => setExpandedCard(isActive ? null : s.id)}
+                    className="snap-start shrink-0 w-[172px] rounded-3xl overflow-hidden border text-left transition-all duration-200 cursor-pointer"
+                    style={{
+                      background: `linear-gradient(170deg, ${edu.bannerFrom}18, ${edu.bannerTo}08, #fff)`,
+                      borderColor: isActive ? `${edu.bannerFrom}60` : "rgba(0,0,0,0.06)",
+                      boxShadow: isActive ? `0 0 0 2px ${edu.bannerFrom}25` : "none",
+                    }}
+                  >
+                    <div className="h-40 flex items-center justify-center">
+                      {s.image && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={s.image} alt={s.name} className="h-36 w-36 object-contain" />
+                      )}
+                    </div>
+                    <div className="px-3.5 pb-4">
+                      <p className="text-[8px] font-bold uppercase tracking-widest mb-0.5" style={{ color: edu.color }}>{s.brand}</p>
+                      <p className="text-[12px] font-extrabold text-on-surface leading-snug font-[family-name:var(--font-manrope)]">{s.name}</p>
+                      <div className="flex items-center gap-1 mt-1.5">
+                        <p className="text-[10px] text-on-surface-variant/45 flex-1 leading-snug">
+                          {edu.openingLine.length > 32 ? edu.openingLine.slice(0, 32) + "…" : edu.openingLine}
+                        </p>
+                        <ChevronDown
+                          className="w-3.5 h-3.5 shrink-0 transition-transform duration-200"
+                          style={{ color: edu.color, transform: isActive ? "rotate(180deg)" : "rotate(0deg)" }}
+                          strokeWidth={2.5}
+                        />
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Expanded detail panel */}
+            {expandedCard && (() => {
+              const s = supplements.find(x => x.id === expandedCard);
+              if (!s) return null;
+              const edu = EDUCATION[s.category] ?? EDUCATION.nutrition;
+              const weekNum = Math.floor(visitCount / 7);
+              const tlProgress = Math.min(weekNum, 2);
+              return (
+                <div
+                  className="rounded-3xl border overflow-hidden mt-2"
+                  style={{ background: `linear-gradient(160deg, ${edu.bannerFrom}12, ${edu.bannerTo}06, #fff)`, borderColor: `${edu.bannerFrom}35` }}
+                >
+                  <div className="px-4 pt-4 pb-5 space-y-4">
+
+                    {/* Opening */}
+                    <div>
+                      <p className="text-[14px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">{edu.openingLine}</p>
+                      <p className="text-[12px] text-on-surface-variant/60 mt-1 leading-relaxed">{edu.what}</p>
+                    </div>
+
+                    {/* Ingredient pills */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {edu.ingredients.map(ing => (
+                        <span key={ing.label} className="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border text-on-surface"
+                          style={{ background: `${edu.bannerFrom}10`, borderColor: `${edu.bannerFrom}30` }}>
+                          <span className="text-[13px]">{ing.emoji}</span>{ing.label}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Fact cards */}
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {edu.facts.map((fact, i) => (
+                        <div key={i} className="rounded-2xl px-3.5 py-3.5" style={{ background: `${edu.bannerFrom}10` }}>
+                          <p className="text-[24px] font-extrabold leading-none font-[family-name:var(--font-manrope)]" style={{ color: edu.color }}>{fact.stat}</p>
+                          <p className="text-[10px] text-on-surface-variant/55 mt-1.5 leading-snug">{fact.label}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Timeline */}
+                    <div>
+                      <p className="text-[10px] font-bold text-on-surface-variant/35 uppercase tracking-wider mb-3">Progress Timeline</p>
+                      <div className="relative">
+                        <div className="flex items-start">
+                          {edu.timeline.map((t, i) => (
+                            <div key={i} className="flex-1 flex flex-col items-center">
+                              <div className="w-3 h-3 rounded-full border-2 relative z-10 transition-all"
+                                style={{
+                                  borderColor: i <= tlProgress ? edu.bannerFrom : "#d1d5db",
+                                  background: i <= tlProgress ? edu.bannerFrom : "#fff",
+                                }} />
+                              <p className="text-[9px] font-bold text-center mt-1.5" style={{ color: i <= tlProgress ? edu.color : "#9ca3af" }}>{t.label}</p>
+                              <p className="text-[8px] text-on-surface-variant/40 text-center mt-0.5">{t.desc}</p>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="absolute top-[5px] left-[16.67%] right-[16.67%] h-0.5 bg-gray-100" />
+                        <div className="absolute top-[5px] left-[16.67%] h-0.5 transition-all duration-700"
+                          style={{ background: edu.bannerFrom, width: tlProgress === 0 ? 0 : tlProgress === 1 ? "33.33%" : "66.67%" }} />
+                      </div>
+                      {visitCount > 0 && (
+                        <p className="text-[10px] font-semibold text-center mt-3 rounded-full py-1"
+                          style={{ color: edu.color, background: `${edu.bannerFrom}15` }}>
+                          You are here · Week {weekNum + 1}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Timing */}
+                    <div className="flex items-center gap-2.5 rounded-2xl px-3.5 py-3" style={{ background: `${edu.bannerFrom}08` }}>
+                      <span className="text-[15px]">⏰</span>
+                      <div>
+                        <p className="text-[9px] font-bold text-on-surface-variant/35 uppercase tracking-wider">Best time to take</p>
+                        <p className="text-[12px] font-semibold text-on-surface mt-0.5">{edu.timing}</p>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* ── Recc for More Improvement ── */}
+        {complementary.length > 0 && (
+          <div>
+            <div className="mb-3 px-0.5">
+              <p className="text-[10px] font-bold text-on-surface-variant/35 uppercase tracking-widest">Level Up</p>
+              <p className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mt-0.5">Boost Your Results</p>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5 snap-x snap-mandatory" style={{ scrollbarWidth: "none" }}>
+              {complementary.map(p => {
+                const catKey = EDUCATION[p.category] ? p.category : p.concern[0] ?? "energy";
+                const edu = EDUCATION[catKey] ?? EDUCATION.nutrition;
+                return (
+                  <div key={p.id} className="snap-start shrink-0 w-[158px] rounded-3xl border overflow-hidden"
+                    style={{ background: `linear-gradient(160deg, ${edu.bannerFrom}12, #fff 65%)`, borderColor: `${edu.bannerFrom}25` }}>
+                    <div className="h-36 flex items-center justify-center">
+                      {p.image && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.image} alt={p.name} className="h-32 w-32 object-contain" />
+                      )}
+                    </div>
+                    <div className="px-3 pb-4">
+                      <p className="text-[8px] font-bold uppercase tracking-widest mb-0.5" style={{ color: edu.color }}>{p.brand}</p>
+                      <p className="text-[11px] font-extrabold text-on-surface leading-snug font-[family-name:var(--font-manrope)]">{p.name}</p>
+                      <p className="text-[10px] text-on-surface-variant/45 mt-0.5">₹{p.price}</p>
+                      {p.url && (
+                        <a href={p.url} target="_blank" rel="noopener noreferrer"
+                          className="mt-2.5 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-[10px] font-bold transition-colors"
+                          style={{ color: edu.color, background: `${edu.bannerFrom}15`, border: `1px solid ${edu.bannerFrom}35` }}>
+                          <ShoppingBag className="w-3 h-3" strokeWidth={2.5} /> Shop
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── Stock Running Out ── */}
+        {supplements.length > 0 && (
+          <div>
+            <div className="mb-3 px-0.5">
+              <p className="text-[10px] font-bold text-on-surface-variant/35 uppercase tracking-widest">Supply Tracker</p>
+              <p className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mt-0.5">Your Stock</p>
+            </div>
+            <div className="rounded-3xl bg-white border border-outline-variant/10 overflow-hidden divide-y divide-gray-50">
+              {supplements.map(s => {
+                const edu = EDUCATION[s.category] ?? EDUCATION.nutrition;
+                const daysLeft = Math.max(1, 30 - (visitCount % 30 || 0));
+                const pct = (daysLeft / 30) * 100;
+                const barColor   = daysLeft > 15 ? "#10b981" : daysLeft > 8 ? "#f59e0b" : "#f43f5e";
+                const statusText = daysLeft > 15 ? "Stocked up" : daysLeft > 8 ? "Getting low" : "Reorder soon";
+                const statusStyle = daysLeft > 15
+                  ? { color: "#065f46", background: "#ecfdf5" }
+                  : daysLeft > 8
+                  ? { color: "#92400e", background: "#fffbeb" }
+                  : { color: "#9f1239", background: "#fff1f2" };
+                return (
+                  <div key={s.id} className="flex items-center gap-3 px-4 py-3.5">
+                    <div className="w-12 h-12 rounded-2xl overflow-hidden shrink-0 flex items-center justify-center"
+                      style={{ background: `${edu.bannerFrom}15` }}>
+                      {s.image && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={s.image} alt={s.name} className="w-11 h-11 object-contain" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-bold text-on-surface leading-none truncate">{s.name.split(" ").slice(0, 3).join(" ")}</p>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <div className="flex-1 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                          <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: barColor }} />
+                        </div>
+                        <span className="text-[10px] font-bold shrink-0" style={{ color: barColor }}>{daysLeft}d left</span>
+                      </div>
+                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-md mt-1 inline-block" style={statusStyle}>{statusText}</span>
+                    </div>
+                    {s.url && (
+                      <a href={s.url} target="_blank" rel="noopener noreferrer"
+                        className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-2xl text-[11px] font-bold transition-colors"
+                        style={{ color: edu.color, background: `${edu.bannerFrom}12`, border: `1px solid ${edu.bannerFrom}35` }}>
+                        <ShoppingBag className="w-3 h-3" strokeWidth={2.5} /> Shop
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {supplements.length === 0 && profileLoaded && (
+          <div className="rounded-3xl bg-white border border-outline-variant/10 p-6 text-center">
+            <p className="text-[13px] font-semibold text-on-surface mb-1">No protocol yet</p>
+            <p className="text-[12px] text-on-surface-variant/50">Complete your onboarding to see your supplement insights here.</p>
+          </div>
+        )}
+
       </div>
     </div>
   );

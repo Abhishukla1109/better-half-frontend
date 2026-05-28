@@ -6,9 +6,6 @@ import {
   Sparkles,
   ChevronRight,
   ChevronDown,
-  Sun,
-  Moon,
-  Zap,
   Check,
   ShoppingBag,
   ArrowLeft,
@@ -393,7 +390,8 @@ export default function ProtocolPage() {
   const [showProtocolCart, setShowProtocolCart] = useState(false);
   // Question bottom sheet
   const [showQuestionSheet, setShowQuestionSheet] = useState(false);
-  const [cartSelections, setCartSelections] = useState<("main" | "alt")[]>(["main", "main", "main"]);
+  const [cartChecked, setCartChecked] = useState<boolean[]>([]);
+  const [cartSwapped, setCartSwapped] = useState<boolean[]>([]);
   const [checkingOutCart, setCheckingOutCart] = useState(false);
   // Stepped intro animation for the depth bar
   const [displayDepth, setDisplayDepth] = useState(0);
@@ -532,12 +530,11 @@ export default function ProtocolPage() {
   const handleCheckoutProtocolCart = useCallback(async () => {
     if (!protocol) return;
     setCheckingOutCart(true);
-    const mainPicks = protocol.supplements.slice(0, 3);
     try {
-      for (let i = 0; i < mainPicks.length; i++) {
-        const s = mainPicks[i];
-        const alt = s.alternative;
-        const active = cartSelections[i] === "alt" && alt ? alt : s;
+      for (let i = 0; i < protocol.supplements.length; i++) {
+        if (!cartChecked[i]) continue;
+        const s = protocol.supplements[i];
+        const active = (cartSwapped[i] && s.alternative) ? s.alternative : s;
         if (!addedIds.has(active.id)) {
           const variantId = await resolveVariantId(active.id);
           if (variantId) {
@@ -550,10 +547,46 @@ export default function ProtocolPage() {
     } finally {
       setCheckingOutCart(false);
     }
-  }, [protocol, cartSelections, addedIds, addItem]);
+  }, [protocol, cartChecked, cartSwapped, addedIds, addItem]);
 
   /* ── Derived state ─────────────────────────────────────────── */
   const concernList = useMemo(() => parseConcernList(profile), [profile]);
+
+  // Groups for the Protocol Cart sheet — all supplements bucketed by concern
+  const protocolCartGroups = useMemo(() => {
+    if (!protocol) return [];
+    const supplements = protocol.supplements;
+    if (concernList.length <= 1) {
+      return [{
+        label: concernList[0] ? (CONCERN_DISPLAY[concernList[0]] ?? concernList[0]) : "Your Picks",
+        emoji: concernList[0] ? (CONCERN_EMOJI[concernList[0]] ?? "✦") : "✦",
+        indices: supplements.map((_, i) => i),
+      }];
+    }
+    const groups: { label: string; emoji: string; indices: number[] }[] = [];
+    const assigned = new Set<number>();
+    for (const label of concernList) {
+      const concernValues = ONBOARDING_CONCERN_MAP[label] ?? [];
+      const indices: number[] = [];
+      for (let i = 0; i < supplements.length; i++) {
+        if (assigned.has(i)) continue;
+        const productConcerns = ALL_PRODUCTS.find((p) => p.id === supplements[i].id)?.concern ?? [];
+        if (productConcerns.some((c) => concernValues.includes(c))) {
+          indices.push(i);
+          assigned.add(i);
+        }
+      }
+      if (indices.length > 0) {
+        groups.push({ label: CONCERN_DISPLAY[label] ?? label, emoji: CONCERN_EMOJI[label] ?? "✦", indices });
+      }
+    }
+    const unassigned = supplements.map((_, i) => i).filter((i) => !assigned.has(i));
+    if (unassigned.length > 0) {
+      if (groups.length > 0) groups[0].indices.push(...unassigned);
+      else groups.push({ label: "Your Picks", emoji: "✦", indices: unassigned });
+    }
+    return groups;
+  }, [protocol, concernList]);
 
   // Group supplements by user concern — only when 2+ concerns
   const groupedSupplements = useMemo(() => {
@@ -703,6 +736,13 @@ export default function ProtocolPage() {
     if (introPlayed.current) setDisplayDepth(liveDepth);
   }, [liveDepth]);
 
+  useEffect(() => {
+    if (protocol?.supplements?.length) {
+      setCartChecked(protocol.supplements.map(() => true));
+      setCartSwapped(protocol.supplements.map(() => false));
+    }
+  }, [protocol?.supplements?.length]);
+
   /* ── Loading ───────────────────────────────────────────────── */
   if (loading || !protocol) {
     return (
@@ -746,188 +786,131 @@ export default function ProtocolPage() {
 
 
       {/* ── Protocol Cart Sheet ── */}
-      {showProtocolCart && protocol && (() => {
-        const mainPicks = protocol.supplements.slice(0, 3);
+      {showProtocolCart && protocol && (
+        <div className="fixed inset-0 z-[60] flex flex-col justify-end" onClick={() => setShowProtocolCart(false)}>
+          <div className="bg-surface rounded-t-3xl shadow-2xl max-h-[92dvh] flex flex-col animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
 
-        // Build concern-grouped structure preserving cartSelections index
-        const popupGroups: { label: string; emoji: string; items: { s: typeof mainPicks[0]; idx: number }[] }[] = [];
-        if (concernList.length <= 1) {
-          popupGroups.push({
-            label: concernList[0] ? (CONCERN_DISPLAY[concernList[0]] ?? concernList[0]) : "Your Picks",
-            emoji: concernList[0] ? (CONCERN_EMOJI[concernList[0]] ?? "✦") : "✦",
-            items: mainPicks.map((s, idx) => ({ s, idx })),
-          });
-        } else {
-          const assigned = new Set<number>();
-          for (const label of concernList) {
-            const concernValues = ONBOARDING_CONCERN_MAP[label] ?? [];
-            const items: { s: typeof mainPicks[0]; idx: number }[] = [];
-            for (let idx = 0; idx < mainPicks.length; idx++) {
-              if (assigned.has(idx)) continue;
-              const productConcerns = ALL_PRODUCTS.find((p) => p.id === mainPicks[idx].id)?.concern ?? [];
-              if (productConcerns.some((c) => concernValues.includes(c))) {
-                items.push({ s: mainPicks[idx], idx });
-                assigned.add(idx);
-              }
-            }
-            if (items.length > 0) {
-              popupGroups.push({ label: CONCERN_DISPLAY[label] ?? label, emoji: CONCERN_EMOJI[label] ?? "✦", items });
-            }
-          }
-          for (let idx = 0; idx < mainPicks.length; idx++) {
-            if (!assigned.has(idx) && popupGroups.length > 0) {
-              popupGroups[0].items.push({ s: mainPicks[idx], idx });
-            }
-          }
-        }
-
-        const cartTotal = mainPicks.reduce((sum, s, i) => {
-          const active = cartSelections[i] === "alt" && s.alternative ? s.alternative : s;
-          return sum + active.price;
-        }, 0);
-
-        return (
-          <div className="fixed inset-0 z-[60] flex flex-col justify-end" onClick={() => setShowProtocolCart(false)}>
-            <div className="bg-surface rounded-t-3xl shadow-2xl max-h-[92dvh] flex flex-col animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
-
-              {/* Tinted header */}
-              <div className="shrink-0 rounded-t-3xl overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(21,89,74,0.12) 0%, rgba(21,89,74,0.05) 100%)" }}>
-                <div className="w-10 h-1 rounded-full bg-outline-variant/25 mx-auto mt-3.5 mb-0" />
-                <div className="flex items-start justify-between px-5 pt-4 pb-4">
-                  <div>
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
-                      <span className="text-[10px] font-bold text-primary-container uppercase tracking-wider">Your Protocol</span>
-                    </div>
-                    <h2 className="text-[19px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-tight">
-                      Protocol Pack
-                    </h2>
-                    <p className="text-[11px] text-on-surface-variant/60 mt-0.5">
-                      {mainPicks.length} picks · Free delivery · Doctor-approved
-                    </p>
+            {/* Header */}
+            <div className="shrink-0 rounded-t-3xl" style={{ background: "linear-gradient(135deg, rgba(21,89,74,0.08) 0%, rgba(21,89,74,0.03) 100%)" }}>
+              <div className="w-10 h-1 rounded-full bg-outline-variant/25 mx-auto mt-3.5" />
+              <div className="flex items-center justify-between px-5 pt-3 pb-4">
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Sparkles className="w-3 h-3 text-primary-container" strokeWidth={1.5} />
+                    <span className="text-[10px] font-bold text-primary-container uppercase tracking-wider">Your Protocol</span>
                   </div>
-                  <button
-                    onClick={() => setShowProtocolCart(false)}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-container/60 hover:bg-surface-container-high cursor-pointer transition-colors mt-0.5"
-                    aria-label="Close"
-                  >
-                    <X className="w-4 h-4 text-on-surface-variant" strokeWidth={2} />
-                  </button>
+                  <h2 className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
+                    Protocol Pack
+                  </h2>
+                  <p className="text-[11px] text-on-surface-variant/50 mt-0.5">
+                    {cartChecked.filter(Boolean).length} of {protocol.supplements.length} selected
+                  </p>
                 </div>
+                <button
+                  onClick={() => setShowProtocolCart(false)}
+                  className="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center cursor-pointer hover:bg-surface-container transition-colors"
+                  aria-label="Close"
+                >
+                  <X className="w-4 h-4 text-on-surface-variant" strokeWidth={2} />
+                </button>
               </div>
+            </div>
 
-              {/* Concern-grouped 2-col card grid */}
-              <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2">
-                {popupGroups.map((group) => (
-                  <div key={group.label} className="mb-5">
-                    {/* Concern label */}
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-[15px] leading-none">{group.emoji}</span>
-                      <span className="text-[12px] font-bold text-on-surface">{group.label}</span>
-                      <div className="flex-1 h-px bg-outline-variant/15" />
-                    </div>
-
-                    {/* Cards */}
-                    {group.items.map(({ s, idx }) => {
+            {/* Product checklist — grouped by concern */}
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-5">
+              {protocolCartGroups.map((group) => (
+                <div key={group.label}>
+                  {/* Section header */}
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <span className="text-[14px] leading-none">{group.emoji}</span>
+                    <span className="text-[11px] font-bold text-on-surface uppercase tracking-wider">{group.label}</span>
+                    <div className="flex-1 h-px bg-outline-variant/15" />
+                  </div>
+                  {/* Cards */}
+                  <div className="space-y-2">
+                    {group.indices.map((i) => {
+                      const s = protocol.supplements[i];
+                      const isChecked = cartChecked[i] ?? true;
+                      const isSwapped = cartSwapped[i] ?? false;
+                      const active = (isSwapped && s.alternative) ? s.alternative : s;
                       const alt = s.alternative;
-                      const isAlt = cartSelections[idx] === "alt";
-                      const toggle = () => setCartSelections((prev) => {
-                        const next = [...prev]; next[idx] = next[idx] === "alt" ? "main" : "alt"; return next;
-                      });
-                      const trustBadge = getTrustBadge(s);
                       return (
-                        <div key={s.id} className={`grid gap-2 mb-1 ${alt ? "grid-cols-2" : "grid-cols-1"}`}>
-                          {/* Main pick — compact horizontal card */}
+                        <div
+                          key={s.id}
+                          className={`rounded-2xl border transition-all duration-200 ${
+                            isChecked ? "border-primary-container/20 bg-surface-container-lowest" : "border-outline-variant/10 bg-surface opacity-50"
+                          }`}
+                        >
                           <button
-                            onClick={() => { if (isAlt) toggle(); }}
-                            className={`relative flex items-center gap-2.5 p-2.5 rounded-2xl border-2 transition-all text-left cursor-pointer active:scale-[0.98] ${
-                              !isAlt ? "border-primary-container" : "border-outline-variant/12 opacity-55"
-                            }`}
-                            style={!isAlt ? { background: "rgba(21,89,74,0.05)" } : {}}
+                            className="w-full flex items-center gap-3 px-3.5 py-3 text-left cursor-pointer"
+                            onClick={() => setCartChecked(prev => { const n = [...prev]; n[i] = !n[i]; return n; })}
                           >
-                            {!isAlt && (
-                              <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-primary-container flex items-center justify-center z-10">
-                                <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
-                              </div>
-                            )}
-                            <div className="w-12 h-12 rounded-xl overflow-hidden bg-surface-container-low shrink-0">
-                              {s.image
-                                // eslint-disable-next-line @next/next/no-img-element
-                                ? <img src={s.image} alt={s.name} className="w-full h-full object-cover" loading="lazy" />
-                                : <div className="w-full h-full flex items-center justify-center text-xl leading-none">{getSupplementEmoji(s.name)}</div>}
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+                              isChecked ? "bg-primary-container border-primary-container" : "border-outline-variant/40"
+                            }`}>
+                              {isChecked && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
                             </div>
-                            <div className="flex-1 min-w-0 pr-3">
-                              <p className="text-[8px] font-bold text-primary-container/60 uppercase tracking-wider leading-none mb-0.5">{s.brand}</p>
-                              <p className="text-[11px] font-bold text-on-surface leading-snug line-clamp-2 mb-1">{s.name}</p>
-                              {trustBadge && (
-                                <span className={`inline-block text-[8px] font-bold px-1.5 py-0.5 rounded-md leading-none mb-1 ${trustBadge.style}`}>{trustBadge.label}</span>
-                              )}
-                              <p className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
+                            <div className="w-11 h-11 rounded-xl overflow-hidden bg-surface-container shrink-0">
+                              {active.image
+                                // eslint-disable-next-line @next/next/no-img-element
+                                ? <img src={active.image} alt={active.name} className="w-full h-full object-cover" loading="lazy" />
+                                : <div className="w-full h-full flex items-center justify-center text-lg leading-none">{getSupplementEmoji(active.name)}</div>}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[9px] font-bold text-on-surface-variant/45 uppercase tracking-wider leading-none mb-0.5">{active.brand}</p>
+                              <p className="text-[12px] font-bold text-on-surface leading-snug">{active.name}</p>
+                              <p className="text-[13px] font-extrabold text-on-surface mt-0.5 font-[family-name:var(--font-manrope)]">₹{active.price}</p>
                             </div>
                           </button>
-
-                          {/* Alternative — compact horizontal card */}
-                          {alt && (
-                            <button
-                              onClick={() => { if (!isAlt) toggle(); }}
-                              className={`relative flex items-center gap-2.5 p-2.5 rounded-2xl border-2 transition-all text-left cursor-pointer active:scale-[0.98] ${
-                                isAlt ? "border-primary-container" : "border-outline-variant/12 opacity-55"
-                              }`}
-                              style={isAlt ? { background: "rgba(21,89,74,0.05)" } : {}}
-                            >
-                              {isAlt && (
-                                <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-primary-container flex items-center justify-center z-10">
-                                  <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
-                                </div>
-                              )}
-                              <div className="w-12 h-12 rounded-xl overflow-hidden bg-surface-container-low shrink-0">
-                                {alt.image
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  ? <img src={alt.image} alt={alt.name} className="w-full h-full object-cover" loading="lazy" />
-                                  : <div className="w-full h-full flex items-center justify-center text-xl leading-none">{getSupplementEmoji(alt.name)}</div>}
-                              </div>
-                              <div className="flex-1 min-w-0 pr-3">
-                                <p className="text-[8px] font-bold text-primary-container/60 uppercase tracking-wider leading-none mb-0.5">{alt.brand}</p>
-                                <p className="text-[11px] font-bold text-on-surface leading-snug line-clamp-2 mb-1">{alt.name}</p>
-                                <span className="inline-block text-[8px] font-bold text-primary-container bg-primary-container/10 px-1.5 py-0.5 rounded-md leading-none mb-1 truncate max-w-full">{alt.reason}</span>
-                                <p className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{alt.price}</p>
-                              </div>
-                            </button>
+                          {alt && isChecked && (
+                            <div className="px-3.5 pb-3 -mt-0.5">
+                              <button
+                                onClick={() => setCartSwapped(prev => { const n = [...prev]; n[i] = !n[i]; return n; })}
+                                className="text-[10px] font-semibold text-primary-container bg-primary-container/8 px-2.5 py-1 rounded-full border border-primary-container/15 cursor-pointer hover:bg-primary-container/15 transition-colors"
+                              >
+                                {isSwapped
+                                  ? `↩ Back to ${s.name.split(" ").slice(0, 3).join(" ")}`
+                                  : `Swap → ${alt.name.split(" ").slice(0, 3).join(" ")} · ₹${alt.price}`}
+                              </button>
+                            </div>
                           )}
                         </div>
                       );
                     })}
                   </div>
-                ))}
-              </div>
-
-              {/* Footer */}
-              <div className="px-5 pt-3 pb-7 border-t border-outline-variant/10 bg-surface shrink-0">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <span className="text-sm font-semibold text-on-surface-variant">Subtotal</span>
-                    <p className="text-[10px] text-on-surface-variant/40 mt-0.5">Based on your selection</p>
-                  </div>
-                  <span className="text-xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">₹{cartTotal.toLocaleString("en-IN")}</span>
                 </div>
-                <button
-                  onClick={handleCheckoutProtocolCart}
-                  disabled={checkingOutCart}
-                  className="w-full py-4 rounded-2xl bg-primary-container text-white font-bold text-sm hover:bg-primary transition-colors duration-200 cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
-                >
-                  {checkingOutCart
-                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Adding to cart…</>
-                    : <><ShoppingBag className="w-4 h-4" strokeWidth={2} /> Add All &amp; Checkout</>}
-                </button>
-                <p className="text-[10px] text-on-surface-variant/40 text-center mt-2">
-                  Free delivery · Doctor-approved · Made for Indian bodies
-                </p>
-              </div>
-
+              ))}
             </div>
+
+            {/* Footer */}
+            <div className="px-5 pt-3 pb-7 border-t border-outline-variant/10 shrink-0">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-semibold text-on-surface-variant">Subtotal</span>
+                <span className="text-xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
+                  ₹{protocol.supplements.reduce((sum, s, i) => {
+                    if (!cartChecked[i]) return sum;
+                    const active = (cartSwapped[i] && s.alternative) ? s.alternative : s;
+                    return sum + active.price;
+                  }, 0).toLocaleString("en-IN")}
+                </span>
+              </div>
+              <button
+                onClick={handleCheckoutProtocolCart}
+                disabled={checkingOutCart || !cartChecked.some(Boolean)}
+                className="w-full py-4 rounded-2xl bg-primary-container text-white font-bold text-sm hover:bg-primary transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {checkingOutCart
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Adding to cart…</>
+                  : <><ShoppingBag className="w-4 h-4" strokeWidth={2} /> Add Selected &amp; Checkout</>}
+              </button>
+              <p className="text-[10px] text-on-surface-variant/40 text-center mt-2">
+                Free delivery · Doctor-approved · Made for Indian bodies
+              </p>
+            </div>
+
           </div>
-        );
-      })()}
+        </div>
+      )}
 
       {/* ── Question bottom sheet ── */}
       {showQuestionSheet && (
@@ -1382,7 +1365,7 @@ export default function ProtocolPage() {
             {/* Shop CTA */}
             <div className="mt-2">
               <button
-                onClick={() => { setCartSelections(["main", "main", "main"]); setShowProtocolCart(true); }}
+                onClick={() => setShowProtocolCart(true)}
                 className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-primary-container text-sm font-bold text-white hover:bg-primary transition-colors duration-200 cursor-pointer"
               >
                 <ShoppingBag className="w-4 h-4" strokeWidth={2} />
@@ -1466,41 +1449,6 @@ export default function ProtocolPage() {
               </div>
             )}
 
-            {/* ── How to take your protocol — shown after products ── */}
-            {protocol.dailyRoutine.length > 0 && (
-              <div className="mb-4 animate-fade-in-up">
-                <div className="mb-3 px-1">
-                  <p className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-1">
-                    How to take {possLower} protocol.
-                  </p>
-                  <p className="text-xs text-on-surface-variant/65 leading-relaxed">
-                    Timing and consistency matter. Here&apos;s how to build these into your day.
-                  </p>
-                </div>
-                <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-1">
-                  {protocol.dailyRoutine.map((item, i) => {
-                    const Icon = item.time === "morning" ? Sun : item.time === "afternoon" ? Zap : Moon;
-                    const timeLabel = item.time === "morning" ? "Morning" : item.time === "afternoon" ? "Afternoon" : "Evening";
-                    const cardStyle = item.time === "morning"
-                      ? "bg-amber-500/8 border-amber-500/15"
-                      : item.time === "afternoon"
-                      ? "bg-sky-500/8 border-sky-500/15"
-                      : "bg-indigo-500/8 border-indigo-500/15";
-                    const iconColor = item.time === "morning" ? "text-amber-600" : item.time === "afternoon" ? "text-sky-600" : "text-indigo-600";
-                    const { action } = splitRoutineText(item.text);
-                    return (
-                      <div key={i} className={`flex-shrink-0 w-[36vw] max-w-[148px] min-w-[124px] rounded-2xl border p-3.5 flex flex-col ${cardStyle}`}>
-                        <Icon className={`w-6 h-6 mb-3 ${iconColor}`} strokeWidth={1.5} />
-                        <p className={`text-[9px] font-bold uppercase tracking-wider mb-1.5 ${iconColor}`}>
-                          {timeLabel}
-                        </p>
-                        <p className="text-xs font-semibold text-on-surface leading-snug">{compressHabit(action)}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
 
             {/* Blood report — level up card */}
             {!profile?.bloodReport && (

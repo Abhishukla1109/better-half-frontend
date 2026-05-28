@@ -39,6 +39,38 @@ const ONBOARDING_CONCERN_MAP: Record<string, string[]> = {
   "Sleep / mind": ["sleep"],
 };
 
+/* ── Kids-specific filters ── */
+const KIDS_CATEGORY_FILTERS = [
+  { key: "gummies",        label: "Gummies",        emoji: "🍬" },
+  { key: "nutrition",      label: "Nutrition",      emoji: "💊" },
+  { key: "personal-care",  label: "Personal Care",  emoji: "🌿" },
+  { key: "healthysnacks",  label: "Healthy Snacks", emoji: "🥗" },
+];
+
+const KIDS_CONCERN_FILTERS = [
+  { key: "immunity",   label: "Immunity",          emoji: "🛡️", desc: "Vitamins, probiotics, zinc" },
+  { key: "growth",     label: "Growth & Nutrition", emoji: "🌱", desc: "Calcium, protein, multivitamins" },
+  { key: "focus",      label: "Focus & Brain",     emoji: "🧠", desc: "DHA, omega-3, memory support" },
+  { key: "sleep",      label: "Better Sleep",      emoji: "😴", desc: "Magnesium, calm supplements" },
+  { key: "energy",     label: "Energy",            emoji: "⚡", desc: "B vitamins, iron, multivitamins" },
+  { key: "nutrition",  label: "Nutrition Gaps",    emoji: "🥗", desc: "Multivitamins, fussy eater support" },
+  { key: "skin",       label: "Skin & Hair",       emoji: "✨", desc: "Biotin, collagen, vitamins" },
+];
+
+const KIDS_CONCERN_FOLLOWUP: Record<string, string[]> = {
+  focus:     ["brain", "dha", "omega3", "focus", "learning"],
+  immunity:  ["immunity", "vitamins"],
+  growth:    ["growth", "nutrition", "protein", "calcium", "bone"],
+  sleep:     [],
+  energy:    ["nutrition", "vitamins"],
+  skin:      [],
+  hair:      ["hair", "biotin"],
+  nutrition: ["nutrition", "protein", "vitamins"],
+};
+
+const KIDS_CATEGORY_KEYS = KIDS_CATEGORY_FILTERS.map((c) => c.key);
+const KIDS_CONCERN_KEYS  = KIDS_CONCERN_FILTERS.map((c) => c.key);
+
 /* Brand badge colors */
 const BRAND_STYLE: Record<string, { bg: string; text: string }> = {
   "Man Matters": { bg: "bg-primary-container/10", text: "text-primary-container" },
@@ -293,8 +325,10 @@ function ExplorePageContent() {
 
   const { activeMember } = useActiveProfile();
 
+  const isKid = activeMember?.type === "child";
+
   const activeBrand: string | null =
-    activeMember?.type === "child" ? "Little Joys"
+    isKid ? "Little Joys"
     : activeMember?.type === "female" ? "Be Bodywise"
     : activeMember ? "Man Matters"
     : null;
@@ -335,14 +369,48 @@ function ExplorePageContent() {
   }, [profile]);
 
   const displayedProducts = useMemo<(Product & { matchScore?: number })[]>(() => {
-    // Child / LJ brand: all views show Little Joys products
-    if (activeBrand === "Little Joys") {
-      const lj = ALL_PRODUCTS.filter((p) => p.brand === "Little Joys").sort((a, b) => b.baseScore - a.baseScore);
+    // Kids: Little Joys products filtered by age segment
+    if (isKid) {
+      const childAge = activeMember?.childAge ?? "6-12";
+      const seg = childAge === "2-5" ? "kids-2-5" : childAge === "6-12" ? "kids-6-12" : "kids-13-plus";
+      const lj = ALL_PRODUCTS
+        .filter((p) => p.brand === "Little Joys" && p.segment.includes(seg))
+        .sort((a, b) => b.baseScore - a.baseScore);
+
       if (activeCategory === "bestsellers") return lj.slice(0, 20);
       if (activeCategory === "all") return lj;
-      const cat = CATEGORIES.find((c) => c.key === activeCategory);
-      if (cat) return lj.filter((p) => p.concern.some((c) => cat.concernValues.includes(c)));
-      return lj;
+
+      // Kids category filter (by product.category)
+      if (KIDS_CATEGORY_KEYS.includes(activeCategory)) {
+        return lj.filter((p) => p.category === activeCategory);
+      }
+
+      // Kids concern filter
+      if (KIDS_CONCERN_KEYS.includes(activeCategory) && activeCategory !== "for-you") {
+        return lj.filter((p) => p.concern.includes(activeCategory));
+      }
+
+      // For You: match to child's saved concern
+      const childConcern = (activeMember?.profile as Record<string, unknown>)?.concern as string | undefined;
+      if (!childConcern) return lj;
+
+      const followUps = KIDS_CONCERN_FOLLOWUP[childConcern] ?? [];
+      const directConcern = ["sleep", "skin", "hair"].includes(childConcern);
+      return [...lj].sort((a, b) => {
+        const aMatch = directConcern
+          ? a.concern.includes(childConcern)
+          : followUps.length > 0
+            ? a.followUp.some((f) => followUps.some((t) => f.toLowerCase().includes(t)))
+            : a.concern.includes("energy");
+        const bMatch = directConcern
+          ? b.concern.includes(childConcern)
+          : followUps.length > 0
+            ? b.followUp.some((f) => followUps.some((t) => f.toLowerCase().includes(t)))
+            : b.concern.includes("energy");
+        if (aMatch && !bMatch) return -1;
+        if (!aMatch && bMatch) return 1;
+        return b.baseScore - a.baseScore;
+      });
     }
 
     if (activeCategory === "bestsellers") {
@@ -351,20 +419,23 @@ function ExplorePageContent() {
     }
 
     if (activeCategory === "all") {
-      return ALL_PRODUCTS.slice().sort((a, b) => b.baseScore - a.baseScore);
+      const pool = activeBrand ? ALL_PRODUCTS.filter((p) => p.brand === activeBrand) : ALL_PRODUCTS;
+      return pool.slice().sort((a, b) => b.baseScore - a.baseScore);
     }
 
     if (activeCategory === "for-you") {
       if (!profile || forYouConcernValues.length === 0) return [];
-      return scoreProducts(forYouConcernValues, profile);
+      const scored = scoreProducts(forYouConcernValues, profile);
+      return activeBrand ? scored.filter((p) => p.brand === activeBrand) : scored;
     }
 
     const cat = CATEGORIES.find((c) => c.key === activeCategory);
     if (!cat) return [];
-    return ALL_PRODUCTS
+    const pool = activeBrand ? ALL_PRODUCTS.filter((p) => p.brand === activeBrand) : ALL_PRODUCTS;
+    return pool
       .filter((p) => p.concern.some((c) => cat.concernValues.includes(c)))
       .sort((a, b) => b.baseScore - a.baseScore);
-  }, [activeCategory, profile, forYouConcernValues, activeBrand]);
+  }, [activeCategory, profile, forYouConcernValues, activeBrand, isKid, activeMember]);
 
   const visibleCategories = useMemo<CategoryDef[]>(() => {
     return CATEGORIES.filter((c) => {
@@ -420,7 +491,9 @@ function ExplorePageContent() {
     { key: "all",            label: "Shop All",     icon: "📦" },
   ];
 
-  const CATEGORY_KEYS = ["hair","beard","skin","weight","nutrition","sleep","hormones"];
+  const CATEGORY_KEYS = isKid
+    ? KIDS_CATEGORY_KEYS
+    : ["hair", "beard", "skin", "weight", "nutrition", "sleep", "hormones"];
 
   const handleChipClick = (key: string) => {
     if (key === "category-sheet") { setShowCategorySheet(true); return; }
@@ -430,7 +503,7 @@ function ExplorePageContent() {
 
   const isChipActive = (key: string) => {
     if (key === "category-sheet") return CATEGORY_KEYS.includes(activeCategory);
-    if (key === "concern-sheet")  return false;
+    if (key === "concern-sheet")  return isKid ? KIDS_CONCERN_KEYS.includes(activeCategory) : false;
     return activeCategory === key;
   };
 
@@ -522,15 +595,21 @@ function ExplorePageContent() {
               </h1>
               {!showNoProfile && (
                 <p className="text-[11px] text-on-surface-variant/50 mt-0.5 truncate">
-                  {isForYou && forYouConcernValues.length > 0
+                  {isForYou && isKid
                     ? (() => {
-                        const raw = (profile?.concerns as string | undefined) ?? profile?.concern ?? "";
-                        const labels = raw.split(",").map((s) => s.trim()).filter(Boolean);
-                        return labels.length > 1
-                          ? `Matched across ${labels.length} concerns`
-                          : `Matched to your ${labels[0] ?? ""} concern`;
+                        const concern = (activeMember?.profile as Record<string, unknown>)?.concern as string | undefined;
+                        const name = activeMember?.name ?? "your child";
+                        return concern ? `Matched to ${name}'s ${concern} goal` : `${displayedProducts.length} products`;
                       })()
-                    : `${displayedProducts.length} product${displayedProducts.length !== 1 ? "s" : ""}`}
+                    : isForYou && forYouConcernValues.length > 0
+                      ? (() => {
+                          const raw = (profile?.concerns as string | undefined) ?? profile?.concern ?? "";
+                          const labels = raw.split(",").map((s) => s.trim()).filter(Boolean);
+                          return labels.length > 1
+                            ? `Matched across ${labels.length} concerns`
+                            : `Matched to your ${labels[0] ?? ""} concern`;
+                        })()
+                      : `${displayedProducts.length} product${displayedProducts.length !== 1 ? "s" : ""}`}
                 </p>
               )}
             </div>
@@ -628,24 +707,43 @@ function ExplorePageContent() {
           <div className="absolute bottom-0 left-0 right-0 bg-surface rounded-t-3xl pt-5 pb-10 px-5" onClick={(e) => e.stopPropagation()}>
             <div className="w-10 h-1 bg-outline-variant/30 rounded-full mx-auto mb-5" />
             <p className="font-extrabold text-[15px] text-on-surface font-[family-name:var(--font-manrope)] mb-4">Shop by Category</p>
-            <div className="grid grid-cols-3 gap-2.5">
-              {visibleCategories.filter((c) => c.key !== "for-you").map((cat) => (
-                <button
-                  key={cat.key}
-                  onClick={() => { setActiveCategory(cat.key); setShowCategorySheet(false); }}
-                  className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all cursor-pointer ${
-                    activeCategory === cat.key
-                      ? "bg-primary-container/10 border-primary-container/25 text-primary-container"
-                      : "border-outline-variant/12 bg-surface-container-low hover:bg-surface-container text-on-surface-variant"
-                  }`}
-                >
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold ${activeCategory === cat.key ? "bg-primary-container/15" : "bg-surface-container"}`}>
-                    {cat.abbr}
-                  </div>
-                  <span className="text-[11px] font-semibold leading-tight text-center">{cat.label}</span>
-                </button>
-              ))}
-            </div>
+            {isKid ? (
+              <div className="grid grid-cols-2 gap-2.5">
+                {KIDS_CATEGORY_FILTERS.map((cat) => (
+                  <button
+                    key={cat.key}
+                    onClick={() => { setActiveCategory(cat.key); setShowCategorySheet(false); }}
+                    className={`flex items-center gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer text-left ${
+                      activeCategory === cat.key
+                        ? "bg-amber-500/10 border-amber-400/30 text-amber-700"
+                        : "border-outline-variant/12 bg-surface-container-low hover:bg-surface-container text-on-surface-variant"
+                    }`}
+                  >
+                    <span className="text-2xl leading-none">{cat.emoji}</span>
+                    <span className="text-[13px] font-semibold">{cat.label}</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2.5">
+                {visibleCategories.filter((c) => c.key !== "for-you").map((cat) => (
+                  <button
+                    key={cat.key}
+                    onClick={() => { setActiveCategory(cat.key); setShowCategorySheet(false); }}
+                    className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all cursor-pointer ${
+                      activeCategory === cat.key
+                        ? "bg-primary-container/10 border-primary-container/25 text-primary-container"
+                        : "border-outline-variant/12 bg-surface-container-low hover:bg-surface-container text-on-surface-variant"
+                    }`}
+                  >
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold ${activeCategory === cat.key ? "bg-primary-container/15" : "bg-surface-container"}`}>
+                      {cat.abbr}
+                    </div>
+                    <span className="text-[11px] font-semibold leading-tight text-center">{cat.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -658,32 +756,52 @@ function ExplorePageContent() {
             <div className="w-10 h-1 bg-outline-variant/30 rounded-full mx-auto mb-5" />
             <p className="font-extrabold text-[15px] text-on-surface font-[family-name:var(--font-manrope)] mb-4">Shop by Concern</p>
             <div className="flex flex-col gap-2">
-              {[
-                { key: "hair",      label: "Hair Fall & Growth",  desc: "Biotin, DHT blockers, scalp health" },
-                { key: "skin",      label: "Skin & Acne",         desc: "Collagen, glutathione, clear skin" },
-                { key: "weight",    label: "Weight Management",   desc: "Fat loss, muscle, metabolism" },
-                { key: "nutrition", label: "Energy & Gut",        desc: "Ashwagandha, vitamins, probiotics" },
-                { key: "sleep",     label: "Sleep & Stress",      desc: "Melatonin, magnesium, calm" },
-                { key: "hormones",  label: "Hormonal Health",     desc: "PCOS, testosterone, balance" },
-              ].filter((c) => !(c.key === "beard" && profile?.sex === "female")).map((concern) => (
-                <button
-                  key={concern.key}
-                  onClick={() => { setActiveCategory(concern.key); setShowConcernSheet(false); }}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all cursor-pointer text-left ${
-                    activeCategory === concern.key
-                      ? "bg-primary-container/10 border-primary-container/25"
-                      : "border-outline-variant/12 bg-surface-container-low hover:bg-surface-container"
-                  }`}
-                >
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${activeCategory === concern.key ? "bg-primary-container/15 text-primary-container" : "bg-surface-container text-on-surface-variant/50"}`}>
-                    {CATEGORIES.find((c) => c.key === concern.key)?.abbr}
-                  </div>
-                  <div className="min-w-0">
-                    <p className={`text-[13px] font-bold ${activeCategory === concern.key ? "text-primary-container" : "text-on-surface"}`}>{concern.label}</p>
-                    <p className="text-[11px] text-on-surface-variant/50 mt-0.5">{concern.desc}</p>
-                  </div>
-                </button>
-              ))}
+              {isKid ? (
+                KIDS_CONCERN_FILTERS.map((concern) => (
+                  <button
+                    key={concern.key}
+                    onClick={() => { setActiveCategory(concern.key); setShowConcernSheet(false); }}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all cursor-pointer text-left ${
+                      activeCategory === concern.key
+                        ? "bg-amber-500/10 border-amber-400/30"
+                        : "border-outline-variant/12 bg-surface-container-low hover:bg-surface-container"
+                    }`}
+                  >
+                    <span className="text-2xl leading-none shrink-0">{concern.emoji}</span>
+                    <div className="min-w-0">
+                      <p className={`text-[13px] font-bold ${activeCategory === concern.key ? "text-amber-700" : "text-on-surface"}`}>{concern.label}</p>
+                      <p className="text-[11px] text-on-surface-variant/50 mt-0.5">{concern.desc}</p>
+                    </div>
+                  </button>
+                ))
+              ) : (
+                [
+                  { key: "hair",      label: "Hair Fall & Growth",  desc: "Biotin, DHT blockers, scalp health" },
+                  { key: "skin",      label: "Skin & Acne",         desc: "Collagen, glutathione, clear skin" },
+                  { key: "weight",    label: "Weight Management",   desc: "Fat loss, muscle, metabolism" },
+                  { key: "nutrition", label: "Energy & Gut",        desc: "Ashwagandha, vitamins, probiotics" },
+                  { key: "sleep",     label: "Sleep & Stress",      desc: "Melatonin, magnesium, calm" },
+                  { key: "hormones",  label: "Hormonal Health",     desc: "PCOS, testosterone, balance" },
+                ].filter((c) => !(c.key === "beard" && profile?.sex === "female")).map((concern) => (
+                  <button
+                    key={concern.key}
+                    onClick={() => { setActiveCategory(concern.key); setShowConcernSheet(false); }}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all cursor-pointer text-left ${
+                      activeCategory === concern.key
+                        ? "bg-primary-container/10 border-primary-container/25"
+                        : "border-outline-variant/12 bg-surface-container-low hover:bg-surface-container"
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${activeCategory === concern.key ? "bg-primary-container/15 text-primary-container" : "bg-surface-container text-on-surface-variant/50"}`}>
+                      {CATEGORIES.find((c) => c.key === concern.key)?.abbr}
+                    </div>
+                    <div className="min-w-0">
+                      <p className={`text-[13px] font-bold ${activeCategory === concern.key ? "text-primary-container" : "text-on-surface"}`}>{concern.label}</p>
+                      <p className="text-[11px] text-on-surface-variant/50 mt-0.5">{concern.desc}</p>
+                    </div>
+                  </button>
+                ))
+              )}
             </div>
           </div>
         </div>

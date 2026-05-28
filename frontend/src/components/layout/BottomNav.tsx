@@ -4,18 +4,21 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Home, Search, Sparkles, Stethoscope, BarChart3, LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
-
-const tabs = [
-  { href: "/protocol", icon: Home, label: "Home" },
-  { href: "/explore", icon: Search, label: "Shop" },
-  { href: "/protocol", icon: Sparkles, label: "Ask", isCenter: true },
-  { href: "/experts", icon: Stethoscope, label: "Experts" },
-  { href: "/insights", icon: BarChart3, label: "Insights" },
-];
+import { useActiveProfile } from "@/hooks/useActiveProfile";
 
 export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
+  const { activeMember } = useActiveProfile();
+  const isKid = activeMember?.type === "child";
+
+  const tabs = [
+    { href: isKid ? "/kids" : "/protocol", icon: Home, label: "Home" },
+    { href: "/explore", icon: Search, label: "Shop" },
+    { href: "/protocol", icon: Sparkles, label: "Ask", isCenter: true },
+    { href: "/experts", icon: Stethoscope, label: "Experts" },
+    { href: "/insights", icon: BarChart3, label: "Insights" },
+  ];
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
