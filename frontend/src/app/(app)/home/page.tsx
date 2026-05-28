@@ -675,7 +675,11 @@ export default function HomePage() {
               onClick={() => router.replace(isKids ? "/kids" : "/protocol")}
               className="w-full py-4 rounded-2xl bg-primary-container text-white font-bold text-base hover:bg-primary transition-colors duration-200 cursor-pointer"
             >
-              {isKids ? `Set up ${childName ? `${childName}'s` : "their"} wellness →` : "View my protocol →"}
+              {isKids
+                ? `Set up ${childName ? `${childName}'s` : "their"} wellness →`
+                : memberFlow === "partner"
+                  ? `View ${name ? `${name}'s` : "their"} protocol →`
+                  : "View my protocol →"}
             </button>
           </div>
         )}

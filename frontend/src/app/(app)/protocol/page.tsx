@@ -375,6 +375,7 @@ export default function ProtocolPage() {
   const [summaryExpanded, setSummaryExpanded] = useState(false);
   const [expandedReasonings, setExpandedReasonings] = useState<Set<string>>(new Set());
   const [showingUpdate, setShowingUpdate] = useState(false);
+  const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
   const [depthGain, setDepthGain] = useState(0);
   // Auth gate removed — always unlocked after login step in onboarding
   // Visit tracking for smart question cadence
@@ -415,6 +416,7 @@ export default function ProtocolPage() {
         return;
       }
       setProfile(stored);
+      setActiveProfileId(localStorage.getItem("bh_active_profile"));
     } catch {
       router.replace("/home");
       return;
@@ -630,8 +632,9 @@ export default function ProtocolPage() {
   const profileSubtitle = useMemo(() => buildProfileSubtitle(profile), [profile]);
 
   // Possessive owner label: "Priya's" when viewing someone else's profile, "Your" for self
-  const possUpper = profile?.name ? `${profile.name}'s` : "Your";
-  const possLower = profile?.name ? `${profile.name}'s` : "your";
+  const isPartnerProfile = activeProfileId?.startsWith("partner-") ?? false;
+  const possUpper = profile?.name ? `${profile.name}'s` : isPartnerProfile ? "Their" : "Your";
+  const possLower = profile?.name ? `${profile.name}'s` : isPartnerProfile ? "their" : "your";
 
   // Rank-based display score: position 0 keeps real score, each subsequent pick decrements
   const displayScoreMap = useMemo(() => {
@@ -1380,7 +1383,7 @@ export default function ProtocolPage() {
                 className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-primary-container text-sm font-bold text-white hover:bg-primary transition-colors duration-200 cursor-pointer"
               >
                 <ShoppingBag className="w-4 h-4" strokeWidth={2} />
-                Shop My Protocol
+                Shop {possUpper} Protocol
               </button>
               <p className="text-[11px] text-on-surface-variant text-center mt-2">
                 Free shipping · Doctor-approved · Made for Indian bodies

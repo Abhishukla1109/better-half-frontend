@@ -385,8 +385,10 @@ export default function InsightsPage() {
   };
 
   const isKid = activeMember?.type === "child";
-  const possessive = activeMember?.name ? `${activeMember.name}'s` : isKid ? "Their" : "Your";
-  const possessiveLower = activeMember?.name ? `${activeMember.name}'s` : isKid ? "their" : "your";
+  const isPartner = activeMember?.id?.startsWith("partner-") ?? false;
+  const isOwnProfile = !isKid && !isPartner;
+  const possessive = activeMember?.name ? `${activeMember.name}'s` : isOwnProfile ? "Your" : "Their";
+  const possessiveLower = activeMember?.name ? `${activeMember.name}'s` : isOwnProfile ? "your" : "their";
 
   // SVG ring
   const RING_R = 38, RING_CIRC = 2 * Math.PI * RING_R;
@@ -553,7 +555,7 @@ export default function InsightsPage() {
           {todayChecked === undefined ? (
             <>
               <p className="text-[13px] font-semibold text-on-surface mb-3">
-                {isKid
+                {!isOwnProfile
                   ? `Did ${activeMember?.name || "they"} take their supplements today?`
                   : "Did you take your supplements today?"}
               </p>
@@ -562,7 +564,7 @@ export default function InsightsPage() {
                   onClick={() => handleCheckin(true)}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-[13px] font-bold hover:bg-emerald-100 transition-colors cursor-pointer"
                 >
-                  <CheckCircle2 className="w-4 h-4" strokeWidth={2} /> {isKid ? "Yes, they did" : "Yes, I did"}
+                  <CheckCircle2 className="w-4 h-4" strokeWidth={2} /> {!isOwnProfile ? "Yes, they did" : "Yes, I did"}
                 </button>
                 <button
                   onClick={() => handleCheckin(false)}
@@ -602,7 +604,7 @@ export default function InsightsPage() {
             {/* Horizontal scroll */}
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5 snap-x snap-mandatory" style={{ scrollbarWidth: "none" }}>
               {supplements.map(s => {
-                const edu = EDUCATION[s.category] ?? EDUCATION.nutrition;
+                const edu = s.concern.map(c => EDUCATION[c as keyof typeof EDUCATION]).find(Boolean) ?? EDUCATION.nutrition;
                 const isActive = expandedCard === s.id;
                 const daysLeft = Math.max(1, 30 - (visitCount % 30 || 0));
                 const pct = (daysLeft / 30) * 100;
@@ -658,7 +660,7 @@ export default function InsightsPage() {
             {expandedCard && (() => {
               const s = supplements.find(x => x.id === expandedCard);
               if (!s) return null;
-              const edu = EDUCATION[s.category] ?? EDUCATION.nutrition;
+              const edu = s.concern.map(c => EDUCATION[c as keyof typeof EDUCATION]).find(Boolean) ?? EDUCATION.nutrition;
               const weekNum = Math.floor(visitCount / 7);
               const tlProgress = Math.min(weekNum, 2);
               return (
