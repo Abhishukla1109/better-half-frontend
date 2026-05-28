@@ -246,7 +246,7 @@ export default function KidsHomePage() {
   return (
     <>
     <div className="min-h-dvh pb-28 lg:pb-10" style={{ background: "#fffbf5" }}>
-      <div className="max-w-xl mx-auto pt-8 lg:pt-12 space-y-5">
+      <div className="pt-8 lg:pt-12 space-y-5">
 
         {/* ── Edit profile ── */}
         <div className="px-5">
