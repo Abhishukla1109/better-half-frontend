@@ -1206,51 +1206,39 @@ export default function ProtocolPage() {
               </button>
             )}
           </div>
+
+          {/* Habits merged into protocol card — divider then horizontal scroll */}
+          {protocol.lifestyle.length > 0 && (
+            <>
+              <div className="mx-4 h-px bg-black/8" />
+              <div className="pt-3 pb-4">
+                <p className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug px-4 mb-3">
+                  Habits before supplements.
+                </p>
+                <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-1 px-4">
+                  {protocol.lifestyle.map((tip, i) => {
+                    const { action } = splitRoutineText(tip);
+                    const emoji = getLifestyleEmoji(tip);
+                    const tint =
+                      emoji === "😴" || emoji === "🌙" ? "bg-indigo-500/8 border-indigo-500/15" :
+                      emoji === "🏃" || emoji === "💪" ? "bg-orange-500/8 border-orange-500/15" :
+                      emoji === "🥗" || emoji === "🌿" ? "bg-emerald-500/8 border-emerald-500/15" :
+                      emoji === "💧" ? "bg-sky-500/8 border-sky-500/15" :
+                      emoji === "🧘" ? "bg-violet-500/8 border-violet-500/15" :
+                      emoji === "✨" || emoji === "☀️" ? "bg-amber-500/8 border-amber-500/15" :
+                      "bg-surface-container-low border-outline-variant/10";
+                    return (
+                      <div key={i} className={`flex-shrink-0 w-[36vw] max-w-[148px] min-w-[124px] rounded-2xl border p-3.5 flex flex-col ${tint}`}>
+                        <span className="text-4xl leading-none mb-3">{emoji}</span>
+                        <p className="text-xs font-semibold text-on-surface leading-snug">{compressHabit(action)}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
         </div>
-
-        {/* ── Medication advisory banner ── */}
-        {hasMedication && (
-          <div className="mb-4 animate-fade-in-up rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-3.5 flex items-start gap-3">
-            <span className="text-lg shrink-0 leading-none mt-0.5">💊</span>
-            <div>
-              <p className="text-xs font-semibold text-on-surface mb-0.5">You mentioned you&apos;re on prescription medication</p>
-              <p className="text-xs text-on-surface-variant/75 leading-relaxed">
-                Please review this protocol with your doctor before starting anything new — especially supplements that affect hormone levels or nutrient absorption.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* ── Lifestyle habits — shown first, before supplements ── */}
-        {protocol.lifestyle.length > 0 && (
-          <div className="mb-4 animate-fade-in-up" style={{ animationDelay: "80ms" }}>
-            <div className="mb-3 px-1">
-              <p className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug">
-                Habits before supplements.
-              </p>
-            </div>
-            <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-1">
-              {protocol.lifestyle.map((tip, i) => {
-                const { action } = splitRoutineText(tip);
-                const emoji = getLifestyleEmoji(tip);
-                const tint =
-                  emoji === "😴" || emoji === "🌙" ? "bg-indigo-500/8 border-indigo-500/15" :
-                  emoji === "🏃" || emoji === "💪" ? "bg-orange-500/8 border-orange-500/15" :
-                  emoji === "🥗" || emoji === "🌿" ? "bg-emerald-500/8 border-emerald-500/15" :
-                  emoji === "💧" ? "bg-sky-500/8 border-sky-500/15" :
-                  emoji === "🧘" ? "bg-violet-500/8 border-violet-500/15" :
-                  emoji === "✨" || emoji === "☀️" ? "bg-amber-500/8 border-amber-500/15" :
-                  "bg-surface-container-low border-outline-variant/10";
-                return (
-                  <div key={i} className={`flex-shrink-0 w-[36vw] max-w-[148px] min-w-[124px] rounded-2xl border p-3.5 flex flex-col ${tint}`}>
-                    <span className="text-4xl leading-none mb-3">{emoji}</span>
-                    <p className="text-xs font-semibold text-on-surface leading-snug">{compressHabit(action)}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
         {/* ── Product picks — right after habits ── */}
         {protocol.supplements.length > 0 && (
