@@ -163,7 +163,11 @@ export default function KidsHomePage() {
   useEffect(() => {
     if (!activeMember) return;
     if (activeMember.type !== "child") { router.replace("/protocol"); return; }
-    if (!onboarded) router.replace("/kids/onboarding");
+    // If somehow landed here without completing onboarding, send back to add-member flow
+    if (!onboarded) {
+      localStorage.setItem("bh_add_mode", "1");
+      router.replace("/home");
+    }
   }, [activeMember, onboarded, router]);
 
   const { primary, rest } = useMemo(() => getKidsRecs(childAge, concern), [childAge, concern]);

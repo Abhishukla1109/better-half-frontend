@@ -122,6 +122,41 @@ const MULTI_CONCERN_QUALIFIER: QualifierDef = {
   ],
 };
 
+const KIDS_CONCERNS: Record<string, { key: string; emoji: string; label: string; sub: string }[]> = {
+  "2-5": [
+    { key: "immunity",  emoji: "🛡️", label: "Fewer colds",      sub: "Stronger immunity" },
+    { key: "growth",    emoji: "🌱", label: "Healthy growth",    sub: "Height & weight" },
+    { key: "sleep",     emoji: "😴", label: "Better sleep",      sub: "Calm bedtime" },
+    { key: "energy",    emoji: "⚡", label: "More energy",       sub: "Active & playful" },
+  ],
+  "6-12": [
+    { key: "focus",     emoji: "🧠", label: "Focus at school",   sub: "Attention & memory" },
+    { key: "immunity",  emoji: "🛡️", label: "Fewer colds",       sub: "Stronger immunity" },
+    { key: "growth",    emoji: "📏", label: "Height & growth",   sub: "Bone & muscle" },
+    { key: "energy",    emoji: "⚡", label: "Energy all day",    sub: "Active after school" },
+    { key: "sleep",     emoji: "😴", label: "Better sleep",      sub: "9+ hours of rest" },
+    { key: "nutrition", emoji: "🥗", label: "Fussy eater",       sub: "Filling nutrition gaps" },
+  ],
+  "13+": [
+    { key: "energy",    emoji: "⚡", label: "Energy & focus",    sub: "School & sports" },
+    { key: "skin",      emoji: "✨", label: "Skin & acne",        sub: "Clear, healthy skin" },
+    { key: "hair",      emoji: "💇", label: "Hair health",        sub: "Strong & shiny" },
+    { key: "sleep",     emoji: "😴", label: "Better sleep",      sub: "Deep, uninterrupted" },
+    { key: "immunity",  emoji: "🛡️", label: "Immunity",          sub: "Fewer sick days" },
+  ],
+};
+
+const KIDS_FOLLOW_UPS: Record<string, { q: string; opts: { emoji: string; label: string }[] }> = {
+  immunity:  { q: "How often does {name} fall sick?",         opts: [{ emoji: "😷", label: "Very often" },      { emoji: "🤒", label: "Sometimes" },           { emoji: "💪", label: "Rarely" }] },
+  growth:    { q: "Is {name} a fussy eater?",                 opts: [{ emoji: "🙅", label: "Very picky" },      { emoji: "😐", label: "Sometimes" },           { emoji: "😋", label: "Eats most things" }] },
+  focus:     { q: "How's {name}'s attention at school?",      opts: [{ emoji: "😵", label: "Hard to focus" },   { emoji: "😑", label: "Sometimes distracted" }, { emoji: "🎯", label: "Generally focused" }] },
+  sleep:     { q: "When does {name} usually fall asleep?",    opts: [{ emoji: "🌙", label: "Before 9pm" },      { emoji: "🌛", label: "9–10pm" },              { emoji: "⭐", label: "After 10pm" }] },
+  energy:    { q: "How active is {name} during the day?",     opts: [{ emoji: "🚀", label: "Very active" },     { emoji: "🚶", label: "Moderate" },            { emoji: "😴", label: "Often tired" }] },
+  skin:      { q: "What's {name}'s main skin concern?",       opts: [{ emoji: "😤", label: "Breakouts / acne" },{ emoji: "🫧", label: "Oily skin" },           { emoji: "🌫️", label: "Dull or dry" }] },
+  hair:      { q: "What's {name}'s main hair concern?",       opts: [{ emoji: "🪮", label: "Hair fall" },       { emoji: "💔", label: "Thin / dull" },         { emoji: "🌿", label: "Scalp issues" }] },
+  nutrition: { q: "What's missing most from {name}'s diet?",  opts: [{ emoji: "🥛", label: "Protein & dairy" }, { emoji: "🥦", label: "Vegetables" },          { emoji: "🌀", label: "Overall variety" }] },
+};
+
 const SNEAK_PEEK = [
   { slug: "biotin-zinc-hair",     name: "Biotin Hair Gummies",                  price: 499,  original: 599,  img: "https://i.mscwlns.co/media/misc/pdp_rcl/hair-health-gummies/4%25AHABHARollOn%20%281%29_hk8vt2.jpg?tr=w-400" },
   { slug: "ashwagandha-ksm66",    name: "Ashwagandha Gummies",                  price: 629,  original: 799,  img: "https://i.mscwlns.co/media/misc/pdp_rcl/13222757/Ashwa%20Gummies%20%281%29_jjrtro.png?tr=w-400"           },
@@ -171,6 +206,7 @@ export default function HomePage() {
   const [childName, setChildName] = useState("");
   const [childNameSubmitted, setChildNameSubmitted] = useState(false);
   const [childAge, setChildAge] = useState<"2-5" | "6-12" | "13+" | null>(null);
+  const [childConcern, setChildConcern] = useState<string | null>(null);
 
   const { addMember, members, activeMember, updateMemberProfile } = useActiveProfile();
 
@@ -276,6 +312,7 @@ export default function HomePage() {
           memberFlow?: MemberFlow;
           childName?: string;
           childAge?: "2-5" | "6-12" | "13+";
+          childConcern?: string;
         };
 
         // Old version data — clear it silently and start fresh
@@ -296,6 +333,7 @@ export default function HomePage() {
         if (state.memberFlow) setMemberFlow(state.memberFlow);
         if (state.childName) { setChildName(state.childName); setChildNameSubmitted(true); }
         if (state.childAge) setChildAge(state.childAge);
+        if (state.childConcern) setChildConcern(state.childConcern);
         setShowSplash(false);
       }
     } catch {}
@@ -311,10 +349,10 @@ export default function HomePage() {
       localStorage.setItem("bh_onboarding_state", JSON.stringify({
         _version: STATE_VERSION,
         name, selectedConcerns, profile, level, userMessages,
-        memberFlow, childName, childAge,
+        memberFlow, childName, childAge, childConcern,
       }));
     } catch {}
-  }, [name, selectedConcerns, profile, level, userMessages, memberFlow, childName, childAge, restored, STATE_VERSION]);
+  }, [name, selectedConcerns, profile, level, userMessages, memberFlow, childName, childAge, childConcern, restored, STATE_VERSION]);
 
   const scrollToCard = useCallback((cardId: string) => {
     requestAnimationFrame(() => {
@@ -633,7 +671,7 @@ export default function HomePage() {
                 : "We've built a personalised plan based on your profile."}
             </p>
             <button
-              onClick={() => router.replace(isKids ? "/kids/onboarding" : "/protocol")}
+              onClick={() => router.replace(isKids ? "/kids" : "/protocol")}
               className="w-full py-4 rounded-2xl bg-primary-container text-white font-bold text-base hover:bg-primary transition-colors duration-200 cursor-pointer"
             >
               {isKids ? `Set up ${childName ? `${childName}'s` : "their"} wellness →` : "View my protocol →"}
@@ -645,6 +683,118 @@ export default function HomePage() {
   }
 
   if (memberFlow === "kids") {
+    const kidsDisplayName = childName || "your child";
+
+    // Step 4: follow-up question (after concern selected)
+    if (childNameSubmitted && childAge && childConcern) {
+      const followUp = KIDS_FOLLOW_UPS[childConcern];
+      const handleKidsComplete = (answer: string) => {
+        const childProfile = {
+          name: childName || undefined,
+          memberType: "child",
+          childAge,
+          sex: "child",
+          diet: "unknown",
+          concern: childConcern,
+          kidsFollowUp: answer,
+          kidsOnboardingDone: "true",
+        };
+        localStorage.setItem("bh_profile", JSON.stringify(childProfile));
+        addMember({
+          id: `kid-${Date.now()}`,
+          type: "child",
+          name: childName || undefined,
+          childAge,
+          profile: childProfile,
+        });
+        setGeneratingPhase("generating");
+        setShowGenerating(true);
+        setTimeout(() => setGeneratingPhase("ready"), 2800);
+      };
+
+      return (
+        <div className="min-h-[calc(100dvh-68px)] flex flex-col justify-center px-6 py-12 max-w-sm mx-auto animate-fade-in-up">
+          <button
+            onClick={() => setChildConcern(null)}
+            className="flex items-center gap-1.5 text-xs text-on-surface-variant/50 hover:text-on-surface-variant mb-8 cursor-pointer transition-colors"
+          >
+            ← Back
+          </button>
+
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
+              <span className="text-[11px] font-semibold text-primary-container uppercase tracking-wider">Step 4 of 4</span>
+            </div>
+            <h2 className="text-xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-6">
+              {followUp?.q.replace("{name}", kidsDisplayName) ?? `One more thing about ${kidsDisplayName}`}
+            </h2>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {followUp?.opts.map((opt, i) => (
+              <button
+                key={i}
+                onClick={() => handleKidsComplete(opt.label)}
+                className="flex items-center gap-3.5 px-4 py-4 rounded-3xl border-2 border-orange-100 bg-white text-left transition-all duration-150 cursor-pointer active:scale-95 hover:border-orange-300 hover:bg-orange-50"
+              >
+                <span className="text-[22px] leading-none shrink-0">{opt.emoji}</span>
+                <span className="text-[14px] font-semibold text-on-surface">{opt.label}</span>
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => handleKidsComplete("")}
+            className="mt-4 text-xs text-on-surface-variant/45 cursor-pointer hover:text-on-surface-variant transition-colors text-center"
+          >
+            Skip
+          </button>
+        </div>
+      );
+    }
+
+    // Step 3: concern picker (after age selected)
+    if (childNameSubmitted && childAge) {
+      const concerns = KIDS_CONCERNS[childAge] ?? KIDS_CONCERNS["6-12"];
+      return (
+        <div className="min-h-[calc(100dvh-68px)] flex flex-col justify-center px-6 py-12 max-w-sm mx-auto animate-fade-in-up">
+          <button
+            onClick={() => setChildAge(null)}
+            className="flex items-center gap-1.5 text-xs text-on-surface-variant/50 hover:text-on-surface-variant mb-8 cursor-pointer transition-colors"
+          >
+            ← Back
+          </button>
+
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
+              <span className="text-[11px] font-semibold text-primary-container uppercase tracking-wider">Step 3 of 4</span>
+            </div>
+            <h2 className="text-xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-1.5">
+              What&apos;s your main focus for {kidsDisplayName}?
+            </h2>
+            <p className="text-sm text-on-surface-variant/60">We&apos;ll match products to this goal.</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {concerns.map(c => (
+              <button
+                key={c.key}
+                onClick={() => setChildConcern(c.key)}
+                className="flex flex-col items-start gap-2 p-4 rounded-3xl border-2 border-orange-100 bg-white text-left transition-all duration-150 cursor-pointer active:scale-95 hover:border-orange-300 hover:bg-orange-50"
+              >
+                <span className="text-[24px] leading-none">{c.emoji}</span>
+                <div>
+                  <p className="text-[13px] font-extrabold text-on-surface leading-snug">{c.label}</p>
+                  <p className="text-[10px] text-on-surface-variant/45 mt-0.5">{c.sub}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
     // Step 2: age group picker (after name)
     if (childNameSubmitted) {
       return (
@@ -659,10 +809,10 @@ export default function HomePage() {
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
-              <span className="text-[11px] font-semibold text-primary-container uppercase tracking-wider">Step 2 of 2</span>
+              <span className="text-[11px] font-semibold text-primary-container uppercase tracking-wider">Step 2 of 4</span>
             </div>
             <h2 className="text-xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-1.5">
-              How old is {childName || "your child"}?
+              How old is {kidsDisplayName}?
             </h2>
             <p className="text-sm text-on-surface-variant/60">We&apos;ll pick age-appropriate products from Little Joys.</p>
           </div>
@@ -670,34 +820,12 @@ export default function HomePage() {
           <div className="space-y-3">
             {([
               { value: "2-5",  label: "2 – 5 years",  desc: "Toddler & early childhood" },
-              { value: "6-12", label: "6 – 12 years",  desc: "School age" },
-              { value: "13+",  label: "13+ years",     desc: "Teen" },
+              { value: "6-12", label: "6 – 12 years", desc: "School age" },
+              { value: "13+",  label: "13+ years",    desc: "Teen" },
             ] as const).map((opt) => (
               <button
                 key={opt.value}
-                onClick={() => {
-                  setChildAge(opt.value);
-                  // Save the child profile and go to protocol
-                  const childProfile = {
-                    name: childName || undefined,
-                    memberType: "child",
-                    childAge: opt.value,
-                    sex: "child",
-                    diet: "unknown",
-                    concern: "immunity",
-                  };
-                  localStorage.setItem("bh_profile", JSON.stringify(childProfile));
-                  addMember({
-                    id: `kid-${Date.now()}`,
-                    type: "child",
-                    name: childName || undefined,
-                    childAge: opt.value,
-                    profile: childProfile,
-                  });
-                  setGeneratingPhase("generating");
-                  setShowGenerating(true);
-                  setTimeout(() => setGeneratingPhase("ready"), 2800);
-                }}
+                onClick={() => setChildAge(opt.value)}
                 className="w-full flex items-center justify-between py-4 px-5 rounded-2xl border border-outline-variant/15 bg-surface-container-lowest hover:border-primary-container/40 hover:bg-primary-container/5 transition-all cursor-pointer text-left"
               >
                 <div>
@@ -725,7 +853,7 @@ export default function HomePage() {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-3">
             <Sparkles className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
-            <span className="text-[11px] font-semibold text-primary-container uppercase tracking-wider">Step 1 of 2</span>
+            <span className="text-[11px] font-semibold text-primary-container uppercase tracking-wider">Step 1 of 4</span>
           </div>
           <h2 className="text-xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-1.5">
             What&apos;s your child&apos;s name?
