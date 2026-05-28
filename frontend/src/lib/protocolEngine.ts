@@ -94,7 +94,7 @@ export function calculateProtocolMatch(user: UserSegment): MatchedProduct[] {
       const followUpMatch = product.followUp.some((f) =>
         followUpLower.includes(f.toLowerCase()),
       );
-      if (followUpMatch) score += 8;
+      if (followUpMatch) score += 20;
     }
 
     score = Math.min(score, 99);
