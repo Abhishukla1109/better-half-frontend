@@ -810,8 +810,8 @@ export default function ProtocolPage() {
     if (nudgeState.answered) return;
     if (nudgeState.skipCount >= 2) return;
     hasAutoOpened.current = true;
-    // First visit: wait 7s so user can read their recommendations first
-    const delay = visitCount === 1 ? 7000 : 1500;
+    // First visit: wait 5s so user can read their recommendations first
+    const delay = visitCount === 1 ? 5000 : 1500;
     const t = setTimeout(() => setShowQuestionSheet(true), delay);
     return () => clearTimeout(t);
   }, [loading, protocol, profile, currentQuestion, nudgeState, visitCount]);
