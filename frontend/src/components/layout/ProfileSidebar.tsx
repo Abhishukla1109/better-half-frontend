@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { X, Plus, Check, Trash2 } from "lucide-react";
+import { X, Plus, Check, Trash2, LogOut } from "lucide-react";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import type { FamilyMember } from "@/hooks/useActiveProfile";
+import { supabase } from "@/lib/supabase/client";
 
 function memberEmoji(m: FamilyMember): string {
   if (m.type === "child") return "🧒";
@@ -75,6 +76,16 @@ export default function ProfileSidebar() {
     setOpen(false);
     localStorage.setItem("bh_add_mode", "1");
     window.location.href = "/home";
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    [
+      "bh_auth", "bh_profile", "bh_profiles", "bh_active_profile",
+      "bh_onboarding_state", "bh_protocol_visits", "bh_today_answers",
+      "bh_theme", "bh_add_mode", "bh_protocol_built",
+    ].forEach((k) => localStorage.removeItem(k));
+    window.location.replace("/");
   };
 
   return (
@@ -189,8 +200,8 @@ export default function ProfileSidebar() {
           })}
         </div>
 
-        {/* Add member */}
-        <div className="px-4 pb-8 pt-3 border-t border-outline-variant/10">
+        {/* Add member + Sign out */}
+        <div className="px-4 pb-8 pt-3 border-t border-outline-variant/10 space-y-2">
           <button
             onClick={handleAdd}
             className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl border border-primary-container/25 bg-primary-container/8 hover:bg-primary-container/15 transition-colors cursor-pointer"
@@ -199,6 +210,15 @@ export default function ProfileSidebar() {
               <Plus className="w-4 h-4 text-primary-container" />
             </div>
             <span className="text-sm font-bold text-primary-container">Add a family member</span>
+          </button>
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl border border-outline-variant/10 hover:bg-surface-container-low transition-colors cursor-pointer"
+          >
+            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0">
+              <LogOut className="w-4 h-4 text-on-surface-variant/50" />
+            </div>
+            <span className="text-sm font-semibold text-on-surface-variant/60">Sign out</span>
           </button>
         </div>
 
