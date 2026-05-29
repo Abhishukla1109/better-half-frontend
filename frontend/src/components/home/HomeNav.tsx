@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, User, Menu, X } from 'lucide-react';
 import CartButton from '@/components/cart/CartButton';
+import { supabase } from '@/lib/supabase/client';
 
 const NAV_LINKS = [
   { label: '🏆 Best Sellers', href: '/explore?sort=bestseller' },
@@ -19,11 +20,24 @@ export default function HomeNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 10);
     window.addEventListener('scroll', handler, { passive: true });
     return () => window.removeEventListener('scroll', handler);
+  }, []);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) { setIsLoggedIn(true); return; }
+      // demo fallback
+      try { if (JSON.parse(localStorage.getItem('bh_auth') || '{}').loggedIn) setIsLoggedIn(true); } catch { /* ignore */ }
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setIsLoggedIn(!!session);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   return (
@@ -58,13 +72,23 @@ export default function HomeNav() {
             <Search size={20} />
           </button>
 
-          <Link
-            href="/auth"
-            className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-[#374151] hover:bg-[#f7fafa] transition-colors"
-          >
-            <User size={16} />
-            <span>Sign in</span>
-          </Link>
+          {isLoggedIn ? (
+            <Link
+              href="/protocol"
+              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-[#004f54] hover:bg-[#f7fafa] transition-colors"
+            >
+              <User size={16} />
+              <span>My protocol</span>
+            </Link>
+          ) : (
+            <Link
+              href="/auth"
+              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-[#374151] hover:bg-[#f7fafa] transition-colors"
+            >
+              <User size={16} />
+              <span>Sign in</span>
+            </Link>
+          )}
 
           <CartButton />
 
@@ -123,13 +147,23 @@ export default function HomeNav() {
               {link.label}
             </Link>
           ))}
-          <Link
-            href="/auth"
-            onClick={() => setMobileOpen(false)}
-            className="block px-5 py-4 text-sm font-semibold text-[#004f54]"
-          >
-            👤 Sign in / Register
-          </Link>
+          {isLoggedIn ? (
+            <Link
+              href="/protocol"
+              onClick={() => setMobileOpen(false)}
+              className="block px-5 py-4 text-sm font-semibold text-[#004f54]"
+            >
+              👤 My protocol
+            </Link>
+          ) : (
+            <Link
+              href="/auth"
+              onClick={() => setMobileOpen(false)}
+              className="block px-5 py-4 text-sm font-semibold text-[#004f54]"
+            >
+              👤 Sign in / Register
+            </Link>
+          )}
         </nav>
       )}
     </header>
