@@ -44,7 +44,7 @@ export default function AuthPage() {
 
     if (data?.data && Object.keys(data.data).length > 0) {
       localStorage.setItem("bh_profile", JSON.stringify(data.data));
-      router.replace("/protocol");
+      router.replace("/home");
     } else {
       router.replace("/home");
     }
