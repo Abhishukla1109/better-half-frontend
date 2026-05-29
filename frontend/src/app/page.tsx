@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, Sun, Moon } from "lucide-react";
+import { supabase } from "@/lib/supabase/client";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -11,20 +12,46 @@ export default function LandingPage() {
   const [returningName, setReturningName] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      if (localStorage.getItem("bh_auth")) {
-        const raw = localStorage.getItem("bh_profile");
-        if (raw) {
-          const p = JSON.parse(raw);
-          // Only treat as returning if they have a completed profile
-          if (p?.diet) {
-            setIsReturning(true);
-            if (p?.name) setReturningName(p.name);
+    async function checkReturning() {
+      // 1. Check real Supabase session first (covers cross-device / cleared cache)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // Try localStorage profile first (fast path)
+        try {
+          const raw = localStorage.getItem("bh_profile");
+          if (raw) {
+            const p = JSON.parse(raw);
+            if (p?.diet) { setIsReturning(true); if (p?.name) setReturningName(p.name); return; }
+          }
+        } catch {}
+        // Fallback: load profile from Supabase
+        const { data } = await supabase.from("profiles").select("data").eq("id", session.user.id).single();
+        if (data?.data && Object.keys(data.data as object).length > 0) {
+          const p = data.data as Record<string, string>;
+          localStorage.setItem("bh_profile", JSON.stringify(p));
+          localStorage.setItem("bh_auth", JSON.stringify({ loggedIn: true }));
+          setIsReturning(true);
+          if (p?.name) setReturningName(p.name);
+        } else {
+          // Signed in but no profile yet → go to onboarding
+          router.replace("/home");
+        }
+        return;
+      }
+
+      // 2. No real session — check demo localStorage fallback
+      try {
+        if (localStorage.getItem("bh_auth")) {
+          const raw = localStorage.getItem("bh_profile");
+          if (raw) {
+            const p = JSON.parse(raw);
+            if (p?.diet) { setIsReturning(true); if (p?.name) setReturningName(p.name); }
           }
         }
-      }
-    } catch {}
-  }, []);
+      } catch {}
+    }
+    checkReturning();
+  }, [router]);
 
   const handleSplashEnd = (e: React.AnimationEvent) => {
     if (e.animationName !== "splashExit") return;
