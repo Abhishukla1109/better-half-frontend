@@ -935,7 +935,7 @@ export default function HomePage() {
      ═══════════════════════════════════════════════════════ */
   return (
     <div className="px-4 py-4">
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2">
 
         {/* L0: Greeting */}
         <GreetingCard
