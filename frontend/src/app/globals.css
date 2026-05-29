@@ -88,8 +88,15 @@
    Default (no attribute) = male = existing teal design unchanged.
    ============================================================ */
 
-/* Female and child theme color overrides — placeholder, to be designed */
-/* [data-theme="female"] and [data-theme="child"] intentionally left blank for now */
+/* Child theme — warm orange palette, mirrors kids protocol accent colors */
+[data-theme="child"] {
+  --color-primary: #7c2d12;
+  --color-primary-container: #c2410c;
+  --color-primary-fixed: #fdba74;
+  --color-primary-fixed-dim: #fb923c;
+  --color-on-primary-container: #fed7aa;
+  --color-inverse-primary: #fb923c;
+}
 
 /* --- Base Styles --- */
 html {

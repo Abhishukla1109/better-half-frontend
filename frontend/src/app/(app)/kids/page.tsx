@@ -52,12 +52,22 @@ function getKidsRecs(childAge: string, concern: string) {
   const followUps        = CONCERN_FOLLOWUP[concern] ?? [];
   const directConcern    = ["sleep","skin","hair"].includes(concern);
 
-  const primary = LJ_PRODUCTS.filter(p => {
+  let primary = LJ_PRODUCTS.filter(p => {
     if (!p.segment.includes(seg)) return false;
     if (directConcern) return p.concern.includes(concern);
     if (followUps.length === 0)   return p.concern.includes("energy");
     return p.followUp.some(f => followUps.some(t => f.toLowerCase().includes(t)));
   }).sort((a, b) => b.baseScore - a.baseScore).slice(0, 3);
+
+  // Pad to 3 with highest-scored same-segment products when catalog is thin
+  if (primary.length < 3) {
+    const primaryIds = new Set(primary.map(p => p.id));
+    const filler = LJ_PRODUCTS
+      .filter(p => p.segment.includes(seg) && !primaryIds.has(p.id))
+      .sort((a, b) => b.baseScore - a.baseScore)
+      .slice(0, 3 - primary.length);
+    primary = [...primary, ...filler];
+  }
 
   const primaryIds = new Set(primary.map(p => p.id));
   const rest = LJ_PRODUCTS
@@ -189,6 +199,7 @@ export default function KidsHomePage() {
   const [showEdit, setShowEdit] = useState(false);
   const [editName, setEditName] = useState("");
   const [editConcern, setEditConcern] = useState("");
+  const [editAge, setEditAge] = useState<"2-5" | "6-12" | "13+">("6-12");
 
   useEffect(() => {
     if (!activeMember) return;
@@ -203,7 +214,14 @@ export default function KidsHomePage() {
   const openEdit = () => {
     setEditName(childName ?? "");
     setEditConcern(concern);
+    setEditAge(childAge as "2-5" | "6-12" | "13+");
     setShowEdit(true);
+  };
+
+  const handleEditAgeChange = (age: "2-5" | "6-12" | "13+") => {
+    setEditAge(age);
+    const validConcerns = (EDIT_CONCERNS[age] ?? []).map(c => c.key);
+    if (!validConcerns.includes(editConcern)) setEditConcern(validConcerns[0] ?? "immunity");
   };
 
   const saveEdit = () => {
@@ -211,21 +229,21 @@ export default function KidsHomePage() {
     const patch: Record<string, string> = { concern: editConcern, kidsOnboardingDone: "true" };
     if (editName.trim()) patch.name = editName.trim();
     updateMemberProfile(activeMember.id, patch);
-    // Also update the top-level name field directly in localStorage so activeMember.name refreshes
-    if (editName.trim()) {
-      try {
-        const raw = localStorage.getItem("bh_profiles");
-        if (raw) {
-          const profiles = JSON.parse(raw) as Array<Record<string, unknown>>;
-          const updated = profiles.map(p =>
-            p.id === activeMember.id ? { ...p, name: editName.trim() } : p
-          );
-          localStorage.setItem("bh_profiles", JSON.stringify(updated));
-        }
-      } catch { /* non-critical */ }
-    }
+    // Update top-level member fields (name, childAge) directly in localStorage
+    try {
+      const raw = localStorage.getItem("bh_profiles");
+      if (raw) {
+        const profiles = JSON.parse(raw) as Array<Record<string, unknown>>;
+        const updated = profiles.map(p => {
+          if (p.id !== activeMember.id) return p;
+          const memberPatch: Record<string, unknown> = { childAge: editAge };
+          if (editName.trim()) memberPatch.name = editName.trim();
+          return { ...p, ...memberPatch };
+        });
+        localStorage.setItem("bh_profiles", JSON.stringify(updated));
+      }
+    } catch { /* non-critical */ }
     setShowEdit(false);
-    // Reload to pick up the updated name from activeMember
     window.location.reload();
   };
 
@@ -290,133 +308,142 @@ export default function KidsHomePage() {
               <span>🎯</span> Focus: {CONCERN_LABEL[concern] ?? concern}
             </span>
           </div>
-        </div>
 
-        {/* ── Parent habits ── */}
-        {habits.length > 0 && (
-          <div className="px-5">
-            <p className="text-[10px] font-bold text-on-surface-variant/35 uppercase tracking-widest mb-2.5">Today&apos;s parent habits</p>
-            <div className="flex gap-2.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-              {habits.map((h, i) => (
-                <div
-                  key={i}
-                  className="shrink-0 flex items-start gap-2 px-3.5 py-3 rounded-2xl"
-                  style={{ background: "white", border: "1px solid #fed7aa", minWidth: 160, maxWidth: 200 }}
-                >
-                  <span className="text-[18px] leading-none shrink-0 mt-0.5">{h.emoji}</span>
-                  <p className="text-[11px] font-semibold text-on-surface leading-snug">{h.text}</p>
+          {/* Habits merged into hero card */}
+          {habits.length > 0 && (
+            <>
+              <div className="mx-0 mt-4 mb-0 h-px" style={{ background: "rgba(249,115,22,0.2)" }} />
+              <div className="pt-3.5">
+                <p className="text-[10px] font-bold uppercase tracking-widest mb-2.5" style={{ color: "#c2410c", opacity: 0.6 }}>
+                  Today&apos;s parent habits
+                </p>
+                <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-5 px-5" style={{ scrollbarWidth: "none" }}>
+                  {habits.map((h, i) => (
+                    <div
+                      key={i}
+                      className="shrink-0 flex items-start gap-2 px-3.5 py-3 rounded-2xl"
+                      style={{ background: "rgba(255,255,255,0.7)", border: "1px solid #fed7aa", minWidth: 160, maxWidth: 200 }}
+                    >
+                      <span className="text-[18px] leading-none shrink-0 mt-0.5">{h.emoji}</span>
+                      <p className="text-[11px] font-semibold text-on-surface leading-snug">{h.text}</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── Top picks ── */}
-        <div className="px-5">
-          <div className="flex items-baseline justify-between mb-3">
-            <div>
-              <p className="text-[10px] font-bold text-on-surface-variant/35 uppercase tracking-widest">Best match for {concern}</p>
-              <p className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mt-0.5">Top picks for {displayName}</p>
-            </div>
-          </div>
-
-          {primary.length > 0 ? (
-            <div className="space-y-3">
-              {primary.map(p => {
-                const sty = getStyle(p.category);
-                return (
-                  <div
-                    key={p.id}
-                    className="rounded-3xl overflow-hidden flex"
-                    style={{ background: `linear-gradient(135deg, ${sty.bgFrom}, ${sty.bgTo})`, border: `1px solid ${sty.border}` }}
-                  >
-                    <div className="w-28 shrink-0 flex items-center justify-center p-3">
-                      {p.image && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={p.image} alt={p.name} className="w-24 h-24 object-contain" />
-                      )}
-                    </div>
-                    <div className="flex-1 py-4 pr-4 flex flex-col justify-between min-w-0">
-                      <div>
-                        <p className="text-[8px] font-bold uppercase tracking-widest mb-0.5" style={{ color: sty.accent }}>Little Joys</p>
-                        <p className="text-[13px] font-extrabold text-on-surface leading-snug font-[family-name:var(--font-manrope)]">{p.name}</p>
-                        <p className="text-[11px] text-on-surface-variant/55 mt-1 leading-snug">{getBenefit(p)}</p>
-                      </div>
-                      <div className="flex items-center justify-between mt-3">
-                        <div>
-                          <p className="text-[14px] font-extrabold text-on-surface">₹{p.price}</p>
-                          {p.mrp > p.price && (
-                            <p className="text-[10px] text-on-surface-variant/40 line-through">₹{p.mrp}</p>
-                          )}
-                        </div>
-                        {p.url && (
-                          <a href={p.url} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-[11px] font-bold"
-                            style={{ color: "white", background: sty.accent }}>
-                            <ShoppingBag className="w-3 h-3" strokeWidth={2.5} /> Shop
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="rounded-3xl bg-white border border-orange-100 p-6 text-center">
-              <p className="text-[13px] font-semibold text-on-surface mb-1">Updating picks…</p>
-              <p className="text-[12px] text-on-surface-variant/50">Try refreshing {displayName}&apos;s focus area.</p>
-            </div>
+              </div>
+            </>
           )}
         </div>
 
-        {/* ── Complete the kit — horizontal scroll ── */}
-        {rest.length > 0 && (
-          <div>
-            <div className="flex items-baseline justify-between mb-3 px-5">
-              <div>
-                <p className="text-[10px] font-bold text-on-surface-variant/35 uppercase tracking-widest">More for {ageLabel}</p>
-                <p className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mt-0.5">Complete {childName ? `${childName}'s` : "the"} kit</p>
-              </div>
-              <span className="text-[11px] font-semibold" style={{ color: "#f97316" }}>{rest.length} more</span>
-            </div>
+        {/* ── Unified picks card: top picks + complete the kit ── */}
+        <div
+          className="mx-5 rounded-3xl overflow-hidden"
+          style={{ border: "1px solid #fed7aa", background: "linear-gradient(175deg, rgba(249,115,22,0.07) 0%, rgba(249,115,22,0.03) 50%, rgba(255,255,255,0.8) 100%)" }}
+        >
+          {/* Card header */}
+          <div className="px-5 pt-5 pb-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: "#f97316" }}>
+              Little Joys · AI-matched picks
+            </p>
+            <p className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-tight">
+              {displayName === "your child" ? "Top picks" : `${displayName}'s picks`}
+            </p>
+            <p className="text-[11px] mt-0.5" style={{ color: "#c2410c", opacity: 0.7 }}>
+              Matched for {CONCERN_LABEL[concern] ?? concern} · {ageLabel}
+            </p>
+          </div>
 
-            <div className="flex gap-3 overflow-x-auto pb-2 px-5" style={{ scrollbarWidth: "none" }}>
-              {rest.map(p => {
-                const sty = getStyle(p.category);
-                return (
-                  <div
-                    key={p.id}
-                    className="shrink-0 w-[148px] rounded-3xl overflow-hidden flex flex-col"
-                    style={{ background: `linear-gradient(160deg, ${sty.bgFrom}, white)`, border: `1px solid ${sty.border}` }}
-                  >
-                    <div className="h-36 flex items-center justify-center px-2 pt-2">
-                      {p.image && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={p.image} alt={p.name} className="w-32 h-32 object-contain" />
+          {/* Hairline divider */}
+          <div className="mx-5 h-px mb-4" style={{ background: "rgba(249,115,22,0.15)" }} />
+
+          {/* Top picks — horizontal scroll */}
+          <div className="flex gap-3 overflow-x-auto pb-4 px-5" style={{ scrollbarWidth: "none" }}>
+            {primary.map(p => {
+              const sty = getStyle(p.category);
+              return (
+                <div
+                  key={p.id}
+                  className="shrink-0 w-[160px] rounded-2xl overflow-hidden flex flex-col"
+                  style={{ background: `linear-gradient(160deg, ${sty.bgFrom}, white)`, border: `1px solid ${sty.border}` }}
+                >
+                  <div className="h-36 flex items-center justify-center px-2 pt-2">
+                    {p.image && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.image} alt={p.name} className="w-32 h-32 object-contain" />
+                    )}
+                  </div>
+                  <div className="px-3 pb-3.5 flex flex-col flex-1">
+                    <p className="text-[8px] font-bold uppercase tracking-widest mb-0.5" style={{ color: sty.accent }}>Little Joys</p>
+                    <p className="text-[12px] font-extrabold text-on-surface leading-snug font-[family-name:var(--font-manrope)] flex-1">{p.name}</p>
+                    <p className="text-[10px] text-on-surface-variant/45 mt-1 leading-snug">{getBenefit(p)}</p>
+                    <div className="flex items-center justify-between mt-2.5">
+                      <div>
+                        <p className="text-[13px] font-extrabold text-on-surface">₹{p.price}</p>
+                        {p.mrp > p.price && <p className="text-[9px] text-on-surface-variant/40 line-through">₹{p.mrp}</p>}
+                      </div>
+                      {p.url && (
+                        <a href={p.url} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[10px] font-bold"
+                          style={{ color: "white", background: sty.accent }}>
+                          <ShoppingBag className="w-2.5 h-2.5" strokeWidth={2.5} /> Shop
+                        </a>
                       )}
                     </div>
-                    <div className="px-3 pb-3.5 flex flex-col flex-1">
-                      <p className="text-[8px] font-bold uppercase tracking-widest mb-0.5" style={{ color: sty.accent }}>Little Joys</p>
-                      <p className="text-[11px] font-extrabold text-on-surface leading-snug font-[family-name:var(--font-manrope)] flex-1">{p.name}</p>
-                      <p className="text-[10px] text-on-surface-variant/45 mt-1 leading-snug">{getBenefit(p)}</p>
-                      <div className="flex items-center justify-between mt-2.5">
-                        <p className="text-[13px] font-extrabold text-on-surface">₹{p.price}</p>
-                        {p.url && (
-                          <a href={p.url} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[10px] font-bold"
-                            style={{ color: sty.accent, background: `${sty.bgFrom}`, border: `1px solid ${sty.border}` }}>
-                            <ShoppingBag className="w-2.5 h-2.5" strokeWidth={2.5} /> Shop
-                          </a>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Complete the kit — horizontal scroll inside the same card */}
+          {rest.length > 0 && (
+            <>
+              <div className="mx-5 h-px mt-5 mb-4" style={{ background: "rgba(249,115,22,0.15)" }} />
+              <div className="px-5 pb-1 flex items-baseline justify-between">
+                <p className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
+                  Complete {childName ? `${childName}'s` : "the"} kit
+                </p>
+                <span className="text-[11px] font-semibold" style={{ color: "#f97316" }}>{rest.length} more</span>
+              </div>
+              <div className="flex gap-3 overflow-x-auto pb-5 pt-3 px-5" style={{ scrollbarWidth: "none" }}>
+                {rest.map(p => {
+                  const sty = getStyle(p.category);
+                  return (
+                    <div
+                      key={p.id}
+                      className="shrink-0 w-[140px] rounded-2xl overflow-hidden flex flex-col"
+                      style={{ background: `linear-gradient(160deg, ${sty.bgFrom}, white)`, border: `1px solid ${sty.border}` }}
+                    >
+                      <div className="h-32 flex items-center justify-center px-2 pt-2">
+                        {p.image && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={p.image} alt={p.name} className="w-28 h-28 object-contain" />
                         )}
                       </div>
+                      <div className="px-3 pb-3.5 flex flex-col flex-1">
+                        <p className="text-[8px] font-bold uppercase tracking-widest mb-0.5" style={{ color: sty.accent }}>Little Joys</p>
+                        <p className="text-[11px] font-extrabold text-on-surface leading-snug font-[family-name:var(--font-manrope)] flex-1">{p.name}</p>
+                        <p className="text-[10px] text-on-surface-variant/45 mt-1 leading-snug">{getBenefit(p)}</p>
+                        <div className="flex items-center justify-between mt-2.5">
+                          <p className="text-[13px] font-extrabold text-on-surface">₹{p.price}</p>
+                          {p.url && (
+                            <a href={p.url} target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[10px] font-bold"
+                              style={{ color: sty.accent, background: sty.bgFrom, border: `1px solid ${sty.border}` }}>
+                              <ShoppingBag className="w-2.5 h-2.5" strokeWidth={2.5} /> Shop
+                            </a>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* Bottom padding when no kit section */}
+          {rest.length === 0 && <div className="pb-5" />}
+        </div>
 
         {/* ── Educational tip ── */}
         <div className="mx-5 rounded-3xl p-5"
@@ -454,60 +481,89 @@ export default function KidsHomePage() {
     {showEdit && (
       <>
         <div className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-[2px]" onClick={() => setShowEdit(false)} />
-        <div className="fixed bottom-0 left-0 right-0 z-[61] bg-white rounded-t-3xl px-5 pt-4 pb-12 max-w-xl mx-auto shadow-2xl animate-fade-in-up">
+        <div className="fixed bottom-0 left-0 right-0 z-[61] rounded-t-3xl max-w-xl mx-auto shadow-2xl animate-fade-in-up overflow-hidden">
 
-          {/* Handle */}
-          <div className="w-10 h-1 bg-outline-variant/25 rounded-full mx-auto mb-4" />
-
-          {/* Header */}
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
-              Edit {childName ? `${childName}'s` : "child's"} profile
-            </h2>
-            <button onClick={() => setShowEdit(false)} className="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center cursor-pointer">
-              <X className="w-4 h-4 text-on-surface-variant" />
-            </button>
-          </div>
-
-          {/* Name */}
-          <div className="mb-4">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant/45 mb-1.5">Name</p>
-            <input
-              type="text"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              placeholder={childName ?? "Their name"}
-              className="w-full bg-surface-container-low rounded-xl px-4 py-3 border border-outline-variant/15 text-sm text-on-surface outline-none"
-            />
-          </div>
-
-          {/* Main focus */}
-          <div className="mb-6">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant/45 mb-2">Main focus</p>
-            <div className="grid grid-cols-2 gap-2">
-              {(EDIT_CONCERNS[childAge] ?? EDIT_CONCERNS["6-12"]).map(c => (
-                <button
-                  key={c.key}
-                  onClick={() => setEditConcern(c.key)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-2xl border-2 text-left cursor-pointer transition-all text-[13px] font-semibold ${
-                    editConcern === c.key
-                      ? "border-orange-400 bg-orange-50 text-orange-700"
-                      : "border-outline-variant/15 bg-surface-container-lowest text-on-surface"
-                  }`}
-                >
-                  <span>{c.emoji}</span> {c.label}
-                </button>
-              ))}
+          {/* Warm header */}
+          <div className="px-5 pt-4 pb-4" style={{ background: "linear-gradient(135deg, #fff3e0, #ffe8cc)" }}>
+            <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "rgba(194,65,12,0.2)" }} />
+            <div className="flex items-center justify-between">
+              <h2 className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
+                Edit {childName ? `${childName}'s` : "child's"} profile
+              </h2>
+              <button
+                onClick={() => setShowEdit(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
+                style={{ background: "rgba(194,65,12,0.1)" }}
+              >
+                <X className="w-4 h-4" style={{ color: "#c2410c" }} />
+              </button>
             </div>
           </div>
 
-          <button
-            onClick={saveEdit}
-            className="w-full py-4 rounded-2xl text-white font-bold text-sm cursor-pointer hover:opacity-90 transition-opacity"
-            style={{ background: "#f97316" }}
-          >
-            Save changes
-          </button>
+          {/* Content */}
+          <div className="bg-white px-5 pt-4 pb-12">
+
+            {/* Name */}
+            <div className="mb-4">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant/45 mb-1.5">Name</p>
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder={childName ?? "Their name"}
+                className="w-full bg-surface-container-low rounded-xl px-4 py-3 border border-outline-variant/15 text-sm text-on-surface outline-none"
+              />
+            </div>
+
+            {/* Age group */}
+            <div className="mb-4">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant/45 mb-1.5">Age group</p>
+              <div className="flex gap-2">
+                {(["2-5", "6-12", "13+"] as const).map(age => (
+                  <button
+                    key={age}
+                    onClick={() => handleEditAgeChange(age)}
+                    className={`flex-1 py-2.5 rounded-xl border-2 text-[13px] font-bold cursor-pointer transition-all ${
+                      editAge === age
+                        ? "border-orange-400 bg-orange-50 text-orange-700"
+                        : "border-outline-variant/15 bg-surface-container-lowest text-on-surface-variant/60"
+                    }`}
+                  >
+                    {age === "2-5" ? "2–5 yrs" : age === "6-12" ? "6–12 yrs" : "13+ yrs"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Main focus */}
+            <div className="mb-6">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant/45 mb-2">Main focus</p>
+              <div className={`grid gap-2 ${(EDIT_CONCERNS[editAge] ?? []).length > 4 ? "grid-cols-3" : "grid-cols-2"}`}>
+                {(EDIT_CONCERNS[editAge] ?? EDIT_CONCERNS["6-12"]).map(c => (
+                  <button
+                    key={c.key}
+                    onClick={() => setEditConcern(c.key)}
+                    className={`flex items-center gap-1.5 px-2.5 py-2.5 rounded-2xl border-2 text-left cursor-pointer transition-all text-[12px] font-semibold ${
+                      editConcern === c.key
+                        ? "border-orange-400 bg-orange-50 text-orange-700"
+                        : "border-outline-variant/15 bg-surface-container-lowest text-on-surface"
+                    }`}
+                  >
+                    <span className="text-base leading-none shrink-0">{c.emoji}</span>
+                    <span className="leading-tight">{c.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={saveEdit}
+              className="w-full py-4 rounded-2xl text-white font-bold text-sm cursor-pointer hover:opacity-90 transition-opacity"
+              style={{ background: "#f97316" }}
+            >
+              Save changes
+            </button>
+          </div>
         </div>
       </>
     )}

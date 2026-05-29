@@ -101,11 +101,11 @@ export default function BottomNav() {
               return (
                 <div
                   key="ask-desktop"
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary-container/15 text-primary-container cursor-default select-none"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant/35 cursor-default select-none"
                 >
                   <Icon className="w-[20px] h-[20px]" strokeWidth={1.5} fill="none" />
                   <span className="text-sm font-semibold">{tab.label}</span>
-                  <span className="ml-auto text-[9px] font-bold text-primary-container/50 uppercase tracking-wider">Soon</span>
+                  <span className="ml-auto text-[9px] font-bold text-on-surface-variant/30 uppercase tracking-wider">Soon</span>
                 </div>
               );
             }

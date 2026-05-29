@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, ChevronRight, Check } from "lucide-react";
+import { Sparkles, ChevronRight, Check, Heart } from "lucide-react";
 import GreetingCard from "@/components/feed/cards/GreetingCard";
 import ConcernCard from "@/components/feed/cards/ConcernCard";
 import ProfilingCard from "@/components/feed/cards/ProfilingCard";
@@ -689,208 +689,230 @@ export default function HomePage() {
 
   if (memberFlow === "kids") {
     const kidsDisplayName = childName || "your child";
+    const followUp = childConcern ? KIDS_FOLLOW_UPS[childConcern] : null;
+    const concerns = childAge ? (KIDS_CONCERNS[childAge] ?? KIDS_CONCERNS["6-12"]) : [];
 
-    // Step 4: follow-up question (after concern selected)
-    if (childNameSubmitted && childAge && childConcern) {
-      const followUp = KIDS_FOLLOW_UPS[childConcern];
-      const handleKidsComplete = (answer: string) => {
-        const childProfile = {
-          name: childName || undefined,
-          memberType: "child",
-          childAge,
-          sex: "child",
-          diet: "unknown",
-          concern: childConcern,
-          kidsFollowUp: answer,
-          kidsOnboardingDone: "true",
-        };
-        localStorage.setItem("bh_profile", JSON.stringify(childProfile));
-        addMember({
-          id: `kid-${Date.now()}`,
-          type: "child",
-          name: childName || undefined,
-          childAge,
-          profile: childProfile,
-        });
-        setGeneratingPhase("generating");
-        setShowGenerating(true);
-        setTimeout(() => setGeneratingPhase("ready"), 2800);
-      };
+    const handleKidsComplete = (answer: string) => {
+      const childProfile = {
+        name: childName || undefined,
+        memberType: "child",
+        childAge: childAge ?? undefined,
+        sex: "child",
+        diet: "unknown",
+        concern: childConcern ?? undefined,
+        kidsFollowUp: answer,
+        kidsOnboardingDone: "true",
+      } as Parameters<typeof addMember>[0]["profile"];
+      localStorage.setItem("bh_profile", JSON.stringify(childProfile));
+      addMember({
+        id: `kid-${Date.now()}`,
+        type: "child",
+        name: childName || undefined,
+        childAge: (childAge ?? undefined) as "2-5" | "6-12" | "13+" | undefined,
+        profile: childProfile,
+      });
+      setGeneratingPhase("generating");
+      setShowGenerating(true);
+      setTimeout(() => setGeneratingPhase("ready"), 2800);
+    };
 
-      return (
-        <div className="min-h-[calc(100dvh-68px)] flex flex-col justify-center px-6 py-12 max-w-sm mx-auto animate-fade-in-up">
-          <button
-            onClick={() => setChildConcern(null)}
-            className="flex items-center gap-1.5 text-xs text-on-surface-variant/50 hover:text-on-surface-variant mb-8 cursor-pointer transition-colors"
-          >
-            ← Back
-          </button>
+    const editSvg = (
+      <svg className="w-3.5 h-3.5 text-on-surface-variant/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
+      </svg>
+    );
 
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
-              <span className="text-[11px] font-semibold text-primary-container uppercase tracking-wider">Step 4 of 4</span>
-            </div>
-            <h2 className="text-xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-6">
-              {followUp?.q.replace("{name}", kidsDisplayName) ?? `One more thing about ${kidsDisplayName}`}
-            </h2>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            {followUp?.opts.map((opt, i) => (
-              <button
-                key={i}
-                onClick={() => handleKidsComplete(opt.label)}
-                className="flex items-center gap-3.5 px-4 py-4 rounded-3xl border-2 border-orange-100 bg-white text-left transition-all duration-150 cursor-pointer active:scale-95 hover:border-orange-300 hover:bg-orange-50"
-              >
-                <span className="text-[22px] leading-none shrink-0">{opt.emoji}</span>
-                <span className="text-[14px] font-semibold text-on-surface">{opt.label}</span>
-              </button>
-            ))}
-          </div>
-          <button
-            onClick={() => handleKidsComplete("")}
-            className="mt-4 text-xs text-on-surface-variant/45 cursor-pointer hover:text-on-surface-variant transition-colors text-center"
-          >
-            Skip
-          </button>
-        </div>
-      );
-    }
-
-    // Step 3: concern picker (after age selected)
-    if (childNameSubmitted && childAge) {
-      const concerns = KIDS_CONCERNS[childAge] ?? KIDS_CONCERNS["6-12"];
-      return (
-        <div className="min-h-[calc(100dvh-68px)] flex flex-col justify-center px-6 py-12 max-w-sm mx-auto animate-fade-in-up">
-          <button
-            onClick={() => setChildAge(null)}
-            className="flex items-center gap-1.5 text-xs text-on-surface-variant/50 hover:text-on-surface-variant mb-8 cursor-pointer transition-colors"
-          >
-            ← Back
-          </button>
-
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
-              <span className="text-[11px] font-semibold text-primary-container uppercase tracking-wider">Step 3 of 4</span>
-            </div>
-            <h2 className="text-xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-1.5">
-              What&apos;s your main focus for {kidsDisplayName}?
-            </h2>
-            <p className="text-sm text-on-surface-variant/60">We&apos;ll match products to this goal.</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            {concerns.map(c => (
-              <button
-                key={c.key}
-                onClick={() => setChildConcern(c.key)}
-                className="flex flex-col items-start gap-2 p-4 rounded-3xl border-2 border-orange-100 bg-white text-left transition-all duration-150 cursor-pointer active:scale-95 hover:border-orange-300 hover:bg-orange-50"
-              >
-                <span className="text-[24px] leading-none">{c.emoji}</span>
-                <div>
-                  <p className="text-[13px] font-extrabold text-on-surface leading-snug">{c.label}</p>
-                  <p className="text-[10px] text-on-surface-variant/45 mt-0.5">{c.sub}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    // Step 2: age group picker (after name)
-    if (childNameSubmitted) {
-      return (
-        <div className="min-h-[calc(100dvh-68px)] flex flex-col justify-center px-6 py-12 max-w-sm mx-auto animate-fade-in-up">
-          <button
-            onClick={() => setChildNameSubmitted(false)}
-            className="flex items-center gap-1.5 text-xs text-on-surface-variant/50 hover:text-on-surface-variant mb-8 cursor-pointer transition-colors"
-          >
-            ← Back
-          </button>
-
-          <div className="mb-8">
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
-              <span className="text-[11px] font-semibold text-primary-container uppercase tracking-wider">Step 2 of 4</span>
-            </div>
-            <h2 className="text-xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-1.5">
-              How old is {kidsDisplayName}?
-            </h2>
-            <p className="text-sm text-on-surface-variant/60">We&apos;ll pick age-appropriate products from Little Joys.</p>
-          </div>
-
-          <div className="space-y-3">
-            {([
-              { value: "2-5",  label: "2 – 5 years",  desc: "Toddler & early childhood" },
-              { value: "6-12", label: "6 – 12 years", desc: "School age" },
-              { value: "13+",  label: "13+ years",    desc: "Teen" },
-            ] as const).map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => setChildAge(opt.value)}
-                className="w-full flex items-center justify-between py-4 px-5 rounded-2xl border border-outline-variant/15 bg-surface-container-lowest hover:border-primary-container/40 hover:bg-primary-container/5 transition-all cursor-pointer text-left"
-              >
-                <div>
-                  <p className="font-bold text-sm text-on-surface">{opt.label}</p>
-                  <p className="text-[11px] text-on-surface-variant/50 mt-0.5">{opt.desc}</p>
-                </div>
-                <span className="text-on-surface-variant/30 text-lg leading-none">→</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    // Step 1: child's name
     return (
-      <div className="min-h-[calc(100dvh-68px)] flex flex-col justify-center px-6 py-12 max-w-sm mx-auto">
-        <button
-          onClick={() => { applyTheme("male"); setMemberFlow(null); }}
-          className="flex items-center gap-1.5 text-xs text-on-surface-variant/50 hover:text-on-surface-variant mb-8 cursor-pointer transition-colors"
-        >
-          ← Back
-        </button>
+      <div className="px-4 py-4">
+        <div className="flex flex-col gap-2">
 
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
-            <span className="text-[11px] font-semibold text-primary-container uppercase tracking-wider">Step 1 of 4</span>
+          {/* Greeting */}
+          <div className="feed-card-ai p-5 animate-fade-in-up">
+            <div className="flex items-start gap-3">
+              <div className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0 mt-0.5" style={{ background: "linear-gradient(135deg, #004034 0%, #15594a 100%)" }}>
+                <Heart className="w-4 h-4 text-white" strokeWidth={2} fill="white" />
+              </div>
+              <div>
+                <h1 className="text-lg font-extrabold text-primary font-[family-name:var(--font-manrope)] leading-tight">
+                  {childNameSubmitted && childName ? `Let's build ${childName}'s plan.` : "Adding a child's profile."}
+                </h1>
+                <p className="text-sm text-on-surface-variant mt-1 leading-relaxed">
+                  A few quick questions — I'll find the best Little Joys picks for them.
+                </p>
+              </div>
+            </div>
           </div>
-          <h2 className="text-xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-1.5">
-            What&apos;s your child&apos;s name?
-          </h2>
-          <p className="text-sm text-on-surface-variant/60">We&apos;ll use it to personalise their protocol.</p>
-        </div>
 
-        <div className="flex items-center gap-2 bg-surface-container-low rounded-xl px-4 py-3.5 border border-outline-variant/15 mb-3">
-          <input
-            type="text"
-            value={childName}
-            onChange={(e) => setChildName(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && childName.trim()) setChildNameSubmitted(true); }}
-            placeholder="Their name"
-            className="flex-1 bg-transparent text-base text-on-surface placeholder:text-on-surface-variant/40 outline-none"
-            autoFocus
-          />
-        </div>
+          {/* Back to profiles */}
+          <button
+            onClick={() => { applyTheme("male"); setMemberFlow(null); }}
+            className="flex items-center gap-1.5 text-xs text-on-surface-variant/50 hover:text-on-surface-variant cursor-pointer transition-colors px-1 py-1"
+          >
+            ← Back to profiles
+          </button>
 
-        <button
-          onClick={() => setChildNameSubmitted(true)}
-          disabled={!childName.trim()}
-          className="w-full py-4 rounded-2xl bg-primary-container text-white font-bold text-sm cursor-pointer hover:bg-primary transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          Continue →
-        </button>
-        <button
-          onClick={() => { setChildName(""); setChildNameSubmitted(true); }}
-          className="mt-3 text-xs text-on-surface-variant/50 cursor-pointer hover:text-on-surface-variant transition-colors text-center w-full"
-        >
-          Skip — I&apos;ll add a name later
-        </button>
+          {/* Name card */}
+          <div className="feed-card-ai p-5 animate-fade-in-up" style={{ animationDelay: "150ms" }}>
+            {childNameSubmitted ? (
+              <div className="flex items-center gap-2 flex-wrap animate-fade-in-up">
+                <p className="text-sm text-on-surface-variant">Their name is</p>
+                <span className="px-4 py-2.5 rounded-xl bg-primary-container/15 border border-primary-container/20 text-sm font-semibold text-primary-container">
+                  {childName || "not given"}
+                </span>
+                <button
+                  onClick={() => { setChildNameSubmitted(false); setChildAge(null); setChildConcern(null); }}
+                  className="w-8 h-8 rounded-full hover:bg-surface-container-low flex items-center justify-center cursor-pointer transition-colors"
+                  aria-label="Edit name"
+                >
+                  {editSvg}
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-base text-on-surface leading-relaxed">What&apos;s your child&apos;s name?</p>
+                <div className="mt-3 flex items-center gap-2 bg-surface-container-low rounded-xl px-4 py-3 border border-outline-variant/15">
+                  <input
+                    type="text"
+                    value={childName}
+                    onChange={(e) => setChildName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") setChildNameSubmitted(true); }}
+                    placeholder="Their name"
+                    className="flex-1 bg-transparent text-base text-on-surface placeholder:text-on-surface-variant/40 outline-none"
+                    autoFocus
+                  />
+                  {childName.trim() && (
+                    <button
+                      onClick={() => setChildNameSubmitted(true)}
+                      className="text-sm font-semibold text-primary cursor-pointer hover:text-primary-container transition-colors"
+                    >
+                      Continue
+                    </button>
+                  )}
+                </div>
+                <button
+                  onClick={() => { setChildName(""); setChildNameSubmitted(true); }}
+                  className="mt-2 text-xs text-on-surface-variant/50 cursor-pointer hover:text-on-surface-variant transition-colors"
+                >
+                  Skip
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Age card — appears after name */}
+          {childNameSubmitted && (
+            <div className="feed-card-ai p-5 animate-fade-in-up" style={{ animationDelay: "200ms" }}>
+              {childAge ? (
+                <div className="flex items-center gap-2 animate-fade-in-up">
+                  <p className="text-sm text-on-surface-variant">Age group</p>
+                  <span className="px-4 py-2.5 rounded-xl bg-primary-container/15 border border-primary-container/20 text-sm font-semibold text-primary-container">
+                    {childAge === "2-5" ? "2–5 years" : childAge === "6-12" ? "6–12 years" : "13+ years"}
+                  </span>
+                  <button
+                    onClick={() => { setChildAge(null); setChildConcern(null); }}
+                    className="w-8 h-8 rounded-full hover:bg-surface-container-low flex items-center justify-center cursor-pointer transition-colors"
+                    aria-label="Edit age"
+                  >
+                    {editSvg}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-base text-on-surface leading-relaxed">How old is {kidsDisplayName}?</p>
+                  <p className="text-[11px] text-on-surface-variant/50 mt-0.5 mb-3">Age-appropriate picks from Little Joys.</p>
+                  <div className="space-y-2 mt-1">
+                    {([
+                      { value: "2-5",  label: "2 – 5 years",  desc: "Toddler & early childhood", emoji: "🧸" },
+                      { value: "6-12", label: "6 – 12 years", desc: "School age",                emoji: "🎒" },
+                      { value: "13+",  label: "13+ years",    desc: "Teen",                      emoji: "🎧" },
+                    ] as const).map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setChildAge(opt.value)}
+                        className="w-full flex items-center gap-3.5 py-3.5 px-4 rounded-2xl border border-outline-variant/15 bg-surface-container-lowest hover:border-primary-container/40 hover:bg-primary-container/5 transition-all cursor-pointer text-left active:scale-[0.98]"
+                      >
+                        <span className="text-xl leading-none shrink-0">{opt.emoji}</span>
+                        <div className="flex-1">
+                          <p className="font-bold text-sm text-on-surface">{opt.label}</p>
+                          <p className="text-[11px] text-on-surface-variant/50 mt-0.5">{opt.desc}</p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-on-surface-variant/30 shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Concern card — appears after age */}
+          {childNameSubmitted && childAge && (
+            <div className="feed-card-ai p-5 animate-fade-in-up" style={{ animationDelay: "200ms" }}>
+              {childConcern ? (
+                <div className="flex items-center gap-2 animate-fade-in-up">
+                  <p className="text-sm text-on-surface-variant">Main goal</p>
+                  <span className="px-4 py-2.5 rounded-xl bg-primary-container/15 border border-primary-container/20 text-sm font-semibold text-primary-container">
+                    {concerns.find(c => c.key === childConcern)?.label ?? childConcern}
+                  </span>
+                  <button
+                    onClick={() => setChildConcern(null)}
+                    className="w-8 h-8 rounded-full hover:bg-surface-container-low flex items-center justify-center cursor-pointer transition-colors"
+                    aria-label="Edit concern"
+                  >
+                    {editSvg}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-base text-on-surface leading-relaxed">What&apos;s your main focus for {kidsDisplayName}?</p>
+                  <div className="grid grid-cols-2 gap-2.5 mt-4">
+                    {concerns.map(c => (
+                      <button
+                        key={c.key}
+                        onClick={() => setChildConcern(c.key)}
+                        className="flex flex-col items-start gap-2 p-4 rounded-2xl border border-outline-variant/15 bg-surface-container-lowest hover:border-primary-container/30 hover:bg-primary-container/5 text-left transition-all cursor-pointer active:scale-[0.97]"
+                      >
+                        <span className="text-2xl leading-none">{c.emoji}</span>
+                        <div>
+                          <p className="text-[13px] font-extrabold text-on-surface leading-snug">{c.label}</p>
+                          <p className="text-[10px] text-on-surface-variant/45 mt-0.5">{c.sub}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Follow-up card — appears after concern */}
+          {childNameSubmitted && childAge && childConcern && followUp && (
+            <div className="feed-card-ai p-5 animate-fade-in-up" style={{ animationDelay: "200ms" }}>
+              <p className="text-base text-on-surface leading-relaxed">
+                {followUp.q.replace("{name}", kidsDisplayName)}
+              </p>
+              <div className="flex flex-col gap-2.5 mt-4">
+                {followUp.opts.map((opt, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleKidsComplete(opt.label)}
+                    className="flex items-center gap-3.5 px-4 py-3.5 rounded-2xl border border-outline-variant/15 bg-surface-container-lowest hover:border-primary-container/30 hover:bg-primary-container/5 text-left transition-all cursor-pointer active:scale-[0.98]"
+                  >
+                    <span className="text-xl leading-none shrink-0">{opt.emoji}</span>
+                    <span className="text-[14px] font-semibold text-on-surface">{opt.label}</span>
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => handleKidsComplete("")}
+                className="mt-3 text-xs text-on-surface-variant/45 cursor-pointer hover:text-on-surface-variant transition-colors"
+              >
+                Skip
+              </button>
+            </div>
+          )}
+
+        </div>
       </div>
     );
   }
