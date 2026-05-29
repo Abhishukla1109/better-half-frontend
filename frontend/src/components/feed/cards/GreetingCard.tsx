@@ -20,7 +20,7 @@ export default function GreetingCard({ name, contextLine, children }: GreetingCa
         </div>
         <div className="min-w-0">
           <h1 className="text-lg font-extrabold text-primary font-[family-name:var(--font-manrope)] leading-tight">
-            {timeGreeting}, {name}.
+            {timeGreeting}{name ? `, ${name}` : ""}.
           </h1>
           {contextLine && (
             <p className="text-sm text-on-surface-variant mt-1 leading-relaxed">

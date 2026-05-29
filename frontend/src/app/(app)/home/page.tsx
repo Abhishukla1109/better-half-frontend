@@ -1004,55 +1004,22 @@ export default function HomePage() {
           {!profile.sex ? (
             <>
               <div className="grid grid-cols-2 gap-3 mt-4">
-                {/* Male tile */}
+                {/* Male */}
                 <button
                   onClick={() => handleSexSelect("male")}
-                  className="group relative flex flex-col justify-end overflow-hidden rounded-2xl border-2 border-transparent hover:border-white/20 transition-all duration-200 cursor-pointer h-[148px]"
-                  style={{ background: "linear-gradient(150deg, #022e20 0%, #024a34 55%, #025c42 100%)" }}
+                  className="flex flex-col items-center justify-center gap-2.5 rounded-2xl border-2 border-primary-container/25 bg-primary-container/12 hover:bg-primary-container/22 hover:border-primary-container/45 transition-all duration-200 cursor-pointer py-5 active:scale-[0.97]"
                 >
-                  {/* Male silhouette */}
-                  <svg
-                    viewBox="0 0 90 130"
-                    className="absolute bottom-0 right-[-4px] h-[160px] w-auto opacity-[0.22] group-hover:opacity-[0.32] transition-opacity duration-200"
-                    fill="white"
-                    aria-hidden="true"
-                  >
-                    <ellipse cx="45" cy="26" rx="19" ry="22" />
-                    <path d="M39 47 L51 47 L50 58 L40 58 Z" />
-                    <path d="M0 68 C8 57 38 61 40 61 L50 61 C52 61 82 57 90 68 L90 130 L0 130 Z" />
-                  </svg>
-                  {/* Subtle bottom fade */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
-                  <div className="relative px-3.5 pb-3.5 text-left">
-                    {memberFlow !== "partner" && <p className="text-[10px] font-semibold text-white/50 uppercase tracking-wider leading-none mb-0.5">For me</p>}
-                    <p className="text-[15px] font-extrabold text-white leading-tight">A man</p>
-                  </div>
+                  <span className="text-3xl leading-none">👨</span>
+                  <p className="text-[14px] font-extrabold text-primary-container">A man</p>
                 </button>
 
-                {/* Female tile */}
+                {/* Female */}
                 <button
                   onClick={() => handleSexSelect("female")}
-                  className="group relative flex flex-col justify-end overflow-hidden rounded-2xl border-2 border-transparent hover:border-white/20 transition-all duration-200 cursor-pointer h-[148px]"
-                  style={{ background: "linear-gradient(150deg, #2d1020 0%, #4f1a35 55%, #641f45 100%)" }}
+                  className="flex flex-col items-center justify-center gap-2.5 rounded-2xl border-2 border-rose-400/25 bg-rose-400/10 hover:bg-rose-400/20 hover:border-rose-400/45 transition-all duration-200 cursor-pointer py-5 active:scale-[0.97]"
                 >
-                  {/* Female silhouette */}
-                  <svg
-                    viewBox="0 0 90 130"
-                    className="absolute bottom-0 right-[-4px] h-[160px] w-auto opacity-[0.22] group-hover:opacity-[0.32] transition-opacity duration-200"
-                    fill="white"
-                    aria-hidden="true"
-                  >
-                    <path d="M25 18 Q5 65 8 130 L20 130 Q17 65 32 20 Z" />
-                    <path d="M65 18 Q85 65 82 130 L70 130 Q73 65 58 20 Z" />
-                    <ellipse cx="45" cy="26" rx="17" ry="21" />
-                    <path d="M40 46 L50 46 L51 56 L39 56 Z" />
-                    <path d="M8 66 C18 58 39 61 39 61 L51 61 C51 61 72 58 82 66 L84 130 L6 130 Z" />
-                  </svg>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
-                  <div className="relative px-3.5 pb-3.5 text-left">
-                    {memberFlow !== "partner" && <p className="text-[10px] font-semibold text-white/50 uppercase tracking-wider leading-none mb-0.5">For me</p>}
-                    <p className="text-[15px] font-extrabold text-white leading-tight">A woman</p>
-                  </div>
+                  <span className="text-3xl leading-none">👩</span>
+                  <p className="text-[14px] font-extrabold text-rose-600">A woman</p>
                 </button>
               </div>
               <button
@@ -1110,56 +1077,6 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* Marketplace sneak peek — visible before gender selection */}
-        {!profile.sex && (
-          <div className="feed-card overflow-hidden animate-fade-in-up" style={{ animationDelay: "300ms" }}>
-            <div className="px-4 pt-4 pb-3 flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[13px] font-bold text-on-surface">Rather browse first?</p>
-                <p className="text-[11px] text-on-surface-variant/55 mt-0.5">Explore our full range without any forms</p>
-              </div>
-              <button
-                onClick={() => router.push("/explore?from=skip")}
-                className="shrink-0 flex items-center gap-1 text-[11px] font-bold text-primary-container hover:text-primary transition-colors cursor-pointer mt-0.5"
-              >
-                See all <ChevronRight className="w-3 h-3" />
-              </button>
-            </div>
-
-            {/* Product scroll strip */}
-            <div className="flex gap-3 px-4 pb-4 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-              {SNEAK_PEEK.map((p) => (
-                <button
-                  key={p.slug}
-                  onClick={() => router.push(`/explore/product/${p.slug}`)}
-                  className="flex-shrink-0 w-[108px] text-left cursor-pointer group"
-                >
-                  <div className="w-full h-[96px] rounded-xl overflow-hidden bg-surface-container-low mb-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={p.img}
-                      alt={p.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <p className="text-[11px] font-semibold text-on-surface leading-tight line-clamp-2 mb-1">{p.name}</p>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[12px] font-bold text-on-surface">₹{p.price}</span>
-                    <span className="text-[10px] text-on-surface-variant/40 line-through">₹{p.original}</span>
-                  </div>
-                </button>
-              ))}
-              {/* Browse all end cap */}
-              <button
-                onClick={() => router.push("/explore?from=skip")}
-                className="flex-shrink-0 w-[80px] flex flex-col items-center justify-center gap-2 rounded-xl border border-outline-variant/15 bg-surface-container-lowest cursor-pointer hover:bg-primary-container/5 hover:border-primary-container/30 transition-colors h-[96px]"
-              >
-                <span className="text-2xl">→</span>
-                <span className="text-[10px] font-bold text-primary-container text-center leading-tight">Browse all</span>
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Step 2: Age — shown after gender */}
         {profile.sex && (
@@ -1300,6 +1217,50 @@ export default function HomePage() {
               layout="grid"
               delay={200}
             />
+          </div>
+        )}
+
+        {/* Rather browse first — always at the bottom */}
+        {!profile.diet && (
+          <div className="feed-card overflow-hidden animate-fade-in-up" style={{ animationDelay: "300ms" }}>
+            <div className="px-4 pt-4 pb-3 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[13px] font-bold text-on-surface">Rather browse first?</p>
+                <p className="text-[11px] text-on-surface-variant/55 mt-0.5">Explore our full range without any forms</p>
+              </div>
+              <button
+                onClick={() => router.push("/explore?from=skip")}
+                className="shrink-0 flex items-center gap-1 text-[11px] font-bold text-primary-container hover:text-primary transition-colors cursor-pointer mt-0.5"
+              >
+                See all <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+            <div className="flex gap-3 px-4 pb-4 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+              {SNEAK_PEEK.map((p) => (
+                <button
+                  key={p.slug}
+                  onClick={() => router.push(`/explore/product/${p.slug}`)}
+                  className="flex-shrink-0 w-[108px] text-left cursor-pointer group"
+                >
+                  <div className="w-full h-[96px] rounded-xl overflow-hidden bg-surface-container-low mb-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.img} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  </div>
+                  <p className="text-[11px] font-semibold text-on-surface leading-tight line-clamp-2 mb-1">{p.name}</p>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[12px] font-bold text-on-surface">₹{p.price}</span>
+                    <span className="text-[10px] text-on-surface-variant/40 line-through">₹{p.original}</span>
+                  </div>
+                </button>
+              ))}
+              <button
+                onClick={() => router.push("/explore?from=skip")}
+                className="flex-shrink-0 w-[80px] flex flex-col items-center justify-center gap-2 rounded-xl border border-outline-variant/15 bg-surface-container-lowest cursor-pointer hover:bg-primary-container/5 hover:border-primary-container/30 transition-colors h-[96px]"
+              >
+                <span className="text-2xl">→</span>
+                <span className="text-[10px] font-bold text-primary-container text-center leading-tight">Browse all</span>
+              </button>
+            </div>
           </div>
         )}
 
