@@ -9,24 +9,34 @@ import type { Product, MatchedProduct } from "@/lib/protocolEngine";
 import { useCart } from "@/context/CartContext";
 import { resolveVariantId } from "@/lib/shopify/variant-resolver";
 
-/* ── Category sidebar definitions ── */
+/* ── Category definitions ── */
 type CategoryDef = {
   key: string;
   label: string;
   abbr: string;
-  /* Concern values that appear in product.concern[] — used for scoring */
+  emoji: string;
+  gradient: string;
   concernValues: string[];
 };
 
 const CATEGORIES: CategoryDef[] = [
-  { key: "for-you", label: "For You", abbr: "✦", concernValues: [] },
-  { key: "hair", label: "Hair", abbr: "H", concernValues: ["hair"] },
-  { key: "beard", label: "Beard", abbr: "Bd", concernValues: ["beard"] },
-  { key: "skin", label: "Skin", abbr: "Sk", concernValues: ["skin"] },
-  { key: "weight", label: "Weight", abbr: "W", concernValues: ["weight"] },
-  { key: "nutrition", label: "Nutrition", abbr: "N", concernValues: ["energy"] },
-  { key: "sleep", label: "Sleep", abbr: "Sl", concernValues: ["sleep"] },
-  { key: "hormones", label: "Hormones", abbr: "P", concernValues: ["hormones"] },
+  { key: "for-you",    label: "For You",    abbr: "✦",  emoji: "✦",  gradient: "from-violet-500/20 to-indigo-500/20",   concernValues: [] },
+  { key: "hair",       label: "Hair",       abbr: "H",  emoji: "💇",  gradient: "from-blue-500/20 to-cyan-500/20",       concernValues: ["hair"] },
+  { key: "beard",      label: "Beard",      abbr: "Bd", emoji: "🧔",  gradient: "from-slate-500/20 to-stone-500/20",     concernValues: ["beard"] },
+  { key: "skin",       label: "Skin",       abbr: "Sk", emoji: "✨",  gradient: "from-rose-400/20 to-pink-500/20",       concernValues: ["skin"] },
+  { key: "weight",     label: "Weight",     abbr: "W",  emoji: "⚖️",  gradient: "from-emerald-500/20 to-teal-500/20",   concernValues: ["weight"] },
+  { key: "nutrition",  label: "Nutrition",  abbr: "N",  emoji: "🌿",  gradient: "from-lime-500/20 to-green-500/20",     concernValues: ["energy"] },
+  { key: "sleep",      label: "Sleep",      abbr: "Sl", emoji: "😴",  gradient: "from-indigo-500/20 to-purple-500/20",  concernValues: ["sleep"] },
+  { key: "hormones",   label: "Hormones",   abbr: "P",  emoji: "🧬",  gradient: "from-fuchsia-500/20 to-violet-500/20", concernValues: ["hormones"] },
+];
+
+const CONCERN_LIST = [
+  { key: "hair",      emoji: "💇", label: "Hair Fall & Growth",  desc: "Biotin, DHT blockers, scalp health" },
+  { key: "skin",      emoji: "✨", label: "Skin & Acne",         desc: "Collagen, glutathione, clear skin" },
+  { key: "weight",    emoji: "⚖️", label: "Weight Management",   desc: "Fat loss, muscle, metabolism" },
+  { key: "nutrition", emoji: "🌿", label: "Energy & Gut",        desc: "Ashwagandha, vitamins, probiotics" },
+  { key: "sleep",     emoji: "😴", label: "Sleep & Stress",      desc: "Melatonin, magnesium, calm" },
+  { key: "hormones",  emoji: "🧬", label: "Hormonal Health",     desc: "PCOS, testosterone, balance" },
 ];
 
 /* Onboarding concern label → product concern values */
@@ -41,10 +51,10 @@ const ONBOARDING_CONCERN_MAP: Record<string, string[]> = {
 
 /* ── Kids-specific filters ── */
 const KIDS_CATEGORY_FILTERS = [
-  { key: "gummies",        label: "Gummies",        emoji: "🍬" },
-  { key: "nutrition",      label: "Nutrition",      emoji: "💊" },
-  { key: "personal-care",  label: "Personal Care",  emoji: "🌿" },
-  { key: "healthysnacks",  label: "Healthy Snacks", emoji: "🥗" },
+  { key: "gummies",        label: "Gummies",        emoji: "🍬", gradient: "from-amber-400/20 to-yellow-400/20" },
+  { key: "nutrition",      label: "Nutrition",      emoji: "💊", gradient: "from-lime-500/20 to-green-500/20" },
+  { key: "personal-care",  label: "Personal Care",  emoji: "🌿", gradient: "from-teal-400/20 to-cyan-400/20" },
+  { key: "healthysnacks",  label: "Healthy Snacks", emoji: "🥗", gradient: "from-orange-400/20 to-amber-400/20" },
 ];
 
 const KIDS_CONCERN_FILTERS = [
@@ -80,12 +90,11 @@ const BRAND_STYLE: Record<string, { bg: string; text: string }> = {
 
 type StoredProfile = Record<string, string | undefined>;
 
-/* "Hair / beard" → "Hair & Beard" */
 function concernLabel(raw: string): string {
   return raw.split(" / ").map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(" & ");
 }
 
-/* ── Scoring engine (same logic as calculateProtocolMatch, no 3-item cap) ── */
+/* ── Scoring engine ── */
 function scoreProducts(
   concernValues: string[],
   profile: StoredProfile,
@@ -94,7 +103,6 @@ function scoreProducts(
   const age = profile.age ?? "25-34";
   const userSegments = resolveSegment(gender, age, profile.shopping_for, profile.kids_age);
 
-  /* Lightweight follow-up string from stored answers */
   const parts: string[] = [];
   const p = profile;
   if (p.hair_primary) parts.push(p.hair_primary.replace(/_/g, " "));
@@ -109,9 +117,7 @@ function scoreProducts(
   return ALL_PRODUCTS.flatMap((product) => {
     const concernMatch = product.concern.some((c) => concernValues.includes(c));
     if (!concernMatch) return [];
-
-    const genderMatch =
-      product.gender.includes(gender) || product.gender.includes("all");
+    const genderMatch = product.gender.includes(gender) || product.gender.includes("all");
     if (!genderMatch) return [];
 
     let score = product.baseScore;
@@ -120,12 +126,9 @@ function scoreProducts(
     else score -= 10;
 
     if (followUpStr) {
-      const followUpMatch = product.followUp.some((f) =>
-        followUpStr.includes(f.toLowerCase()),
-      );
+      const followUpMatch = product.followUp.some((f) => followUpStr.includes(f.toLowerCase()));
       if (followUpMatch) score += 8;
     }
-
     return [{ ...product, matchScore: Math.min(score, 99) }];
   }).sort((a, b) => b.matchScore - a.matchScore);
 }
@@ -180,90 +183,93 @@ function ProductCard({
   };
 
   return (
-    <div className="flex flex-col bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant/8 hover:border-primary-container/25 transition-all duration-200 group">
-      {/* Image — tapping opens in-app PDP */}
+    <div className="flex flex-col bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant/10 hover:border-primary-container/30 hover:shadow-md transition-all duration-200 group">
+      {/* Image */}
       <div
         onClick={() => router.push(`/product/${product.id}`)}
-        className="relative w-full h-[130px] bg-surface-container-low cursor-pointer"
+        className="relative w-full h-[175px] sm:h-[190px] bg-surface-container-low cursor-pointer overflow-hidden"
       >
         {product.image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={product.image}
             alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+            className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-300"
             loading="lazy"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <span className="text-4xl font-extrabold text-primary-container/20 font-[family-name:var(--font-manrope)]">
+            <span className="text-5xl font-extrabold text-primary-container/20 font-[family-name:var(--font-manrope)]">
               {product.name.charAt(0)}
             </span>
           </div>
         )}
 
+        {/* Discount badge */}
         {discountPct >= 5 && (
-          <span className="absolute top-2 left-2 bg-primary-container text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-md leading-none">
+          <span className="absolute top-2.5 left-2.5 bg-primary-container text-white text-[10px] font-extrabold px-2 py-0.5 rounded-md leading-none shadow-sm">
             {discountPct}% OFF
           </span>
         )}
 
+        {/* Match / top-pick badge */}
         {matchPct !== undefined && matchPct >= 80 ? (
-          <div className="absolute top-2 right-2 bg-primary-container/90 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full leading-none shadow-sm tabular-nums">
+          <div className="absolute top-2.5 right-2.5 bg-primary-container/90 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full leading-none shadow-sm tabular-nums">
             {matchPct}% match
           </div>
         ) : isTopPick ? (
-          <div className="absolute top-2 right-2 flex items-center gap-0.5 bg-primary-container/90 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-full leading-none shadow-sm">
-            <Sparkles className="w-2 h-2" strokeWidth={2} />
+          <div className="absolute top-2.5 right-2.5 flex items-center gap-0.5 bg-primary-container/90 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full leading-none shadow-sm">
+            <Sparkles className="w-2.5 h-2.5" strokeWidth={2} />
             Top pick
           </div>
         ) : null}
 
-        {/* External link hint */}
-        <div className="absolute bottom-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          <ExternalLink className="w-3 h-3 text-white drop-shadow" strokeWidth={2} />
+        {/* External link hint on hover */}
+        <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <ExternalLink className="w-3.5 h-3.5 text-white drop-shadow" strokeWidth={2} />
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-3 flex flex-col flex-1">
-        <span
-          className={`self-start text-[9px] font-semibold px-1.5 py-0.5 rounded-md mb-1.5 leading-none ${brand.bg} ${brand.text}`}
-        >
-          {product.brand}
-        </span>
+      <div className="p-3.5 flex flex-col flex-1 gap-1.5">
+        {/* Brand + rating row */}
+        <div className="flex items-center justify-between gap-1">
+          <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md leading-none ${brand.bg} ${brand.text}`}>
+            {product.brand}
+          </span>
+          {product.rating && (
+            <div className="flex items-center gap-0.5">
+              <span className="text-[10px] leading-none text-amber-400">★</span>
+              <span className="text-[10px] font-bold text-on-surface">{product.rating}</span>
+              {reviewLabel && (
+                <span className="text-[9px] text-on-surface-variant/40">({reviewLabel})</span>
+              )}
+            </div>
+          )}
+        </div>
 
-        {product.rating && (
-          <div className="flex items-center gap-0.5 mb-1">
-            <span className="text-[10px] leading-none text-amber-400">★</span>
-            <span className="text-[10px] font-bold text-on-surface">{product.rating}</span>
-            {reviewLabel && (
-              <span className="text-[9px] text-on-surface-variant/40">({reviewLabel})</span>
-            )}
-          </div>
-        )}
-
-        <p className="text-[11px] font-bold text-on-surface leading-snug line-clamp-2 flex-1 mb-2.5">
+        {/* Product name */}
+        <p className="text-[12px] font-bold text-on-surface leading-snug line-clamp-2 flex-1">
           {product.name}
         </p>
 
         {/* Price row */}
-        <div className="flex items-baseline gap-1.5 mb-2.5">
-          <span className="text-sm font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-[15px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">
             &#8377;{product.price}
           </span>
           {product.mrp > product.price && (
-            <span className="text-[9px] text-on-surface-variant/35 line-through">
+            <span className="text-[10px] text-on-surface-variant/35 line-through">
               &#8377;{product.mrp}
             </span>
           )}
         </div>
 
-        {/* Add to Cart button */}
+        {/* Add to Cart */}
         <button
           onClick={handleAddToCart}
           disabled={cartState !== "idle"}
-          className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold transition-all duration-200 cursor-pointer active:scale-[0.97] disabled:cursor-default ${
+          className={`mt-1 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[12px] font-bold transition-all duration-200 cursor-pointer active:scale-[0.97] disabled:cursor-default ${
             cartState === "done"
               ? "bg-green-500/15 text-green-600"
               : cartState === "error"
@@ -271,10 +277,10 @@ function ProductCard({
               : "bg-primary-container text-white hover:bg-primary"
           }`}
         >
-          {cartState === "loading" && <Loader2 className="w-3 h-3 animate-spin" strokeWidth={2.5} />}
-          {cartState === "done" && <Check className="w-3 h-3" strokeWidth={2.5} />}
-          {cartState === "error" && <AlertCircle className="w-3 h-3" strokeWidth={2} />}
-          {cartState === "idle" && <ShoppingBag className="w-3 h-3" strokeWidth={2} />}
+          {cartState === "loading" && <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2.5} />}
+          {cartState === "done"    && <Check className="w-3.5 h-3.5" strokeWidth={2.5} />}
+          {cartState === "error"   && <AlertCircle className="w-3.5 h-3.5" strokeWidth={2} />}
+          {cartState === "idle"    && <ShoppingBag className="w-3.5 h-3.5" strokeWidth={2} />}
           {cartState === "loading" ? "Adding…"
             : cartState === "done" ? "Added!"
             : cartState === "error" ? "Not available"
@@ -285,7 +291,7 @@ function ProductCard({
   );
 }
 
-/* ── Empty state: no profile yet ── */
+/* ── Empty state ── */
 function NoProfileState() {
   const router = useRouter();
   return (
@@ -294,9 +300,7 @@ function NoProfileState() {
         <Sparkles className="w-6 h-6 text-primary-container/60" strokeWidth={1.5} />
       </div>
       <div>
-        <p className="text-sm font-bold text-on-surface mb-1">
-          Your picks aren&apos;t ready yet
-        </p>
+        <p className="text-sm font-bold text-on-surface mb-1">Your picks aren&apos;t ready yet</p>
         <p className="text-[12px] text-on-surface-variant/60 leading-relaxed max-w-[220px] mx-auto">
           Answer 3 quick questions and we&apos;ll show you products matched to your health goals.
         </p>
@@ -324,7 +328,6 @@ function ExplorePageContent() {
   const [showConcernSheet, setShowConcernSheet] = useState(false);
 
   const { activeMember } = useActiveProfile();
-
   const isKid = activeMember?.type === "child";
 
   const activeBrand: string | null =
@@ -340,7 +343,6 @@ function ExplorePageContent() {
        : activeMember ? "You"
        : null);
 
-  // Load profile from localStorage (fallback) then keep in sync with active member
   useEffect(() => {
     try {
       const raw = localStorage.getItem("bh_profile");
@@ -369,7 +371,6 @@ function ExplorePageContent() {
   }, [profile]);
 
   const displayedProducts = useMemo<(Product & { matchScore?: number })[]>(() => {
-    // Kids: Little Joys products filtered by age segment
     if (isKid) {
       const childAge = activeMember?.childAge ?? "6-12";
       const seg = childAge === "2-5" ? "kids-2-5" : childAge === "6-12" ? "kids-6-12" : "kids-13-plus";
@@ -379,21 +380,11 @@ function ExplorePageContent() {
 
       if (activeCategory === "bestsellers") return lj.slice(0, 20);
       if (activeCategory === "all") return lj;
+      if (KIDS_CATEGORY_KEYS.includes(activeCategory)) return lj.filter((p) => p.category === activeCategory);
+      if (KIDS_CONCERN_KEYS.includes(activeCategory) && activeCategory !== "for-you") return lj.filter((p) => p.concern.includes(activeCategory));
 
-      // Kids category filter (by product.category)
-      if (KIDS_CATEGORY_KEYS.includes(activeCategory)) {
-        return lj.filter((p) => p.category === activeCategory);
-      }
-
-      // Kids concern filter
-      if (KIDS_CONCERN_KEYS.includes(activeCategory) && activeCategory !== "for-you") {
-        return lj.filter((p) => p.concern.includes(activeCategory));
-      }
-
-      // For You: match to child's saved concern
       const childConcern = (activeMember?.profile as Record<string, unknown>)?.concern as string | undefined;
       if (!childConcern) return lj;
-
       const followUps = KIDS_CONCERN_FOLLOWUP[childConcern] ?? [];
       const directConcern = ["sleep", "skin", "hair"].includes(childConcern);
       return [...lj].sort((a, b) => {
@@ -417,12 +408,10 @@ function ExplorePageContent() {
       const pool = activeBrand ? ALL_PRODUCTS.filter((p) => p.brand === activeBrand) : ALL_PRODUCTS;
       return pool.slice().sort((a, b) => b.baseScore - a.baseScore).slice(0, 24);
     }
-
     if (activeCategory === "all") {
       const pool = activeBrand ? ALL_PRODUCTS.filter((p) => p.brand === activeBrand) : ALL_PRODUCTS;
       return pool.slice().sort((a, b) => b.baseScore - a.baseScore);
     }
-
     if (activeCategory === "for-you") {
       if (!profile || forYouConcernValues.length === 0) return [];
       const scored = scoreProducts(forYouConcernValues, profile);
@@ -484,11 +473,11 @@ function ExplorePageContent() {
   const showPinnedPicks = isForYou && pinnedPicks.length > 0;
 
   const TOP_CHIPS = [
-    { key: "for-you",        label: "For You",      icon: "✦"  },
-    { key: "bestsellers",    label: "Bestsellers",  icon: "🏆" },
-    { key: "category-sheet", label: "By Category",  icon: "🗂", isSheet: true },
-    { key: "concern-sheet",  label: "By Concern",   icon: "🎯", isSheet: true },
-    { key: "all",            label: "Shop All",     icon: "📦" },
+    { key: "for-you",        label: "For You",     icon: "✦"  },
+    { key: "bestsellers",    label: "Bestsellers", icon: "🏆" },
+    { key: "category-sheet", label: "By Category", icon: "🗂", isSheet: true },
+    { key: "concern-sheet",  label: "By Concern",  icon: "🎯", isSheet: true },
+    { key: "all",            label: "Shop All",    icon: "📦" },
   ];
 
   const CATEGORY_KEYS = isKid
@@ -508,7 +497,7 @@ function ExplorePageContent() {
   };
 
   const sectionTitle =
-    activeCategory === "for-you"     ? "For You"
+    activeCategory === "for-you"      ? "For You"
     : activeCategory === "bestsellers" ? "Bestsellers"
     : activeCategory === "all"         ? "Shop All"
     : activeCategoryDef?.label         ?? "Products";
@@ -516,49 +505,49 @@ function ExplorePageContent() {
   return (
     <div className="flex flex-col h-[calc(100dvh-68px-48px)] lg:h-[calc(100dvh-48px)]">
 
-      {/* ── Top bar: profile pill + nav chips ── */}
+      {/* ── Top bar ── */}
       <div className="flex-none border-b border-outline-variant/8 bg-surface">
 
         {/* Profile context row */}
-        <div className="flex items-center justify-between px-3 pt-3 pb-2">
+        <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
           {activeMemberName ? (
             <button
               onClick={() => window.dispatchEvent(new Event("bh-profile-sidebar-open"))}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-container/8 border border-primary-container/15 cursor-pointer hover:bg-primary-container/12 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary-container/8 border border-primary-container/15 cursor-pointer hover:bg-primary-container/12 transition-colors"
             >
               <span className="text-sm leading-none">
                 {activeMember?.type === "child" ? "🧒" : activeMember?.type === "female" ? "👩" : "👤"}
               </span>
-              <span className="text-[11px] font-semibold text-primary-container">
+              <span className="text-[12px] font-semibold text-primary-container">
                 Shopping for {activeMemberName}
               </span>
               <ChevronDown className="w-3 h-3 text-primary-container/60" />
             </button>
           ) : (
-            <span className="text-sm font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">Shop</span>
+            <span className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">Shop</span>
           )}
           {activeBrand && (
-            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${BRAND_STYLE[activeBrand]?.bg ?? "bg-surface-container"} ${BRAND_STYLE[activeBrand]?.text ?? "text-on-surface-variant"}`}>
+            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${BRAND_STYLE[activeBrand]?.bg ?? "bg-surface-container"} ${BRAND_STYLE[activeBrand]?.text ?? "text-on-surface-variant"}`}>
               {activeBrand}
             </span>
           )}
         </div>
 
-        {/* Horizontal chip row */}
-        <div className="flex gap-2 px-3 pb-3 overflow-x-auto hide-scrollbar">
+        {/* Filter chip row */}
+        <div className="flex gap-2 px-4 pb-3.5 overflow-x-auto hide-scrollbar">
           {TOP_CHIPS.map((chip) => {
             const active = isChipActive(chip.key);
             return (
               <button
                 key={chip.key}
                 onClick={() => handleChipClick(chip.key)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
                   active
                     ? "bg-primary-container text-white shadow-sm"
-                    : "bg-surface-container border border-outline-variant/15 text-on-surface-variant hover:bg-surface-container-high"
+                    : "bg-surface-container border border-outline-variant/20 text-on-surface-variant hover:bg-surface-container-high"
                 }`}
               >
-                <span className="text-[11px] leading-none">{chip.icon}</span>
+                <span className="text-[12px] leading-none">{chip.icon}</span>
                 {chip.label}
                 {chip.isSheet && <ChevronDown className="w-3 h-3 opacity-60" />}
               </button>
@@ -572,14 +561,14 @@ function ExplorePageContent() {
 
         {/* Onboarding nudge */}
         {profileLoaded && !profile && (
-          <div className="mx-3 mt-3 mb-1 bg-primary-container/8 border border-primary-container/15 rounded-2xl px-3.5 py-3 flex items-center justify-between gap-3">
+          <div className="mx-4 mt-4 mb-1 bg-primary-container/8 border border-primary-container/15 rounded-2xl px-4 py-3.5 flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[13px] font-semibold text-on-surface leading-snug">Not sure what to buy?</p>
               <p className="text-[11px] text-on-surface-variant/55 mt-0.5 leading-relaxed">A 2-min check-in personalises your picks</p>
             </div>
             <button
               onClick={() => router.push("/home")}
-              className="shrink-0 text-[11px] font-bold text-white bg-primary-container px-3 py-2 rounded-full cursor-pointer hover:bg-primary transition-colors whitespace-nowrap"
+              className="shrink-0 text-[11px] font-bold text-white bg-primary-container px-3.5 py-2 rounded-full cursor-pointer hover:bg-primary transition-colors whitespace-nowrap"
             >
               Personalise →
             </button>
@@ -587,14 +576,14 @@ function ExplorePageContent() {
         )}
 
         {/* Section header */}
-        <div className="px-3 pt-4 pb-2">
+        <div className="px-4 pt-4 pb-3">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <h1 className="text-lg font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)]">
+              <h1 className="text-[18px] font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)]">
                 {sectionTitle}
               </h1>
               {!showNoProfile && (
-                <p className="text-[11px] text-on-surface-variant/50 mt-0.5 truncate">
+                <p className="text-[12px] text-on-surface-variant/50 mt-0.5 truncate">
                   {isForYou && isKid
                     ? (() => {
                         const concern = (activeMember?.profile as Record<string, unknown>)?.concern as string | undefined;
@@ -614,7 +603,7 @@ function ExplorePageContent() {
               )}
             </div>
             {isForYou && !showNoProfile && (
-              <div className="flex items-center gap-1 text-[10px] text-primary-container/80 bg-primary-container/8 px-2 py-1 rounded-full shrink-0">
+              <div className="flex items-center gap-1 text-[10px] text-primary-container/80 bg-primary-container/8 px-2.5 py-1 rounded-full shrink-0">
                 <Sparkles className="w-2.5 h-2.5" strokeWidth={2} />
                 <span className="font-semibold">AI-matched</span>
               </div>
@@ -626,9 +615,9 @@ function ExplorePageContent() {
 
         {/* Pinned protocol picks */}
         {showPinnedPicks && (
-          <div className="px-2 pt-1 pb-2">
+          <div className="px-3 pt-1 pb-2">
             <div className="bg-primary-container/6 border border-primary-container/15 rounded-2xl overflow-hidden">
-              <div className="flex items-center justify-between px-3 pt-3 pb-2">
+              <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
                 <div className="flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
                   <span className="text-[11px] font-bold text-primary-container uppercase tracking-wider">Your protocol picks</span>
@@ -637,7 +626,7 @@ function ExplorePageContent() {
                   <X className="w-3.5 h-3.5 text-on-surface-variant/40" strokeWidth={2} />
                 </button>
               </div>
-              <div className="px-2 pb-3 grid grid-cols-2 lg:grid-cols-3 gap-2">
+              <div className="px-3 pb-3 grid grid-cols-2 lg:grid-cols-3 gap-3">
                 {pinnedPicks.map((p) => <ProductCard key={p.id} product={p} isTopPick={true} />)}
               </div>
             </div>
@@ -649,28 +638,28 @@ function ExplorePageContent() {
           (() => {
             const products = showPinnedPicks ? forYouNonPinned : displayedProducts;
             return forYouGrouped && !showPinnedPicks ? (
-              <div className="px-2 pb-4 space-y-5">
+              <div className="px-3 pb-6 space-y-6">
                 {forYouGrouped.map((group) => (
                   <div key={group.label}>
-                    <div className="flex items-center gap-2 px-1 mb-2">
-                      <span className="text-[11px] font-bold text-primary-container tracking-wide">For your {concernLabel(group.label)}</span>
+                    <div className="flex items-center gap-2 px-1 mb-3">
+                      <span className="text-[11px] font-bold text-primary-container tracking-wide uppercase">For your {concernLabel(group.label)}</span>
                       <div className="flex-1 h-px bg-outline-variant/15" />
                     </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                       {group.products.map((p) => <ProductCard key={p.id} product={p} matchPct={(p as MatchedProduct).matchScore} />)}
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="px-2 pb-4">
+              <div className="px-3 pb-6">
                 {showPinnedPicks && products.length > 0 && (
-                  <div className="flex items-center gap-2 px-1 mb-2 pt-1">
-                    <span className="text-[11px] font-bold text-on-surface-variant/50 tracking-wide">You might also like</span>
+                  <div className="flex items-center gap-2 px-1 mb-3 pt-1">
+                    <span className="text-[11px] font-bold text-on-surface-variant/50 tracking-wide uppercase">You might also like</span>
                     <div className="flex-1 h-px bg-outline-variant/15" />
                   </div>
                 )}
-                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                   {products.map((p) => (
                     <ProductCard
                       key={p.id}
@@ -692,7 +681,7 @@ function ExplorePageContent() {
         )}
 
         {!showNoProfile && displayedProducts.length > 0 && (
-          <div className="mx-3 mb-6 px-3 py-2.5 rounded-xl bg-surface-container/60 border border-outline-variant/10">
+          <div className="mx-4 mb-6 px-3 py-2.5 rounded-xl bg-surface-container/60 border border-outline-variant/10">
             <p className="text-[10px] text-on-surface-variant/45 text-center leading-relaxed">
               Tapping a product opens the brand&apos;s store &middot; Free shipping on most orders &middot; Doctor-formulated
             </p>
@@ -703,43 +692,46 @@ function ExplorePageContent() {
       {/* ── By Category bottom sheet ── */}
       {showCategorySheet && (
         <div className="fixed inset-0 z-[55]" onClick={() => setShowCategorySheet(false)}>
-          <div className="absolute inset-0 bg-black/30" />
+          <div className="absolute inset-0 bg-black/40" />
           <div className="absolute bottom-0 left-0 right-0 bg-surface rounded-t-3xl pt-5 pb-10 px-5" onClick={(e) => e.stopPropagation()}>
             <div className="w-10 h-1 bg-outline-variant/30 rounded-full mx-auto mb-5" />
-            <p className="font-extrabold text-[15px] text-on-surface font-[family-name:var(--font-manrope)] mb-4">Shop by Category</p>
+            <p className="font-extrabold text-[16px] text-on-surface font-[family-name:var(--font-manrope)] mb-4">Shop by Category</p>
+
             {isKid ? (
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-2 gap-3">
                 {KIDS_CATEGORY_FILTERS.map((cat) => (
                   <button
                     key={cat.key}
                     onClick={() => { setActiveCategory(cat.key); setShowCategorySheet(false); }}
-                    className={`flex items-center gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer text-left ${
+                    className={`relative flex flex-col items-center gap-2.5 p-4 rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${
                       activeCategory === cat.key
-                        ? "bg-amber-500/10 border-amber-400/30 text-amber-700"
-                        : "border-outline-variant/12 bg-surface-container-low hover:bg-surface-container text-on-surface-variant"
+                        ? "border-amber-400/60 bg-amber-500/10"
+                        : "border-outline-variant/12 bg-surface-container-low hover:bg-surface-container"
                     }`}
                   >
-                    <span className="text-2xl leading-none">{cat.emoji}</span>
-                    <span className="text-[13px] font-semibold">{cat.label}</span>
+                    <span className="text-3xl leading-none">{cat.emoji}</span>
+                    <span className={`text-[13px] font-bold ${activeCategory === cat.key ? "text-amber-700" : "text-on-surface"}`}>{cat.label}</span>
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {visibleCategories.filter((c) => c.key !== "for-you").map((cat) => (
                   <button
                     key={cat.key}
                     onClick={() => { setActiveCategory(cat.key); setShowCategorySheet(false); }}
-                    className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all cursor-pointer ${
+                    className={`relative flex flex-col items-center gap-2.5 p-4 rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${
                       activeCategory === cat.key
-                        ? "bg-primary-container/10 border-primary-container/25 text-primary-container"
-                        : "border-outline-variant/12 bg-surface-container-low hover:bg-surface-container text-on-surface-variant"
+                        ? "border-primary-container/50 bg-primary-container/10"
+                        : "border-outline-variant/10 bg-surface-container-low hover:bg-surface-container"
                     }`}
                   >
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold ${activeCategory === cat.key ? "bg-primary-container/15" : "bg-surface-container"}`}>
-                      {cat.abbr}
-                    </div>
-                    <span className="text-[11px] font-semibold leading-tight text-center">{cat.label}</span>
+                    {/* Gradient background */}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${cat.gradient} opacity-60`} />
+                    <span className="relative text-3xl leading-none">{cat.emoji}</span>
+                    <span className={`relative text-[13px] font-bold ${activeCategory === cat.key ? "text-primary-container" : "text-on-surface"}`}>
+                      {cat.label}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -751,20 +743,20 @@ function ExplorePageContent() {
       {/* ── By Concern bottom sheet ── */}
       {showConcernSheet && (
         <div className="fixed inset-0 z-[55]" onClick={() => setShowConcernSheet(false)}>
-          <div className="absolute inset-0 bg-black/30" />
+          <div className="absolute inset-0 bg-black/40" />
           <div className="absolute bottom-0 left-0 right-0 bg-surface rounded-t-3xl pt-5 pb-10 px-5" onClick={(e) => e.stopPropagation()}>
             <div className="w-10 h-1 bg-outline-variant/30 rounded-full mx-auto mb-5" />
-            <p className="font-extrabold text-[15px] text-on-surface font-[family-name:var(--font-manrope)] mb-4">Shop by Concern</p>
-            <div className="flex flex-col gap-2">
+            <p className="font-extrabold text-[16px] text-on-surface font-[family-name:var(--font-manrope)] mb-4">Shop by Concern</p>
+            <div className="flex flex-col gap-2.5">
               {isKid ? (
                 KIDS_CONCERN_FILTERS.map((concern) => (
                   <button
                     key={concern.key}
                     onClick={() => { setActiveCategory(concern.key); setShowConcernSheet(false); }}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all cursor-pointer text-left ${
+                    className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl border-2 transition-all cursor-pointer text-left ${
                       activeCategory === concern.key
-                        ? "bg-amber-500/10 border-amber-400/30"
-                        : "border-outline-variant/12 bg-surface-container-low hover:bg-surface-container"
+                        ? "bg-amber-500/10 border-amber-400/40"
+                        : "border-outline-variant/10 bg-surface-container-low hover:bg-surface-container"
                     }`}
                   >
                     <span className="text-2xl leading-none shrink-0">{concern.emoji}</span>
@@ -775,32 +767,25 @@ function ExplorePageContent() {
                   </button>
                 ))
               ) : (
-                [
-                  { key: "hair",      label: "Hair Fall & Growth",  desc: "Biotin, DHT blockers, scalp health" },
-                  { key: "skin",      label: "Skin & Acne",         desc: "Collagen, glutathione, clear skin" },
-                  { key: "weight",    label: "Weight Management",   desc: "Fat loss, muscle, metabolism" },
-                  { key: "nutrition", label: "Energy & Gut",        desc: "Ashwagandha, vitamins, probiotics" },
-                  { key: "sleep",     label: "Sleep & Stress",      desc: "Melatonin, magnesium, calm" },
-                  { key: "hormones",  label: "Hormonal Health",     desc: "PCOS, testosterone, balance" },
-                ].filter((c) => !(c.key === "beard" && profile?.sex === "female")).map((concern) => (
-                  <button
-                    key={concern.key}
-                    onClick={() => { setActiveCategory(concern.key); setShowConcernSheet(false); }}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all cursor-pointer text-left ${
-                      activeCategory === concern.key
-                        ? "bg-primary-container/10 border-primary-container/25"
-                        : "border-outline-variant/12 bg-surface-container-low hover:bg-surface-container"
-                    }`}
-                  >
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${activeCategory === concern.key ? "bg-primary-container/15 text-primary-container" : "bg-surface-container text-on-surface-variant/50"}`}>
-                      {CATEGORIES.find((c) => c.key === concern.key)?.abbr}
-                    </div>
-                    <div className="min-w-0">
-                      <p className={`text-[13px] font-bold ${activeCategory === concern.key ? "text-primary-container" : "text-on-surface"}`}>{concern.label}</p>
-                      <p className="text-[11px] text-on-surface-variant/50 mt-0.5">{concern.desc}</p>
-                    </div>
-                  </button>
-                ))
+                CONCERN_LIST
+                  .filter((c) => !(c.key === "beard" && profile?.sex === "female"))
+                  .map((concern) => (
+                    <button
+                      key={concern.key}
+                      onClick={() => { setActiveCategory(concern.key); setShowConcernSheet(false); }}
+                      className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl border-2 transition-all cursor-pointer text-left ${
+                        activeCategory === concern.key
+                          ? "bg-primary-container/10 border-primary-container/35"
+                          : "border-outline-variant/10 bg-surface-container-low hover:bg-surface-container"
+                      }`}
+                    >
+                      <span className="text-2xl leading-none shrink-0">{concern.emoji}</span>
+                      <div className="min-w-0">
+                        <p className={`text-[13px] font-bold ${activeCategory === concern.key ? "text-primary-container" : "text-on-surface"}`}>{concern.label}</p>
+                        <p className="text-[11px] text-on-surface-variant/50 mt-0.5">{concern.desc}</p>
+                      </div>
+                    </button>
+                  ))
               )}
             </div>
           </div>
