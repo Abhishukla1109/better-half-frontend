@@ -484,7 +484,7 @@ export default function ProtocolPage() {
   // Daily nudge tracking: answered today or too many skips → don't auto-open again
   const [nudgeState, setNudgeState] = useState<{ date: string; answered: boolean; skipCount: number } | null>(null);
   // Cart
-  const { addItem } = useCart();
+  const { addItem, openCart } = useCart();
   const [addingId, setAddingId] = useState<string | null>(null);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const [addingAll, setAddingAll] = useState(false);
@@ -776,6 +776,26 @@ export default function ProtocolPage() {
     }
   }, [protocol, cartChecked, cartSwapped, addedIds, addItem]);
 
+  // Adds every primary supplement that hasn't been added yet
+  const handleAddAllPrimaries = useCallback(async () => {
+    if (!protocol || addingAll) return;
+    setAddingAll(true);
+    try {
+      const addedVariantIds = new Set<string>();
+      for (const s of protocol.supplements) {
+        if (addedIds.has(s.id)) continue;
+        const variantId = await resolveVariantId(s.id);
+        if (variantId && !addedVariantIds.has(variantId)) {
+          await addItem(variantId);
+          addedVariantIds.add(variantId);
+          setAddedIds((prev) => new Set([...prev, s.id]));
+        }
+      }
+    } finally {
+      setAddingAll(false);
+    }
+  }, [protocol, addingAll, addedIds, addItem]);
+
   /* ── Derived state ─────────────────────────────────────────── */
   const concernList = useMemo(() => parseConcernList(profile), [profile]);
 
@@ -1029,131 +1049,216 @@ export default function ProtocolPage() {
 
 
       {/* ── Protocol Cart Sheet ── */}
-      {showProtocolCart && protocol && (
-        <div className="fixed inset-0 z-[60] flex flex-col justify-end" onClick={() => setShowProtocolCart(false)}>
-          <div className="bg-surface rounded-t-3xl shadow-2xl max-h-[92dvh] flex flex-col animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
+      {showProtocolCart && protocol && (() => {
+        const allPrimaryIds = protocol.supplements.map((s) => s.id);
+        const allPrimaryAdded = allPrimaryIds.every((id) => addedIds.has(id));
+        const anyAdded = addedIds.size > 0;
 
-            {/* Header */}
-            <div className="shrink-0 rounded-t-3xl" style={{ background: "linear-gradient(135deg, rgba(21,89,74,0.08) 0%, rgba(21,89,74,0.03) 100%)" }}>
-              <div className="w-10 h-1 rounded-full bg-outline-variant/25 mx-auto mt-3.5" />
-              <div className="flex items-center justify-between px-5 pt-3 pb-4">
-                <div>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Sparkles className="w-3 h-3 text-primary-container" strokeWidth={1.5} />
-                    <span className="text-[10px] font-bold text-primary-container uppercase tracking-wider">Your Protocol</span>
+        return (
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+            onClick={() => setShowProtocolCart(false)}
+          >
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" />
+
+            {/* Floating card */}
+            <div
+              className="relative bg-surface rounded-3xl shadow-2xl w-full max-w-md max-h-[88dvh] flex flex-col animate-fade-in-up"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="shrink-0 px-5 pt-5 pb-4 border-b border-outline-variant/10">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Sparkles className="w-3 h-3 text-primary-container" strokeWidth={1.5} />
+                      <span className="text-[10px] font-bold text-primary-container uppercase tracking-wider">Your Protocol</span>
+                    </div>
+                    <h2 className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
+                      Protocol Pack
+                    </h2>
+                    <p className="text-[11px] text-on-surface-variant/50 mt-0.5">
+                      {protocol.supplements.length} supplement{protocol.supplements.length !== 1 ? "s" : ""} · tap any product to see full details
+                    </p>
                   </div>
-                  <h2 className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
-                    Protocol Pack
-                  </h2>
-                  <p className="text-[11px] text-on-surface-variant/50 mt-0.5">
-                    {cartChecked.filter(Boolean).length} of {protocol.supplements.length} selected
-                  </p>
+                  <button
+                    onClick={() => setShowProtocolCart(false)}
+                    className="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center cursor-pointer hover:bg-surface-container transition-colors shrink-0 mt-0.5"
+                  >
+                    <X className="w-4 h-4 text-on-surface-variant" strokeWidth={2} />
+                  </button>
                 </div>
-                <button
-                  onClick={() => setShowProtocolCart(false)}
-                  className="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center cursor-pointer hover:bg-surface-container transition-colors"
-                  aria-label="Close"
-                >
-                  <X className="w-4 h-4 text-on-surface-variant" strokeWidth={2} />
-                </button>
+              </div>
+
+              {/* Product list */}
+              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
+                {protocolCartGroups.map((group) => (
+                  <div key={group.label}>
+                    {protocolCartGroups.length > 1 && (
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-[13px] leading-none">{group.emoji}</span>
+                        <span className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-wider">{group.label}</span>
+                        <div className="flex-1 h-px bg-outline-variant/15" />
+                      </div>
+                    )}
+                    <div className="space-y-4">
+                      {group.indices.map((i) => {
+                        const s = protocol.supplements[i];
+                        const alt = s.alternative;
+                        const desc = (s as { description?: string }).description;
+                        const primaryAdded = addedIds.has(s.id);
+                        const primaryLoading = addingId === s.id;
+                        const altAdded = alt ? addedIds.has(alt.id) : false;
+                        const altLoading = alt ? addingId === alt.id : false;
+
+                        return (
+                          <div key={s.id}>
+                            {/* ── Primary product card ── */}
+                            <div className="rounded-2xl border border-outline-variant/12 bg-surface-container-lowest overflow-hidden shadow-sm">
+                              {/* Product info */}
+                              <div className="p-4 pb-3 flex gap-3.5">
+                                <div className="w-[72px] h-[72px] rounded-xl overflow-hidden bg-surface-container shrink-0">
+                                  {s.image
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    ? <img src={s.image} alt={s.name} className="w-full h-full object-cover" loading="lazy" />
+                                    : <div className="w-full h-full flex items-center justify-center text-2xl leading-none">{getSupplementEmoji(s.name)}</div>
+                                  }
+                                </div>
+                                <div className="flex-1 min-w-0 pt-0.5">
+                                  <p className="text-[9px] font-bold text-on-surface-variant/40 uppercase tracking-wider leading-none mb-1">{s.brand}</p>
+                                  <p className="text-[13px] font-bold text-on-surface leading-snug">{s.name}</p>
+                                  <div className="flex items-baseline gap-1.5 mt-1">
+                                    <span className="text-[15px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">₹{s.price}</span>
+                                    {s.mrp > s.price && (
+                                      <span className="text-[10px] text-on-surface-variant/35 line-through">₹{s.mrp}</span>
+                                    )}
+                                  </div>
+                                  {desc && (
+                                    <p className="text-[11px] text-on-surface-variant/55 leading-relaxed mt-1.5 line-clamp-2">
+                                      {desc.replace(/<[^>]+>/g, "").trim()}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Primary Add button */}
+                              <div className="px-4 pb-4">
+                                <button
+                                  onClick={() => handleAddToCart(s.id)}
+                                  disabled={primaryAdded || primaryLoading}
+                                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-bold transition-all cursor-pointer disabled:cursor-default active:scale-[0.98] ${
+                                    primaryAdded
+                                      ? "bg-green-500/12 text-green-700"
+                                      : "bg-primary-container text-white hover:bg-primary"
+                                  }`}
+                                >
+                                  {primaryLoading ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2.5} />
+                                    : primaryAdded ? <Check className="w-4 h-4" strokeWidth={2.5} />
+                                    : <ShoppingBag className="w-4 h-4" strokeWidth={2} />}
+                                  {primaryLoading ? "Adding…" : primaryAdded ? "Added to cart" : "Add to Cart"}
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* ── Alternative card ── */}
+                            {alt && (
+                              <div className="mt-2 rounded-2xl border border-dashed border-outline-variant/30 bg-surface-container/20 overflow-hidden">
+                                {/* Badge */}
+                                <div className="px-4 pt-3 pb-1 flex items-center gap-1.5">
+                                  <span className="text-[9px] font-extrabold text-on-surface-variant/40 uppercase tracking-widest">Alternative pick</span>
+                                </div>
+                                {/* Alternative product info */}
+                                <div className="px-4 pb-3 flex gap-3">
+                                  <div className="w-[56px] h-[56px] rounded-xl overflow-hidden bg-surface-container shrink-0">
+                                    {alt.image
+                                      // eslint-disable-next-line @next/next/no-img-element
+                                      ? <img src={alt.image} alt={alt.name} className="w-full h-full object-cover" loading="lazy" />
+                                      : <div className="w-full h-full flex items-center justify-center text-xl leading-none">{getSupplementEmoji(alt.name)}</div>
+                                    }
+                                  </div>
+                                  <div className="flex-1 min-w-0 pt-0.5">
+                                    <p className="text-[9px] font-bold text-on-surface-variant/40 uppercase tracking-wider leading-none mb-1">{alt.brand}</p>
+                                    <p className="text-[12px] font-bold text-on-surface leading-snug">{alt.name}</p>
+                                    <div className="flex items-baseline gap-1.5 mt-0.5">
+                                      <span className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">₹{alt.price}</span>
+                                      {alt.mrp > alt.price && (
+                                        <span className="text-[10px] text-on-surface-variant/35 line-through">₹{alt.mrp}</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                                {/* Alt Add button */}
+                                <div className="px-4 pb-3">
+                                  <button
+                                    onClick={() => handleAddToCart(alt.id)}
+                                    disabled={altAdded || altLoading}
+                                    className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[12px] font-bold transition-all cursor-pointer disabled:cursor-default active:scale-[0.98] ${
+                                      altAdded
+                                        ? "bg-green-500/12 text-green-700"
+                                        : "bg-surface-container border border-outline-variant/20 text-on-surface-variant hover:bg-surface-container-high"
+                                    }`}
+                                  >
+                                    {altLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2.5} />
+                                      : altAdded ? <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+                                      : <ShoppingBag className="w-3.5 h-3.5" strokeWidth={2} />}
+                                    {altLoading ? "Adding…" : altAdded ? "Added to cart" : "Add Alternative"}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Footer */}
+              <div className="px-5 pt-3 pb-5 border-t border-outline-variant/10 shrink-0 space-y-2">
+                {/* Add all primaries — hidden once all are added */}
+                {!allPrimaryAdded && (
+                  <button
+                    onClick={handleAddAllPrimaries}
+                    disabled={addingAll}
+                    className="w-full py-3 rounded-2xl bg-primary-container text-white text-sm font-bold hover:bg-primary transition-colors cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    {addingAll
+                      ? <><Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> Adding all…</>
+                      : <><ShoppingBag className="w-4 h-4" strokeWidth={2} /> Add all to cart</>}
+                  </button>
+                )}
+                {/* View cart — shown once at least one item added */}
+                {anyAdded && (
+                  <button
+                    onClick={() => { setShowProtocolCart(false); openCart(); }}
+                    className={`w-full py-3 rounded-2xl text-sm font-bold transition-colors cursor-pointer flex items-center justify-center gap-2 ${
+                      allPrimaryAdded
+                        ? "bg-primary-container text-white hover:bg-primary"
+                        : "border border-outline-variant/20 text-on-surface-variant hover:bg-surface-container"
+                    }`}
+                  >
+                    <ShoppingBag className="w-4 h-4" strokeWidth={2} />
+                    View Cart
+                  </button>
+                )}
+                {!anyAdded && allPrimaryAdded === false && (
+                  <button
+                    onClick={() => setShowProtocolCart(false)}
+                    className="w-full py-2.5 text-[12px] font-semibold text-on-surface-variant/50 hover:text-on-surface-variant transition-colors cursor-pointer"
+                  >
+                    Close
+                  </button>
+                )}
+                <p className="text-[10px] text-on-surface-variant/40 text-center">
+                  Free delivery · Doctor-approved · Made for Indian bodies
+                </p>
               </div>
             </div>
-
-            {/* Product checklist — grouped by concern */}
-            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-5">
-              {protocolCartGroups.map((group) => (
-                <div key={group.label}>
-                  {/* Section header */}
-                  <div className="flex items-center gap-2 mb-2.5">
-                    <span className="text-[14px] leading-none">{group.emoji}</span>
-                    <span className="text-[11px] font-bold text-on-surface uppercase tracking-wider">{group.label}</span>
-                    <div className="flex-1 h-px bg-outline-variant/15" />
-                  </div>
-                  {/* Cards */}
-                  <div className="space-y-2">
-                    {group.indices.map((i) => {
-                      const s = protocol.supplements[i];
-                      const isChecked = cartChecked[i] ?? true;
-                      const isSwapped = cartSwapped[i] ?? false;
-                      const active = (isSwapped && s.alternative) ? s.alternative : s;
-                      const alt = s.alternative;
-                      return (
-                        <div
-                          key={s.id}
-                          className={`rounded-2xl border transition-all duration-200 ${
-                            isChecked ? "border-primary-container/20 bg-surface-container-lowest" : "border-outline-variant/10 bg-surface opacity-50"
-                          }`}
-                        >
-                          <button
-                            className="w-full flex items-center gap-3 px-3.5 py-3 text-left cursor-pointer"
-                            onClick={() => setCartChecked(prev => { const n = [...prev]; n[i] = !n[i]; return n; })}
-                          >
-                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
-                              isChecked ? "bg-primary-container border-primary-container" : "border-outline-variant/40"
-                            }`}>
-                              {isChecked && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
-                            </div>
-                            <div className="w-11 h-11 rounded-xl overflow-hidden bg-surface-container shrink-0">
-                              {active.image
-                                // eslint-disable-next-line @next/next/no-img-element
-                                ? <img src={active.image} alt={active.name} className="w-full h-full object-cover" loading="lazy" />
-                                : <div className="w-full h-full flex items-center justify-center text-lg leading-none">{getSupplementEmoji(active.name)}</div>}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[9px] font-bold text-on-surface-variant/45 uppercase tracking-wider leading-none mb-0.5">{active.brand}</p>
-                              <p className="text-[12px] font-bold text-on-surface leading-snug">{active.name}</p>
-                              <p className="text-[13px] font-extrabold text-on-surface mt-0.5 font-[family-name:var(--font-manrope)]">₹{active.price}</p>
-                            </div>
-                          </button>
-                          {alt && isChecked && (
-                            <div className="px-3.5 pb-3 -mt-0.5">
-                              <button
-                                onClick={() => setCartSwapped(prev => { const n = [...prev]; n[i] = !n[i]; return n; })}
-                                className="text-[10px] font-semibold text-primary-container bg-primary-container/8 px-2.5 py-1 rounded-full border border-primary-container/15 cursor-pointer hover:bg-primary-container/15 transition-colors"
-                              >
-                                {isSwapped
-                                  ? `↩ Back to ${s.name.split(" ").slice(0, 3).join(" ")}`
-                                  : `Swap → ${alt.name.split(" ").slice(0, 3).join(" ")} · ₹${alt.price}`}
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Footer */}
-            <div className="px-5 pt-3 pb-7 border-t border-outline-variant/10 shrink-0">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-semibold text-on-surface-variant">Subtotal</span>
-                <span className="text-xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
-                  ₹{protocol.supplements.reduce((sum, s, i) => {
-                    if (!cartChecked[i]) return sum;
-                    const active = (cartSwapped[i] && s.alternative) ? s.alternative : s;
-                    return sum + active.price;
-                  }, 0).toLocaleString("en-IN")}
-                </span>
-              </div>
-              <button
-                onClick={handleCheckoutProtocolCart}
-                disabled={checkingOutCart || !cartChecked.some(Boolean)}
-                className="w-full py-4 rounded-2xl bg-primary-container text-white font-bold text-sm hover:bg-primary transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {checkingOutCart
-                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Adding to cart…</>
-                  : <><ShoppingBag className="w-4 h-4" strokeWidth={2} /> Add Selected &amp; Checkout</>}
-              </button>
-              <p className="text-[10px] text-on-surface-variant/40 text-center mt-2">
-                Free delivery · Doctor-approved · Made for Indian bodies
-              </p>
-            </div>
-
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── Question floating popup ── */}
       {showQuestionSheet && (
