@@ -6,6 +6,7 @@ import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { calculateProtocolMatch, ALL_PRODUCTS } from "@/lib/protocolEngine";
 import type { MatchedProduct } from "@/lib/protocolEngine";
 import { calculateProfileDepth } from "@/lib/ai/profile-depth";
+import { supabase } from "@/lib/supabase/client";
 
 /* ── Energy bar options ── */
 const ENERGY_OPTIONS = [
@@ -360,6 +361,77 @@ const VITALITY_MESSAGES = [
   { min: 0,  msg: "Every great health journey starts here. Check in daily and your score climbs." },
 ];
 
+/* ── Supabase sync helpers ── */
+async function upsertHealthLog(userId: string, date: string, type: string, value: string) {
+  try {
+    await supabase.from("health_logs").upsert(
+      { user_id: userId, date, type, value },
+      { onConflict: "user_id,date,type" },
+    );
+  } catch { /* non-critical */ }
+}
+
+async function syncHealthLogsFromSupabase(
+  onCheckins: (c: Checkins) => void,
+  onEnergyHistory: (h: { date: string; key: EnergyKey | null; dayLabel: string }[]) => void,
+  onEnergyToday: (k: EnergyKey, msg: string) => void,
+  onSecondaryToday: (k: string) => void,
+  onSecondaryHistory: (h: { date: string; key: string | null; dayLabel: string }[]) => void,
+) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    // Fetch last 60 days of logs in one query
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 60);
+    const { data: logs } = await supabase
+      .from("health_logs")
+      .select("date, type, value")
+      .eq("user_id", session.user.id);
+
+    if (!logs || logs.length === 0) return;
+
+    // Write everything back to localStorage so existing helpers work unchanged
+    const checkins: Checkins = loadCheckins();
+    logs.forEach(log => {
+      if (log.type === "checkin") {
+        localStorage.setItem(`bh_checkin_${log.date}`, log.value);
+        checkins[log.date] = log.value === "true";
+      } else {
+        localStorage.setItem(`bh_${log.type}_${log.date}`, log.value);
+      }
+    });
+    saveCheckins(checkins);
+    onCheckins({ ...checkins });
+
+    // Rebuild 7-day energy history from localStorage (now hydrated)
+    const today = new Date().toDateString();
+    const dayLabels = ["S","M","T","W","T","F","S"];
+    const energyHistory = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      return { date: d.toDateString(), key: localStorage.getItem(`bh_energy_${d.toDateString()}`) as EnergyKey | null, dayLabel: dayLabels[d.getDay()] };
+    }).reverse();
+    onEnergyHistory(energyHistory);
+
+    // Today's energy
+    const todayEnergy = localStorage.getItem(`bh_energy_${today}`) as EnergyKey | null;
+    if (todayEnergy) {
+      const opt = ENERGY_OPTIONS.find(o => o.key === todayEnergy);
+      if (opt) onEnergyToday(opt.key, opt.msg);
+    }
+
+    // Today's secondary + 7-day history
+    const todaySecondary = localStorage.getItem(`${ACTIVE_SECONDARY.storageKey}_${today}`);
+    if (todaySecondary) onSecondaryToday(todaySecondary);
+    const secHistory = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      return { date: d.toDateString(), key: localStorage.getItem(`${ACTIVE_SECONDARY.storageKey}_${d.toDateString()}`), dayLabel: dayLabels[d.getDay()] };
+    }).reverse();
+    onSecondaryHistory(secHistory);
+  } catch { /* non-critical — app works from localStorage even if this fails */ }
+}
+
 /* ── Page ── */
 export default function InsightsPage() {
   const { activeMember } = useActiveProfile();
@@ -444,12 +516,25 @@ export default function InsightsPage() {
       setSupplements(matched);
     } catch {}
     setProfileLoaded(true);
+
+    // Background sync from Supabase — silently hydrates localStorage + state
+    // for signed-in users coming from another device. No-op for demo users.
+    syncHealthLogsFromSupabase(
+      setCheckins,
+      setEnergyHistory,
+      (k, msg) => { setEnergyLevel(k); setEnergyMsg(msg); },
+      setSecondaryAnswer,
+      setSecondaryHistory,
+    );
   }, []);
 
   const handleCheckin = (val: boolean) => {
     const updated = { ...checkins, [today]: val };
     setCheckins(updated);
     saveCheckins(updated);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) upsertHealthLog(session.user.id, today, "checkin", String(val));
+    });
   };
 
   const handleEnergy = (opt: typeof ENERGY_OPTIONS[number]) => {
@@ -458,6 +543,9 @@ export default function InsightsPage() {
     try { localStorage.setItem(`bh_energy_${today}`, opt.key); } catch {}
     setEnergyHistory(prev => prev.map(h => h.date === today ? { ...h, key: opt.key } : h));
     saveHealthSignals();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) upsertHealthLog(session.user.id, today, "energy", opt.key);
+    });
   };
 
   const handleSecondary = (key: string) => {
@@ -465,6 +553,9 @@ export default function InsightsPage() {
     try { localStorage.setItem(`${ACTIVE_SECONDARY.storageKey}_${today}`, key); } catch {}
     setSecondaryHistory(prev => prev.map(h => h.date === today ? { ...h, key } : h));
     saveHealthSignals();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) upsertHealthLog(session.user.id, today, ACTIVE_SECONDARY.key, key);
+    });
   };
 
   // Complementary products — same concern first, pad with top-rated cross-concern if catalog is thin

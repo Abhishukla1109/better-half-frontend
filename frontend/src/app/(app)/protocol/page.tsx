@@ -521,22 +521,82 @@ export default function ProtocolPage() {
     }
 
     // Visit tracking — day 1 gets 2 questions, return visits get 1
+    // Syncs with Supabase protocol_state so count persists across devices
     try {
       const visitRaw = localStorage.getItem("bh_protocol_visits");
       const today = new Date().toDateString();
+      let localCount = 0;
+      let localLastVisit = "";
+
       if (visitRaw) {
         const vd = JSON.parse(visitRaw) as { lastVisit: string; count: number };
+        localLastVisit = vd.lastVisit;
+        localCount = vd.count;
         if (vd.lastVisit === today) {
           setVisitCount(vd.count);
         } else {
-          const next = vd.count + 1;
-          setVisitCount(next);
-          localStorage.setItem("bh_protocol_visits", JSON.stringify({ lastVisit: today, count: next }));
+          localCount = vd.count + 1;
+          localLastVisit = today;
+          setVisitCount(localCount);
+          localStorage.setItem("bh_protocol_visits", JSON.stringify({ lastVisit: today, count: localCount }));
         }
       } else {
+        localCount = 1;
+        localLastVisit = today;
         localStorage.setItem("bh_protocol_visits", JSON.stringify({ lastVisit: today, count: 1 }));
         setVisitCount(1);
       }
+
+      // Background sync: read protocol_state from Supabase, take higher visit count
+      supabase.auth.getSession().then(async ({ data: { session } }) => {
+        if (!session) return;
+        const { data: state } = await supabase
+          .from("protocol_state")
+          .select("visit_count, last_visit_date, follow_up_answers")
+          .eq("user_id", session.user.id)
+          .single();
+
+        let finalCount = localCount;
+        let finalLastVisit = localLastVisit;
+
+        if (state) {
+          // If Supabase has a higher count (from another device), use it
+          // but still bump for today if not already bumped
+          const remoteCount = state.visit_count ?? 0;
+          if (remoteCount > localCount) {
+            finalCount = state.last_visit_date === today ? remoteCount : remoteCount + 1;
+            finalLastVisit = today;
+            localStorage.setItem("bh_protocol_visits", JSON.stringify({ lastVisit: today, count: finalCount }));
+            setVisitCount(finalCount);
+          }
+          // Merge follow-up answers from Supabase into localStorage profile
+          if (state.follow_up_answers && Object.keys(state.follow_up_answers).length > 0) {
+            try {
+              const raw = localStorage.getItem("bh_profile");
+              if (raw) {
+                const profile = JSON.parse(raw);
+                const merged = { ...state.follow_up_answers, ...profile };
+                localStorage.setItem("bh_profile", JSON.stringify(merged));
+              }
+            } catch { /* non-critical */ }
+          }
+        }
+
+        // Write current state back to Supabase
+        const currentAnswers: Record<string, string> = {};
+        try {
+          const raw = localStorage.getItem("bh_profile");
+          if (raw) Object.assign(currentAnswers, JSON.parse(raw));
+        } catch { /* non-critical */ }
+
+        supabase.from("protocol_state").upsert({
+          user_id: session.user.id,
+          visit_count: finalCount,
+          last_visit_date: finalLastVisit,
+          follow_up_answers: currentAnswers,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "user_id" }).then(() => {});
+      });
     } catch { /* non-critical */ }
 
     // Restore today's answered question count so the daily limit survives navigation
@@ -604,7 +664,7 @@ export default function ProtocolPage() {
       } catch { /* non-critical */ }
       return next;
     });
-    // Sync updated profile back to Supabase (fire-and-forget — no effect on demo users without a session)
+    // Sync updated profile + protocol_state back to Supabase (fire-and-forget)
     try {
       const raw = localStorage.getItem("bh_profile");
       if (raw) {
@@ -612,6 +672,15 @@ export default function ProtocolPage() {
         supabase.auth.getSession().then(({ data: { session } }) => {
           if (session) {
             supabase.from("profiles").upsert({ id: session.user.id, data: updatedProfile }).then(() => {});
+            const visitRaw = localStorage.getItem("bh_protocol_visits");
+            const vc = visitRaw ? (JSON.parse(visitRaw) as { count: number }).count : 0;
+            supabase.from("protocol_state").upsert({
+              user_id: session.user.id,
+              visit_count: vc,
+              last_visit_date: new Date().toDateString(),
+              follow_up_answers: updatedProfile,
+              updated_at: new Date().toISOString(),
+            }, { onConflict: "user_id" }).then(() => {});
           }
         });
       }
