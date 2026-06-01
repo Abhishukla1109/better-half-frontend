@@ -370,6 +370,17 @@ function firstSentence(text: string): string {
   return m ? m[0].trim() : text;
 }
 
+function getConcernCategoryStyle(label: string): { text: string; line: string } {
+  const k = label.toLowerCase();
+  if (k.includes("hair") || k.includes("beard")) return { text: "text-rose-600", line: "bg-rose-500/20" };
+  if (k.includes("skin") || k.includes("acne")) return { text: "text-amber-600", line: "bg-amber-500/20" };
+  if (k.includes("weight")) return { text: "text-orange-600", line: "bg-orange-500/20" };
+  if (k.includes("energy") || k.includes("gut")) return { text: "text-yellow-700", line: "bg-yellow-500/20" };
+  if (k.includes("sleep") || k.includes("mind")) return { text: "text-indigo-600", line: "bg-indigo-500/20" };
+  if (k.includes("hormone")) return { text: "text-teal-600", line: "bg-teal-500/20" };
+  return { text: "text-on-surface", line: "bg-outline-variant/15" };
+}
+
 function getConcernTagStyle(c: string): string {
   const k = c.toLowerCase();
   if (k.includes("hair") || k.includes("beard")) return "bg-rose-500/10 text-rose-700 border-rose-500/20";
@@ -1420,7 +1431,7 @@ export default function ProtocolPage() {
         {/* ── Unified protocol header card ── */}
         <div
           className="mb-4 rounded-2xl border border-outline-variant/10 overflow-hidden animate-fade-in-up"
-          style={{ background: "linear-gradient(145deg, color-mix(in srgb, var(--color-primary-container) 10%, transparent), color-mix(in srgb, var(--color-primary-container) 4%, transparent))" }}
+          style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--color-primary-container) 18%, transparent) 0%, color-mix(in srgb, var(--color-primary-container) 8%, transparent) 60%, rgba(245,158,11,0.08) 100%)" }}
         >
           <div className="p-4">
 
@@ -1560,40 +1571,16 @@ export default function ProtocolPage() {
             style={{ animationDelay: "120ms", background: "linear-gradient(175deg, rgba(21,89,74,0.09) 0%, rgba(21,89,74,0.04) 45%, rgba(21,89,74,0.01) 100%)" }}
           >
 
-            {/* Section header — shares the outer gradient */}
-            <div className="px-4 pt-4 pb-3.5">
-              <div className="flex items-center gap-1.5 mb-2">
-                <Sparkles className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
-                <span className="text-[10px] font-bold text-primary-container uppercase tracking-wider">AI-matched picks</span>
-              </div>
-              <p className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-tight mb-1">
-                {possUpper} protocol picks.
-              </p>
-              {profileSubtitle ? (
-                <>
-                  <p className="text-[12px] text-primary-container/80 font-semibold leading-relaxed">{profileSubtitle}</p>
-                  <p className="text-[10px] text-on-surface-variant/40 leading-none mt-0.5">Scored from 6.5M Indian health journeys</p>
-                </>
-              ) : (
-                <p className="text-[12px] text-on-surface-variant/60 leading-relaxed">
-                  Ranked across {concernList.length} concern{concernList.length !== 1 ? "s" : ""} · Scored from 6.5M Indian health journeys
-                </p>
-              )}
-            </div>
-
-            {/* Hairline divider between header and cards */}
-            <div className="mx-4 h-px bg-primary-container/10 mb-3" />
-
             {/* Concern-grouped or flat product cards */}
             {groupedSupplements ? (
-              <div className="space-y-5 pb-4">
+              <div className="space-y-5 pt-4 pb-4">
                 {groupedSupplements.map((group) => (
                   <div key={group.label}>
                     <div className="flex items-center gap-2 px-4 mb-2.5">
                       <span className="text-[16px] leading-none">{CONCERN_EMOJI[group.label] ?? "✦"}</span>
-                      <span className="text-[12px] font-bold text-on-surface">{group.displayLabel}</span>
+                      <span className={`text-[12px] font-bold ${getConcernCategoryStyle(group.label).text}`}>{group.displayLabel}</span>
                       <span className="text-[10px] text-on-surface-variant/40">· {group.supplements.length} matched</span>
-                      <div className="flex-1 h-px bg-outline-variant/15" />
+                      <div className={`flex-1 h-px ${getConcernCategoryStyle(group.label).line}`} />
                     </div>
                     <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-1 pl-4">
                       {group.supplements.map((s) => {
@@ -1620,7 +1607,7 @@ export default function ProtocolPage() {
                                 <span className="absolute top-2 left-2 bg-primary-container text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-md leading-none">{discountPct}% OFF</span>
                               )}
                               {displayScore >= 70 && (
-                                <div className="absolute top-2 right-2 bg-primary-container/90 text-white text-[11px] font-extrabold px-2 py-1 rounded-full leading-none tabular-nums">
+                                <div className="absolute top-2 right-2 bg-amber-500 text-white text-[11px] font-extrabold px-2 py-1 rounded-full leading-none tabular-nums">
                                   {displayScore}%
                                 </div>
                               )}
@@ -1666,13 +1653,13 @@ export default function ProtocolPage() {
               </div>
             ) : (
               /* Single concern — flat horizontal scroll */
-              <div className="pb-4">
+              <div className="pt-4 pb-4">
               {concernList.length === 1 && (
                 <div className="flex items-center gap-2 px-4 mb-2.5">
                   <span className="text-[16px] leading-none">{CONCERN_EMOJI[concernList[0]] ?? "✦"}</span>
-                  <span className="text-[12px] font-bold text-on-surface">{CONCERN_DISPLAY[concernList[0]] ?? concernList[0]}</span>
+                  <span className={`text-[12px] font-bold ${getConcernCategoryStyle(concernList[0]).text}`}>{CONCERN_DISPLAY[concernList[0]] ?? concernList[0]}</span>
                   <span className="text-[10px] text-on-surface-variant/40">· {protocol.supplements.length} matched</span>
-                  <div className="flex-1 h-px bg-outline-variant/15" />
+                  <div className={`flex-1 h-px ${getConcernCategoryStyle(concernList[0]).line}`} />
                 </div>
               )}
               <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-2 pl-4">
