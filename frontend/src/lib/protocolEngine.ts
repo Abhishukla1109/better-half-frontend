@@ -77,6 +77,9 @@ export function calculateProtocolMatch(user: UserSegment): MatchedProduct[] {
   return ALL_PRODUCTS.map((product) => {
     let score = product.baseScore;
 
+    // Little Joys is exclusively a kids brand — never surface in adult protocol
+    if (product.brand === "Little Joys") return null;
+
     const concernMatch = product.concern.includes(user.concern.toLowerCase());
     if (!concernMatch) return null;
 
