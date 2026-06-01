@@ -467,20 +467,29 @@ export default function InsightsPage() {
     saveHealthSignals();
   };
 
-  // Complementary products (same concern, not in stack, correct gender)
+  // Complementary products — same concern first, pad with top-rated cross-concern if catalog is thin
   const complementary = useMemo(() => {
     if (!supplements.length) return [];
     const stackIds = new Set(supplements.map(s => s.id));
     const concerns = supplements.flatMap(s => s.concern);
-    return ALL_PRODUCTS
-      .filter(p =>
-        !stackIds.has(p.id) &&
-        p.concern.some(c => concerns.includes(c)) &&
-        (p.gender.includes(userGender) || p.gender.includes("all")) &&
-        p.brand !== "Little Joys",
-      )
+    const genderOk = (p: typeof ALL_PRODUCTS[number]) =>
+      p.gender.includes(userGender) || p.gender.includes("all");
+
+    const sameConcern = ALL_PRODUCTS
+      .filter(p => !stackIds.has(p.id) && p.concern.some(c => concerns.includes(c)) && genderOk(p) && p.brand !== "Little Joys")
       .sort((a, b) => b.baseScore - a.baseScore)
       .slice(0, 4);
+
+    if (sameConcern.length >= 4) return sameConcern;
+
+    // Pad with top-rated from any concern for the same gender
+    const sameConcernIds = new Set(sameConcern.map(p => p.id));
+    const cross = ALL_PRODUCTS
+      .filter(p => !stackIds.has(p.id) && !sameConcernIds.has(p.id) && genderOk(p) && p.brand !== "Little Joys")
+      .sort((a, b) => b.baseScore - a.baseScore)
+      .slice(0, 4 - sameConcern.length);
+
+    return [...sameConcern, ...cross];
   }, [supplements, userGender]);
 
   // Per-concern scores
