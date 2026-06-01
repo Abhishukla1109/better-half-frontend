@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, Sun, Moon } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 
 export default function LandingPage() {
@@ -117,11 +117,12 @@ export default function LandingPage() {
           <div className="relative max-w-[440px]">
             <p className="text-[11px] font-bold text-primary-container uppercase tracking-widest mb-5">AI Health Companion</p>
             <h1 className="text-[34px] lg:text-[52px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-[1.05] tracking-tight mb-4">
-              Your health,<br />
-              <span className="text-primary-container">finally personal.</span>
+              Your personal<br />
+              <span className="text-primary-container">health protocol,</span><br />
+              built by AI.
             </h1>
             <p className="text-[15px] lg:text-[16px] text-on-surface-variant/65 leading-relaxed mb-8 lg:mb-10">
-              Answer 4 questions. Get a supplement protocol, daily habits, and AI coaching — built specifically for your body.
+              Tell us about your health goals. Get a matched supplement stack, daily habits, and progress tracking — personalised for you and your family.
             </p>
             <button
               onClick={handleDemo}
@@ -131,7 +132,7 @@ export default function LandingPage() {
               <span className="text-xl leading-none">→</span>
             </button>
             <p className="mt-5 text-[12px] text-on-surface-variant/35">
-              Trusted by 2M+ Indians · Made by Mosaic Wellness
+              Made by Mosaic Wellness
             </p>
           </div>
         </div>
@@ -151,7 +152,6 @@ export default function LandingPage() {
               <div className="flex items-center gap-1.5 mb-3">
                 <Sparkles className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
                 <span className="text-[10px] font-bold text-primary-container uppercase tracking-wider">Your Protocol</span>
-                <span className="ml-auto text-[11px] font-extrabold text-primary-container">91%</span>
               </div>
               <p className="text-[20px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-3">
                 Hair Health &amp;<br />Sleep &amp; Mind
@@ -161,14 +161,12 @@ export default function LandingPage() {
                   <span key={c} className="text-[11px] font-semibold text-primary-container bg-primary-container/12 px-2.5 py-1 rounded-full">{c}</span>
                 ))}
               </div>
-              <div className="mt-auto">
-                <p className="text-[10px] text-on-surface-variant/40 mb-1.5">Profile depth</p>
-                <div className="flex gap-1">
-                  {[1,2,3,4,5,6].map((i) => (
-                    <div key={i} className={`flex-1 h-1.5 rounded-full transition-all ${i <= 4 ? "bg-primary-container" : "bg-primary-container/15"}`} />
-                  ))}
+              <div className="mt-auto flex items-center gap-2 bg-primary-container/8 rounded-2xl px-3.5 py-2.5">
+                <span className="text-[18px]">🧬</span>
+                <div>
+                  <p className="text-[11px] font-bold text-primary-container leading-none">3 products matched</p>
+                  <p className="text-[10px] text-on-surface-variant/50 mt-0.5">Personalised to your profile</p>
                 </div>
-                <p className="text-[10px] text-on-surface-variant/40 mt-1">4 of 6 insights unlocked</p>
               </div>
             </div>
 
@@ -180,13 +178,13 @@ export default function LandingPage() {
               </div>
               <div className="flex-1 overflow-hidden">
                 {[
-                  { img: "/images/products/biotin.jpg",      name: "Biotin Hair Gummies",  brand: "Man Matters", price: "₹499", pct: "88%" },
-                  { img: "/images/products/ashwagandha.jpg", name: "Ashwagandha KSM-66",   brand: "Man Matters", price: "₹629", pct: "76%" },
-                  { img: "/images/products/magnesium.jpg",   name: "Magnesium Bisglycinate",brand: "Wellbeing",  price: "₹549", pct: "71%" },
+                  { img: "https://i.mscwlns.co/media/misc/pdp_rcl/biotin-hair-gummies-sample/7__3__WgbxQHKdS.png?tr=w-200", name: "Biotin Hair Gummies",      brand: "Man Matters", price: "₹499", pct: "88%" },
+                  { img: "https://i.mscwlns.co/mosaic-wellness/image/upload/v1631867343/Man%20Matters/Ashwagandha%20Gummies/Product%20images/Nutrition-matters-1-_1600X1200.jpg?tr=w-200", name: "Ashwagandha Gummies", brand: "Man Matters", price: "₹629", pct: "79%" },
+                  { img: "https://i.mscwlns.co/media/misc/pdp_rcl/2024494/Magnesium%20Gummies_br8d83.jpg?tr=w-200",                                                                        name: "Magnesium Gummies",         brand: "Man Matters", price: "₹549", pct: "74%" },
                 ].map((p) => (
                   <div key={p.name} className="flex items-center gap-3 px-5 py-2.5 border-b border-outline-variant/6 last:border-0">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.img} alt={p.name} className="w-10 h-10 rounded-xl object-cover shrink-0 bg-surface-container" />
+                    <img src={p.img} alt={p.name} className="w-10 h-10 rounded-xl object-contain shrink-0 bg-surface-container-low" />
                     <div className="flex-1 min-w-0">
                       <p className="text-[9px] text-on-surface-variant/40 font-semibold">{p.brand}</p>
                       <p className="text-[12px] font-bold text-on-surface leading-snug truncate">{p.name}</p>
@@ -198,52 +196,76 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Card 3 — Daily Habits */}
-            <div className="rounded-3xl bg-white border border-outline-variant/10 p-5 flex flex-col shadow-sm">
-              <p className="text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-wider mb-3">Daily routine</p>
-              <p className="text-[16px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-4">Built around your day</p>
-              <div className="space-y-2.5 flex-1">
-                <div className="flex items-start gap-3 rounded-2xl bg-amber-50 border border-amber-100/80 px-3.5 py-3">
-                  <Sun className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" strokeWidth={1.5} />
-                  <div>
-                    <p className="text-[9px] font-bold text-amber-600 uppercase tracking-wider leading-none mb-1">Morning</p>
-                    <p className="text-[12px] font-semibold text-on-surface leading-snug">Take with breakfast for best absorption</p>
+            {/* Card 3 — Insights preview */}
+            <div className="rounded-3xl border border-purple-100 p-5 flex flex-col shadow-sm" style={{ background: "linear-gradient(145deg, #f5f3ff, #faf9ff)" }}>
+              <p className="text-[10px] font-bold text-purple-400 uppercase tracking-wider mb-3">Your Insights</p>
+              <p className="text-[16px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-4">Track your progress</p>
+              <div className="flex items-center gap-4 flex-1">
+                {/* Mini vitality ring */}
+                <svg width="72" height="72" viewBox="0 0 90 90" className="shrink-0">
+                  <circle cx="45" cy="45" r="38" fill="none" stroke="#ede9fe" strokeWidth="8" />
+                  <circle cx="45" cy="45" r="38" fill="none" stroke="url(#lg-landing)" strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray={`${(72 / 100) * 2 * Math.PI * 38} ${2 * Math.PI * 38}`}
+                    transform="rotate(-90 45 45)"
+                  />
+                  <defs>
+                    <linearGradient id="lg-landing" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#7c3aed" />
+                      <stop offset="100%" stopColor="#a78bfa" />
+                    </linearGradient>
+                  </defs>
+                  <text x="45" y="42" textAnchor="middle" fill="#1c1b1f" fontSize="17" fontWeight="800" fontFamily="Manrope,sans-serif">72</text>
+                  <text x="45" y="54" textAnchor="middle" fill="#9ca3af" fontSize="8" fontWeight="600">/ 100</text>
+                </svg>
+                <div className="flex-1 space-y-2.5">
+                  <div className="flex items-center gap-2 bg-orange-50 rounded-xl px-3 py-2">
+                    <span className="text-[15px]">🔥</span>
+                    <div>
+                      <p className="text-[11px] font-extrabold text-on-surface">14 day streak</p>
+                      <p className="text-[9px] text-on-surface-variant/45">Supplement consistency</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start gap-3 rounded-2xl bg-indigo-50 border border-indigo-100/80 px-3.5 py-3">
-                  <Moon className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" strokeWidth={1.5} />
-                  <div>
-                    <p className="text-[9px] font-bold text-indigo-500 uppercase tracking-wider leading-none mb-1">Evening</p>
-                    <p className="text-[12px] font-semibold text-on-surface leading-snug">Dim lights 1hr before target bedtime</p>
+                  <div className="grid grid-cols-7 gap-1">
+                    {["⚡","😊","⚡","😴","😊","⚡","⚡"].map((e, i) => (
+                      <div key={i} className="flex flex-col items-center gap-0.5">
+                        <div className="w-6 h-6 rounded-full bg-emerald-50 flex items-center justify-center">
+                          <span className="text-[10px]">{e}</span>
+                        </div>
+                        <span className="text-[8px] text-on-surface-variant/30">{["S","M","T","W","T","F","S"][i]}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Card 4 — AI Personalisation */}
+            {/* Card 4 — Family Profiles */}
             <div
               className="rounded-3xl p-5 flex flex-col justify-between overflow-hidden"
               style={{ background: "linear-gradient(145deg, rgba(21,89,74,0.10) 0%, rgba(21,89,74,0.04) 100%)", border: "1px solid rgba(21,89,74,0.10)" }}
             >
               <div>
-                <div className="w-10 h-10 rounded-2xl bg-primary-container/15 flex items-center justify-center mb-4">
-                  <Sparkles className="w-5 h-5 text-primary-container" strokeWidth={1.5} />
-                </div>
-                <p className="text-[10px] font-bold text-primary-container uppercase tracking-wider mb-2">AI Coaching</p>
-                <p className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug">
-                  Gets smarter every visit
+                <p className="text-[10px] font-bold text-primary-container uppercase tracking-wider mb-2">Family Profiles</p>
+                <p className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-4">
+                  One app for the whole family
                 </p>
+                <div className="flex gap-2.5">
+                  {[
+                    { label: "You",     emoji: "🧑", bg: "bg-teal-50",   border: "border-teal-200",   text: "text-teal-700" },
+                    { label: "Partner", emoji: "🧑‍🤝‍🧑", bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },
+                    { label: "Kids",    emoji: "👧",  bg: "bg-amber-50",  border: "border-amber-200",  text: "text-amber-700" },
+                  ].map((m) => (
+                    <div key={m.label} className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-2xl border ${m.bg} ${m.border}`}>
+                      <span className="text-[22px]">{m.emoji}</span>
+                      <span className={`text-[10px] font-bold ${m.text}`}>{m.label}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="mt-4 space-y-2">
-                {[
-                  { value: "6.5M+", label: "Indian health journeys" },
-                  { value: "< 60s", label: "To your first protocol" },
-                ].map((s) => (
-                  <div key={s.value} className="flex items-center justify-between bg-surface/60 rounded-xl px-3.5 py-2.5">
-                    <p className="text-[11px] text-on-surface-variant/60">{s.label}</p>
-                    <p className="text-[15px] font-extrabold text-primary-container font-[family-name:var(--font-manrope)]">{s.value}</p>
-                  </div>
-                ))}
+              <div className="mt-4 flex items-center gap-2 bg-surface/60 rounded-xl px-3.5 py-2.5">
+                <span className="text-[13px]">⚡</span>
+                <p className="text-[11px] text-on-surface-variant/60">Protocol ready in under 60 seconds</p>
               </div>
             </div>
 
@@ -260,7 +282,6 @@ export default function LandingPage() {
               <div className="flex items-center gap-1.5 mb-2">
                 <Sparkles className="w-3 h-3 text-primary-container" strokeWidth={1.5} />
                 <span className="text-[9px] font-bold text-primary-container uppercase tracking-wider">Your Protocol</span>
-                <span className="ml-auto text-[11px] font-extrabold text-primary-container">91%</span>
               </div>
               <p className="text-[15px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-2.5">
                 Hair Health &amp;<br />Sleep &amp; Mind
@@ -270,13 +291,9 @@ export default function LandingPage() {
                   <span key={c} className="text-[10px] font-semibold text-primary-container bg-primary-container/12 px-2 py-0.5 rounded-full">{c}</span>
                 ))}
               </div>
-              <div className="mt-auto">
-                <div className="flex gap-1">
-                  {[1,2,3,4,5,6].map((i) => (
-                    <div key={i} className={`flex-1 h-1 rounded-full ${i <= 4 ? "bg-primary-container" : "bg-primary-container/15"}`} />
-                  ))}
-                </div>
-                <p className="text-[9px] text-on-surface-variant/40 mt-1">4 of 6 insights unlocked</p>
+              <div className="mt-auto flex items-center gap-2 bg-primary-container/8 rounded-xl px-3 py-2">
+                <span className="text-[14px]">🧬</span>
+                <p className="text-[10px] font-bold text-primary-container">3 products matched</p>
               </div>
             </div>
 
@@ -287,12 +304,12 @@ export default function LandingPage() {
                 <p className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mt-0.5">Your supplements</p>
               </div>
               {[
-                { img: "/images/products/biotin.jpg",      name: "Biotin Hair Gummies", price: "₹499", pct: "88%" },
-                { img: "/images/products/ashwagandha.jpg", name: "Ashwagandha KSM-66",  price: "₹629", pct: "76%" },
+                { img: "https://i.mscwlns.co/media/misc/pdp_rcl/biotin-hair-gummies-sample/7__3__WgbxQHKdS.png?tr=w-200", name: "Biotin Hair Gummies", price: "₹499", pct: "88%" },
+                { img: "https://i.mscwlns.co/mosaic-wellness/image/upload/v1631867343/Man%20Matters/Ashwagandha%20Gummies/Product%20images/Nutrition-matters-1-_1600X1200.jpg?tr=w-200", name: "Ashwagandha Gummies", price: "₹629", pct: "79%" },
               ].map((p) => (
                 <div key={p.name} className="flex items-center gap-2.5 px-4 py-2.5 border-b border-outline-variant/6 last:border-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.img} alt={p.name} className="w-9 h-9 rounded-xl object-cover shrink-0 bg-surface-container" />
+                  <img src={p.img} alt={p.name} className="w-9 h-9 rounded-xl object-contain shrink-0 bg-surface-container-low" />
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] font-bold text-on-surface leading-snug truncate">{p.name}</p>
                     <p className="text-[11px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">{p.price}</p>
@@ -302,50 +319,67 @@ export default function LandingPage() {
               ))}
             </div>
 
-            {/* Card 3 — Daily Routine */}
-            <div className="snap-start shrink-0 w-[220px] rounded-2xl bg-white border border-outline-variant/10 p-4 flex flex-col shadow-sm">
-              <p className="text-[9px] font-bold text-on-surface-variant/40 uppercase tracking-wider mb-2">Daily routine</p>
-              <p className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-3">Built around your day</p>
-              <div className="space-y-2">
-                <div className="flex items-start gap-2.5 rounded-xl bg-amber-50 border border-amber-100/80 px-3 py-2.5">
-                  <Sun className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" strokeWidth={1.5} />
-                  <div>
-                    <p className="text-[8px] font-bold text-amber-600 uppercase tracking-wider leading-none mb-0.5">Morning</p>
-                    <p className="text-[11px] font-semibold text-on-surface leading-snug">Take with breakfast for best absorption</p>
+            {/* Card 3 — Insights */}
+            <div className="snap-start shrink-0 w-[220px] rounded-2xl border border-purple-100 p-4 flex flex-col shadow-sm" style={{ background: "linear-gradient(145deg, #f5f3ff, #faf9ff)" }}>
+              <p className="text-[9px] font-bold text-purple-400 uppercase tracking-wider mb-2">Your Insights</p>
+              <p className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-3">Track your progress</p>
+              <div className="flex items-center gap-3">
+                <svg width="58" height="58" viewBox="0 0 90 90" className="shrink-0">
+                  <circle cx="45" cy="45" r="38" fill="none" stroke="#ede9fe" strokeWidth="8" />
+                  <circle cx="45" cy="45" r="38" fill="none" stroke="url(#lg-mob)" strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray={`${(72 / 100) * 2 * Math.PI * 38} ${2 * Math.PI * 38}`}
+                    transform="rotate(-90 45 45)"
+                  />
+                  <defs>
+                    <linearGradient id="lg-mob" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#7c3aed" />
+                      <stop offset="100%" stopColor="#a78bfa" />
+                    </linearGradient>
+                  </defs>
+                  <text x="45" y="42" textAnchor="middle" fill="#1c1b1f" fontSize="17" fontWeight="800" fontFamily="Manrope,sans-serif">72</text>
+                  <text x="45" y="54" textAnchor="middle" fill="#9ca3af" fontSize="8" fontWeight="600">/ 100</text>
+                </svg>
+                <div className="flex-1 space-y-1.5">
+                  <div className="flex items-center gap-1.5 bg-orange-50 rounded-xl px-2.5 py-1.5">
+                    <span className="text-[13px]">🔥</span>
+                    <p className="text-[10px] font-extrabold text-on-surface">14 day streak</p>
                   </div>
-                </div>
-                <div className="flex items-start gap-2.5 rounded-xl bg-indigo-50 border border-indigo-100/80 px-3 py-2.5">
-                  <Moon className="w-3.5 h-3.5 text-indigo-400 shrink-0 mt-0.5" strokeWidth={1.5} />
-                  <div>
-                    <p className="text-[8px] font-bold text-indigo-500 uppercase tracking-wider leading-none mb-0.5">Evening</p>
-                    <p className="text-[11px] font-semibold text-on-surface leading-snug">Dim lights 1hr before target bedtime</p>
+                  <div className="grid grid-cols-7 gap-0.5">
+                    {["⚡","😊","⚡","😴","😊","⚡","⚡"].map((e, i) => (
+                      <div key={i} className="w-6 h-6 rounded-full bg-emerald-50 flex items-center justify-center">
+                        <span className="text-[9px]">{e}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Card 4 — AI Coaching */}
+            {/* Card 4 — Family */}
             <div className="snap-start shrink-0 w-[200px] rounded-2xl p-4 flex flex-col justify-between"
               style={{ background: "linear-gradient(145deg, rgba(21,89,74,0.10) 0%, rgba(21,89,74,0.04) 100%)", border: "1px solid rgba(21,89,74,0.10)" }}>
               <div>
-                <div className="w-8 h-8 rounded-xl bg-primary-container/15 flex items-center justify-center mb-3">
-                  <Sparkles className="w-4 h-4 text-primary-container" strokeWidth={1.5} />
-                </div>
-                <p className="text-[9px] font-bold text-primary-container uppercase tracking-wider mb-1.5">AI Coaching</p>
-                <p className="text-[15px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug">
-                  Gets smarter every visit
+                <p className="text-[9px] font-bold text-primary-container uppercase tracking-wider mb-1.5">Family Profiles</p>
+                <p className="text-[15px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-3">
+                  One app for the whole family
                 </p>
+                <div className="flex gap-2">
+                  {[
+                    { label: "You",     emoji: "🧑", bg: "bg-teal-50",   border: "border-teal-200",   text: "text-teal-700" },
+                    { label: "Partner", emoji: "🧑‍🤝‍🧑", bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },
+                    { label: "Kids",    emoji: "👧",  bg: "bg-amber-50",  border: "border-amber-200",  text: "text-amber-700" },
+                  ].map((m) => (
+                    <div key={m.label} className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-xl border ${m.bg} ${m.border}`}>
+                      <span className="text-[18px]">{m.emoji}</span>
+                      <span className={`text-[9px] font-bold ${m.text}`}>{m.label}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="mt-4 space-y-1.5">
-                {[
-                  { value: "6.5M+", label: "Indian health journeys" },
-                  { value: "< 60s", label: "To your first protocol" },
-                ].map((s) => (
-                  <div key={s.value} className="flex items-center justify-between bg-surface/60 rounded-xl px-3 py-2">
-                    <p className="text-[10px] text-on-surface-variant/60">{s.label}</p>
-                    <p className="text-[13px] font-extrabold text-primary-container font-[family-name:var(--font-manrope)]">{s.value}</p>
-                  </div>
-                ))}
+              <div className="mt-3 flex items-center gap-1.5 bg-surface/60 rounded-xl px-3 py-2">
+                <span className="text-[11px]">⚡</span>
+                <p className="text-[10px] text-on-surface-variant/60">Protocol in under 60s</p>
               </div>
             </div>
 

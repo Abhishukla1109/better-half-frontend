@@ -452,6 +452,7 @@ export default function InsightsPage() {
   const [showVitalityPopover, setShowVitalityPopover] = useState(false);
   const [secondaryAnswer, setSecondaryAnswer] = useState<string | null>(null);
   const [secondaryHistory, setSecondaryHistory] = useState<{ date: string; key: string | null; dayLabel: string }[]>([]);
+  const [hasProfile, setHasProfile] = useState(false);
 
   const today   = new Date().toDateString();
   const todayChecked = checkins[today];
@@ -503,7 +504,8 @@ export default function InsightsPage() {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const profile: any = JSON.parse(localStorage.getItem("bh_profile") ?? "null");
-      if (!profile) { setProfileLoaded(true); return; }
+      if (!profile) { setProfileLoaded(true); setHasProfile(false); return; }
+      setHasProfile(true);
       const depth = calculateProfileDepth(profile);
       setDepthTotal(depth.total);
       const gender: string = profile.sex ?? "male";
@@ -673,6 +675,31 @@ export default function InsightsPage() {
   const ringDash = (vitality / 100) * RING_CIRC;
 
   if (!profileLoaded) return null;
+
+  if (!hasProfile) {
+    return (
+      <main className="min-h-dvh bg-[#faf9fb] flex flex-col items-center justify-center px-6 pb-28">
+        <div className="w-full max-w-sm text-center">
+          <div className="w-20 h-20 rounded-3xl mx-auto mb-6 flex items-center justify-center" style={{ background: "linear-gradient(135deg, #f0f4ff, #e9e4ff)" }}>
+            <span className="text-[36px]">📊</span>
+          </div>
+          <h2 className="text-[24px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-tight mb-2">
+            No insights yet
+          </h2>
+          <p className="text-[14px] text-on-surface-variant/60 leading-relaxed mb-8">
+            Complete your health protocol to unlock your personal dashboard — streak tracking, vitality score, supplement insights and more.
+          </p>
+          <a
+            href="/protocol"
+            className="inline-flex items-center justify-between w-full py-4 px-5 rounded-2xl bg-primary-container text-white font-bold text-sm hover:bg-primary transition-colors duration-200"
+          >
+            <span>Set up my protocol</span>
+            <span className="text-lg leading-none">→</span>
+          </a>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <div className="min-h-dvh bg-[#faf9fb] pb-28 lg:pb-10">
@@ -1175,14 +1202,6 @@ export default function InsightsPage() {
           </div>
         )}
 
-
-        {/* Empty state */}
-        {supplements.length === 0 && profileLoaded && (
-          <div className="rounded-3xl bg-white border border-outline-variant/10 p-6 text-center">
-            <p className="text-[13px] font-semibold text-on-surface mb-1">No protocol yet</p>
-            <p className="text-[12px] text-on-surface-variant/50">Complete your onboarding to see your supplement insights here.</p>
-          </div>
-        )}
 
         </div>{/* end full-width section */}
 
