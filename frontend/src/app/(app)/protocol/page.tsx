@@ -23,6 +23,99 @@ import { resolveVariantId } from "@/lib/shopify/variant-resolver";
 import { ALL_PRODUCTS } from "@/lib/protocolEngine";
 import { supabase } from "@/lib/supabase/client";
 
+/* ── Emoji per question key (for the AI question popup) ──── */
+const QUESTION_EMOJI: Record<string, string> = {
+  // Shared lifestyle
+  stress_level:          "😮‍💨",
+  sleep_quality:         "🌙",
+  water_intake:          "💧",
+  caffeine_intake:       "☕",
+  food_source:           "🍽️",
+  protein_meals:         "🥩",
+  // Hair / beard
+  hair_primary:          "💇",
+  hair_duration:         "⏳",
+  hair_family:           "🧬",
+  hair_illness:          "🤒",
+  beard_type:            "🧔",
+  beard_family:          "👨‍👦",
+  scalp_type:            "🪮",
+  scalp_hot_water:       "🚿",
+  greying_early:         "🩶",
+  greying_family:        "🧬",
+  // Skin
+  skin_primary:          "✨",
+  skin_duration:         "⏳",
+  acne_location:         "📍",
+  acne_stress_link:      "😰",
+  acne_diet_link:        "🍕",
+  oily_pattern:          "💦",
+  skincare_routine:      "🧴",
+  sun_exposure:          "☀️",
+  // Weight
+  weight_goal:           "🎯",
+  activity_level:        "🏃",
+  fat_distribution:      "📊",
+  cravings:              "🍫",
+  meal_skipping:         "🍽️",
+  supplement_history:    "💊",
+  workout_consistency:   "💪",
+  daily_steps:           "👟",
+  weight_change:         "⚖️",
+  fasting_habit:         "⏱️",
+  // Energy / gut
+  energy_pattern:        "⚡",
+  gut_symptom:           "🫃",
+  late_dinner:           "🌙",
+  fatigue_on_waking:     "😴",
+  eating_speed:          "🍜",
+  post_meal_discomfort:  "😣",
+  bowel_regularity:      "🔄",
+  meal_consistency:      "🕐",
+  // Sleep / mind
+  sleep_hours:           "😴",
+  wake_feeling:          "🌅",
+  sleep_timing:          "🌛",
+  screen_bedtime:        "📱",
+  sleep_interruption:    "💤",
+  brain_fog_morning:     "🧠",
+  napping:               "😪",
+  overthinking:          "💭",
+  work_type:             "💼",
+  // Hormones (male)
+  hormone_energy_change: "⚡",
+  hormone_symptom:       "🧪",
+  mood_shift:            "😔",
+  anhedonia:             "😶",
+  libido_change:         "❤️",
+  recovery_time:         "🏋️",
+  belly_fat_change:      "🔄",
+  alcohol_intake:        "🍺",
+  // Female
+  postpartum_status:     "👶",
+  period_regularity:     "🩸",
+  hormonal_concern_f:    "🌸",
+  pms_severity:          "😖",
+  cycle_energy_impact:   "🔄",
+  thyroid_symptoms_f:    "🦋",
+  pcos_indicators:       "🌿",
+  perimenopause_status:  "🌡️",
+  // Safety / blood
+  allergies_check:       "⚠️",
+  medication_check:      "💊",
+  blood_test_recency:    "🩸",
+  known_deficiency:      "🔬",
+  // Universal
+  exercise_frequency:    "🏃",
+  family_thyroid:        "🧬",
+  family_diabetes:       "🧬",
+  supplement_timing:     "⏰",
+  // Progress / feedback
+  protocol_effect:       "📈",
+  energy_shift:          "⚡",
+  biggest_barrier:       "🚧",
+};
+
 /* ── Concern title map ─────────────────────────────────────── */
 const CONCERN_TITLE_MAP: Record<string, string> = {
   "Hair / beard": "hair health",
@@ -992,106 +1085,150 @@ export default function ProtocolPage() {
         </div>
       )}
 
-      {/* ── Question bottom sheet ── */}
+      {/* ── Question floating popup ── */}
       {showQuestionSheet && (
-        <div className="fixed inset-0 z-[60] flex flex-col justify-end" onClick={() => setShowQuestionSheet(false)}>
-          <div className="bg-surface rounded-t-3xl shadow-2xl max-h-[85dvh] flex flex-col animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm"
+            onClick={() => setShowQuestionSheet(false)}
+          />
 
-            {/* Handle + header */}
-            <div className="px-5 pt-4 pb-3 shrink-0">
-              <div className="w-10 h-1 rounded-full bg-outline-variant/30 mx-auto mb-4" />
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
-                  <span className="text-[11px] font-semibold text-primary-container uppercase tracking-wider">
-                    {showingUpdate ? "Protocol deepened ✓" : sessionLimitReached ? "That's good for today" : "Make your protocol deeper"}
-                  </span>
-                </div>
-                <button
-                  onClick={() => setShowQuestionSheet(false)}
-                  className="w-7 h-7 flex items-center justify-center rounded-full bg-surface-container-low text-on-surface-variant/60 text-sm font-bold cursor-pointer hover:bg-surface-container transition-colors"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
+          {/* Centered card */}
+          <div className="fixed inset-0 z-[61] flex items-center justify-center px-5 pointer-events-none">
+            <div
+              className="w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl pointer-events-auto animate-fade-in-up"
+              style={{ background: "#fff" }}
+              onClick={(e) => e.stopPropagation()}
+            >
 
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto px-5 pb-8 pt-2">
-              {showingUpdate ? (
-                <div className="flex items-center gap-3 py-4 animate-fade-in-up">
-                  <div className="w-10 h-10 rounded-full bg-primary-container/20 flex items-center justify-center shrink-0">
-                    <Check className="w-5 h-5 text-primary-container" strokeWidth={2.5} />
+              {/* ── Gradient header strip ── */}
+              <div
+                className="px-5 pt-5 pb-6 relative"
+                style={{ background: "linear-gradient(135deg, #004034 0%, #15594a 60%, #1a6b58 100%)" }}
+              >
+                {/* AI pill badge */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-1.5 bg-white/10 rounded-full px-3 py-1">
+                    <Sparkles className="w-3 h-3 text-primary-fixed" strokeWidth={2} />
+                    <span className="text-[10px] font-bold text-primary-fixed uppercase tracking-widest">BetterHalf AI</span>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-base font-semibold text-on-surface">Protocol deepened</p>
-                    <p className="text-sm text-on-surface-variant/70">
-                      {depthGain > 0 ? `+${depthGain}% more precise` : "Your answer has been factored in"}
+                  <button
+                    onClick={() => setShowQuestionSheet(false)}
+                    className="w-7 h-7 flex items-center justify-center rounded-full cursor-pointer transition-colors"
+                    style={{ background: "rgba(255,255,255,0.12)" }}
+                  >
+                    <X className="w-3.5 h-3.5 text-white/70" />
+                  </button>
+                </div>
+
+                {/* Big emoji + question state label */}
+                {showingUpdate ? (
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.15)" }}>
+                      <Check className="w-6 h-6 text-white" strokeWidth={2.5} />
+                    </div>
+                    <div>
+                      <p className="text-white font-extrabold text-[18px] font-[family-name:var(--font-manrope)] leading-tight">Protocol deepened</p>
+                      <p className="text-primary-fixed/70 text-[12px] mt-0.5">
+                        {depthGain > 0 ? `+${depthGain}% more precise` : "Your answer has been factored in"}
+                      </p>
+                    </div>
+                    {depthGain > 0 && (
+                      <span className="ml-auto text-[22px] font-extrabold text-primary-fixed font-[family-name:var(--font-manrope)] shrink-0">
+                        +{depthGain}%
+                      </span>
+                    )}
+                  </div>
+                ) : sessionLimitReached ? (
+                  <div>
+                    <span className="text-[38px] leading-none block mb-2">✅</span>
+                    <p className="text-white font-extrabold text-[20px] font-[family-name:var(--font-manrope)] leading-tight">That&apos;s good for today</p>
+                    <p className="text-primary-fixed/60 text-[12px] mt-1">Come back tomorrow for more</p>
+                  </div>
+                ) : currentQuestion ? (
+                  <div>
+                    <span className="text-[40px] leading-none block mb-3">
+                      {QUESTION_EMOJI[currentQuestion.key] ?? "💬"}
+                    </span>
+                    <p className="text-white font-extrabold text-[20px] font-[family-name:var(--font-manrope)] leading-snug">
+                      {currentQuestion.question}
                     </p>
                   </div>
-                  {depthGain > 0 && (
-                    <span className="text-xl font-extrabold text-primary-container font-[family-name:var(--font-manrope)] shrink-0">
-                      +{depthGain}%
-                    </span>
-                  )}
-                </div>
-              ) : sessionLimitReached ? (
-                <div className="py-2 animate-fade-in-up">
-                  <p className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-1.5">
-                    That&apos;s good for today
-                  </p>
-                  <p className="text-sm text-on-surface-variant/70 leading-relaxed mb-5">
-                    {possUpper} protocol gets sharper every time you return. Come back tomorrow for one more question.
-                  </p>
-                  <div className="h-1.5 bg-surface-container-high rounded-full overflow-hidden mb-1.5">
-                    <div className="h-full bg-gradient-to-r from-primary-container/60 to-primary-container rounded-full transition-all duration-700 ease-out" style={{ width: `${liveDepth}%` }} />
+                ) : null}
+              </div>
+
+              {/* ── Body ── */}
+              <div className="px-5 pt-4 pb-5">
+                {showingUpdate ? (
+                  <div className="py-2 text-center">
+                    <p className="text-[13px] text-on-surface-variant/60 leading-relaxed">
+                      Every answer makes your recommendations more precise. Keep going.
+                    </p>
                   </div>
-                  <p className="text-[11px] text-on-surface-variant/50 mb-5">Protocol at {liveDepth}%</p>
-                  {!bonusUnlocked && currentQuestion && (
-                    <button
-                      onClick={() => setBonusUnlocked(true)}
-                      className="w-full py-3 rounded-xl border border-primary-container/25 text-sm font-semibold text-primary-container hover:bg-primary-container/8 transition-colors cursor-pointer"
-                    >
-                      Actually, one more thing →
-                    </button>
-                  )}
-                </div>
-              ) : currentQuestion ? (
-                <div key={currentQuestion.key} className="py-2 animate-fade-in-up">
-                  <p className="text-[17px] font-semibold text-on-surface leading-snug mb-5 font-[family-name:var(--font-manrope)]">
-                    {currentQuestion.question}
-                  </p>
-                  <div className="space-y-2.5">
-                    {currentQuestion.options.map((opt) => (
-                      <button
-                        key={opt.value}
-                        onClick={() => handleAnswer(currentQuestion.key, opt.value)}
-                        className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl bg-surface-container-low border border-outline-variant/10 text-sm font-medium text-on-surface hover:border-primary-container/40 cursor-pointer transition-all duration-200 active:scale-[0.99]"
-                      >
-                        <span>{opt.label}</span>
-                        <ChevronRight className="w-4 h-4 text-on-surface-variant/30" strokeWidth={1.5} />
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex items-center justify-between mt-5">
-                    <div className="flex gap-1.5">
-                      {Array.from({ length: answeredCount }).map((_, i) => (
-                        <div key={i} className="h-1.5 w-4 rounded-full bg-primary-container" />
-                      ))}
-                      <div className="h-1.5 w-4 rounded-full bg-primary-container/40" />
+                ) : sessionLimitReached ? (
+                  <div className="space-y-4">
+                    <p className="text-[13px] text-on-surface-variant/65 leading-relaxed">
+                      {possUpper} protocol gets sharper every time you return. Come back tomorrow for one more question.
+                    </p>
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[11px] font-semibold text-on-surface-variant/50">Protocol depth</span>
+                        <span className="text-[11px] font-bold text-primary-container">{liveDepth}%</span>
+                      </div>
+                      <div className="h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-primary-container/60 to-primary-container rounded-full transition-all duration-700 ease-out" style={{ width: `${liveDepth}%` }} />
+                      </div>
                     </div>
-                    <button
-                      onClick={() => handleSkip(currentQuestion.key)}
-                      className="text-[11px] font-medium text-on-surface-variant/40 hover:text-on-surface-variant/70 transition-colors cursor-pointer"
-                    >
-                      Skip
-                    </button>
+                    {!bonusUnlocked && currentQuestion && (
+                      <button
+                        onClick={() => setBonusUnlocked(true)}
+                        className="w-full py-3 rounded-2xl border border-primary-container/25 text-[13px] font-semibold text-primary-container hover:bg-primary-container/8 transition-colors cursor-pointer"
+                      >
+                        Actually, one more thing →
+                      </button>
+                    )}
                   </div>
-                </div>
-              ) : null}
+                ) : currentQuestion ? (
+                  <div key={currentQuestion.key} className="animate-fade-in-up">
+                    <div className="space-y-2">
+                      {currentQuestion.options.map((opt) => (
+                        <button
+                          key={opt.value}
+                          onClick={() => handleAnswer(currentQuestion.key, opt.value)}
+                          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border text-[13px] font-semibold text-on-surface text-left cursor-pointer transition-all duration-200 active:scale-[0.98] group"
+                          style={{ background: "#f8f8f6", borderColor: "rgba(0,0,0,0.07)" }}
+                          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(0,64,52,0.35)"; (e.currentTarget as HTMLButtonElement).style.background = "rgba(0,64,52,0.04)"; }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(0,0,0,0.07)"; (e.currentTarget as HTMLButtonElement).style.background = "#f8f8f6"; }}
+                        >
+                          <span className="flex-1 leading-snug">{opt.label}</span>
+                          <ChevronRight className="w-4 h-4 text-on-surface-variant/25 shrink-0" strokeWidth={1.5} />
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Progress dots + skip */}
+                    <div className="flex items-center justify-between mt-4">
+                      <div className="flex gap-1.5">
+                        {Array.from({ length: answeredCount }).map((_, i) => (
+                          <div key={i} className="h-1.5 w-4 rounded-full bg-primary-container" />
+                        ))}
+                        <div className="h-1.5 w-4 rounded-full bg-primary-container/25" />
+                      </div>
+                      <button
+                        onClick={() => handleSkip(currentQuestion.key)}
+                        className="text-[11px] font-medium text-on-surface-variant/35 hover:text-on-surface-variant/65 transition-colors cursor-pointer"
+                      >
+                        Skip
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
             </div>
           </div>
-        </div>
+        </>
       )}
 
       <div className="px-4 pt-4">

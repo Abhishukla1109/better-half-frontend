@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Flame, CheckCircle2, XCircle, ChevronLeft, ChevronRight, ChevronDown, ShoppingBag } from "lucide-react";
+import { Flame, CheckCircle2, XCircle, ChevronLeft, ChevronRight, ChevronDown, ShoppingBag, X } from "lucide-react";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { calculateProtocolMatch, ALL_PRODUCTS } from "@/lib/protocolEngine";
 import type { MatchedProduct } from "@/lib/protocolEngine";
@@ -245,6 +245,78 @@ const CONCERN_LABELS: Record<string, string> = {
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const DAY_HEADERS = ["S","M","T","W","T","F","S"];
 
+/* ── Secondary check-in dimensions (rotate daily) ── */
+const SECONDARY_DIMS = [
+  {
+    key: "sleep" as const,
+    storageKey: "bh_sleep",
+    question: "How did you sleep last night?",
+    options: [
+      { key: "deep",     emoji: "😴", label: "Deep sleep", score: 100 },
+      { key: "okay",     emoji: "🙂", label: "Okay",       score: 65  },
+      { key: "restless", emoji: "😶", label: "Restless",   score: 35  },
+      { key: "terrible", emoji: "😩", label: "Terrible",   score: 10  },
+    ],
+    accentColor: "#6366f1",
+    bgGradient: "linear-gradient(145deg, #eef2ff, #fff)",
+    border: "border-indigo-100",
+  },
+  {
+    key: "focus" as const,
+    storageKey: "bh_focus",
+    question: "How's your focus today?",
+    options: [
+      { key: "sharp",     emoji: "🧠", label: "Sharp",       score: 100 },
+      { key: "good",      emoji: "😊", label: "Good",        score: 70  },
+      { key: "foggy",     emoji: "😑", label: "Bit foggy",   score: 35  },
+      { key: "unfocused", emoji: "😵", label: "Can't focus", score: 10  },
+    ],
+    accentColor: "#0d9488",
+    bgGradient: "linear-gradient(145deg, #f0fdfa, #fff)",
+    border: "border-teal-100",
+  },
+  {
+    key: "physical" as const,
+    storageKey: "bh_physical",
+    question: "How's your body feeling?",
+    options: [
+      { key: "strong", emoji: "💪",   label: "Strong", score: 100 },
+      { key: "normal", emoji: "🙂",   label: "Normal", score: 70  },
+      { key: "tired",  emoji: "😮‍💨", label: "Tired",  score: 35  },
+      { key: "heavy",  emoji: "😩",   label: "Heavy",  score: 10  },
+    ],
+    accentColor: "#ea580c",
+    bgGradient: "linear-gradient(145deg, #fff7ed, #fff)",
+    border: "border-orange-100",
+  },
+];
+
+// Stable per-day rotation — same dimension shown all day
+const ACTIVE_SECONDARY = SECONDARY_DIMS[new Date().getDay() % SECONDARY_DIMS.length];
+
+/* ── Signal computation & storage ── */
+function computeAvg7(storageKey: string, scoreMap: Record<string, number>): number | null {
+  const scores = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const v = localStorage.getItem(`${storageKey}_${d.toDateString()}`);
+    return v ? (scoreMap[v] ?? null) : null;
+  }).filter((s): s is number => s !== null);
+  return scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
+}
+
+function saveHealthSignals() {
+  try {
+    const signals = {
+      energy:   computeAvg7("bh_energy",   { energised: 100, okay: 65, sluggish: 35, drained: 10 }),
+      sleep:    computeAvg7("bh_sleep",    { deep: 100, okay: 65, restless: 35, terrible: 10 }),
+      focus:    computeAvg7("bh_focus",    { sharp: 100, good: 70, foggy: 35, unfocused: 10 }),
+      physical: computeAvg7("bh_physical", { strong: 100, normal: 70, tired: 35, heavy: 10 }),
+      updatedAt: new Date().toDateString(),
+    };
+    localStorage.setItem("bh_health_signals", JSON.stringify(signals));
+  } catch {}
+}
+
 /* ── Helpers ── */
 type Checkins = Record<string, boolean>;
 
@@ -305,6 +377,9 @@ export default function InsightsPage() {
   const [energyMsg, setEnergyMsg]       = useState<string | null>(null);
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [energyHistory, setEnergyHistory] = useState<{ date: string; key: EnergyKey | null; dayLabel: string }[]>([]);
+  const [showVitalityPopover, setShowVitalityPopover] = useState(false);
+  const [secondaryAnswer, setSecondaryAnswer] = useState<string | null>(null);
+  const [secondaryHistory, setSecondaryHistory] = useState<{ date: string; key: string | null; dayLabel: string }[]>([]);
 
   const today   = new Date().toDateString();
   const todayChecked = checkins[today];
@@ -343,6 +418,17 @@ export default function InsightsPage() {
       setEnergyHistory(history);
     } catch {}
     try {
+      const saved = localStorage.getItem(`${ACTIVE_SECONDARY.storageKey}_${new Date().toDateString()}`);
+      if (saved) setSecondaryAnswer(saved);
+    } catch {}
+    try {
+      const hist = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        return { date: d.toDateString(), key: localStorage.getItem(`${ACTIVE_SECONDARY.storageKey}_${d.toDateString()}`), dayLabel: ["S","M","T","W","T","F","S"][d.getDay()] };
+      }).reverse();
+      setSecondaryHistory(hist);
+    } catch {}
+    try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const profile: any = JSON.parse(localStorage.getItem("bh_profile") ?? "null");
       if (!profile) { setProfileLoaded(true); return; }
@@ -371,6 +457,14 @@ export default function InsightsPage() {
     setEnergyMsg(opt.msg);
     try { localStorage.setItem(`bh_energy_${today}`, opt.key); } catch {}
     setEnergyHistory(prev => prev.map(h => h.date === today ? { ...h, key: opt.key } : h));
+    saveHealthSignals();
+  };
+
+  const handleSecondary = (key: string) => {
+    setSecondaryAnswer(key);
+    try { localStorage.setItem(`${ACTIVE_SECONDARY.storageKey}_${today}`, key); } catch {}
+    setSecondaryHistory(prev => prev.map(h => h.date === today ? { ...h, key } : h));
+    saveHealthSignals();
   };
 
   // Complementary products (same concern, not in stack, correct gender)
@@ -399,6 +493,66 @@ export default function InsightsPage() {
     [userConcerns, vitality],
   );
 
+  const energyScore = useMemo(() => {
+    const vals: Record<string, number> = { energised: 100, okay: 65, sluggish: 35, drained: 10 };
+    const scores = energyHistory.filter(h => h.key).map(h => vals[h.key!] ?? 50);
+    return scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
+  }, [energyHistory]);
+
+  const wellbeingScore = useMemo(() => {
+    try {
+      const sleepAvg = computeAvg7("bh_sleep",    { deep: 100, okay: 65, restless: 35, terrible: 10 });
+      const focusAvg = computeAvg7("bh_focus",    { sharp: 100, good: 70, foggy: 35, unfocused: 10 });
+      const physAvg  = computeAvg7("bh_physical", { strong: 100, normal: 70, tired: 35, heavy: 10 });
+      const vals = [sleepAvg, focusAvg, physAvg].filter((v): v is number => v !== null);
+      return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+    } catch { return null; }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [secondaryAnswer]);
+
+  const pillars = useMemo(() => {
+    const consistency = adherence?.pct ?? 0;
+    const foundation  = Math.round(Math.min((visitCount / 90) * 100, 100));
+    const profile     = Math.round(Math.min(depthTotal, 100));
+    const combinedEnergy = (energyScore != null && wellbeingScore != null)
+      ? Math.round((energyScore + wellbeingScore) / 2)
+      : energyScore ?? wellbeingScore ?? 50;
+    const hasSignals = energyScore != null || wellbeingScore != null;
+    return [
+      {
+        emoji: "🔥", label: "Consistency", score: consistency, color: consistency >= 70 ? "#10b981" : consistency >= 40 ? "#f59e0b" : "#f43f5e",
+        sublabel: adherence ? `${adherence.taken} of ${adherence.total} days checked in` : "Start checking in daily",
+      },
+      {
+        emoji: "⚡", label: "Energy", score: combinedEnergy, color: combinedEnergy >= 70 ? "#10b981" : combinedEnergy >= 40 ? "#0ea5e9" : "#f59e0b",
+        sublabel: hasSignals ? "Energy, sleep & focus signals" : "Log your daily check-ins to track this",
+      },
+      {
+        emoji: "🌱", label: "Foundation", score: foundation, color: "#7c3aed",
+        sublabel: visitCount > 0 ? `${visitCount} days on protocol` : "Protocol just started",
+      },
+      {
+        emoji: "👤", label: "Personalisation", score: profile, color: profile >= 70 ? "#10b981" : "#f59e0b",
+        sublabel: profile >= 70 ? "Profile well set up" : "Add more detail on your protocol page",
+      },
+    ];
+  }, [adherence, visitCount, depthTotal, energyScore, wellbeingScore]);
+
+  const vitalityLabel =
+    vitality >= 81 ? "Thriving" :
+    vitality >= 66 ? "Strong foundation" :
+    vitality >= 46 ? "Making progress" :
+    vitality >= 26 ? "Building momentum" : "Just getting started";
+
+  const keyInsight = useMemo(() => {
+    const lowest = [...pillars].sort((a, b) => a.score - b.score)[0];
+    if (lowest.label === "Consistency"     && lowest.score < 40) return "Your biggest lever right now is daily check-ins. Even 5 consistent days will visibly move your score.";
+    if (lowest.label === "Energy"          && lowest.score < 40) return "Your energy logs suggest you're running low. Check sleep and hydration — supplements work best on a rested body.";
+    if (lowest.label === "Foundation"      && lowest.score < 30) return "You're in the early days. The first 30 days build the base — keep your protocol going and the score will compound.";
+    if (lowest.label === "Personalisation" && lowest.score < 50) return "A more complete profile means better-matched recommendations. Answer a few questions on your protocol page.";
+    return "You're building solid habits. Stay consistent and your vitality score will continue to rise.";
+  }, [pillars]);
+
   const prevMonth = () => {
     if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); } else setCalMonth(m => m - 1);
   };
@@ -422,15 +576,21 @@ export default function InsightsPage() {
 
   return (
     <div className="min-h-dvh bg-[#faf9fb] pb-28 lg:pb-10">
-      <div className="max-w-xl mx-auto px-5 pt-8 lg:pt-12 space-y-5">
+      <div className="max-w-4xl mx-auto px-5 pt-8 lg:pt-12">
 
         {/* ── Header ── */}
-        <div>
+        <div className="mb-5">
           <p className="text-[11px] font-bold text-primary-container uppercase tracking-widest mb-1">Health Tracking</p>
-          <h1 className="text-[28px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-tight tracking-tight">
+          <h1 className="text-[28px] lg:text-[34px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-tight tracking-tight">
             {possessive} Insights
           </h1>
         </div>
+
+        {/* ── Desktop two-column layout ── */}
+        <div className="lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
+
+        {/* ── Left column ── */}
+        <div className="space-y-5">
 
         {/* ── Streak + Vitality ── */}
         <div className="grid grid-cols-2 gap-3">
@@ -444,8 +604,8 @@ export default function InsightsPage() {
               <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider">Streak</span>
             </div>
             <div>
-              <p className="text-[42px] font-extrabold text-on-surface leading-none font-[family-name:var(--font-manrope)]">{streak}</p>
-              <p className="text-[11px] text-on-surface-variant/50 mt-1">days in a row</p>
+              <p className="text-[42px] lg:text-[56px] font-extrabold text-on-surface leading-none font-[family-name:var(--font-manrope)]">{streak}</p>
+              <p className="text-[11px] lg:text-[13px] text-on-surface-variant/50 mt-1">days in a row</p>
             </div>
             <div className="mt-auto space-y-1.5">
               {visitCount > 0 && (
@@ -460,10 +620,17 @@ export default function InsightsPage() {
           </div>
 
           {/* Vitality */}
-          <div className="rounded-3xl bg-white border border-purple-100 p-4 flex flex-col gap-2 min-h-[190px]" style={{ background: "linear-gradient(145deg, #f8f5ff, #fff)" }}>
-            <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Vitality</span>
+          <button
+            onClick={() => setShowVitalityPopover(true)}
+            className="rounded-3xl border border-purple-100 p-4 flex flex-col gap-2 min-h-[190px] text-left w-full cursor-pointer hover:border-purple-200 transition-all group"
+            style={{ background: "linear-gradient(145deg, #f8f5ff, #fff)" }}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Vitality</span>
+              <span className="text-[9px] font-semibold text-purple-200 group-hover:text-purple-400 transition-colors">Details →</span>
+            </div>
             <div className="flex items-center justify-center flex-1">
-              <svg width="88" height="88" viewBox="0 0 90 90">
+              <svg className="lg:scale-125 origin-center" width="88" height="88" viewBox="0 0 90 90">
                 <circle cx="45" cy="45" r={RING_R} fill="none" stroke="#ede9fe" strokeWidth="7" />
                 <circle cx="45" cy="45" r={RING_R} fill="none" stroke="url(#vg)" strokeWidth="7"
                   strokeLinecap="round"
@@ -495,12 +662,12 @@ export default function InsightsPage() {
                 ))}
               </div>
             )}
-          </div>
+          </button>
         </div>
 
         {/* ── Energy Bar ── */}
         <div className="rounded-3xl bg-white border border-outline-variant/10 p-4" style={{ background: "linear-gradient(145deg, #f0f4ff, #fff)" }}>
-          <p className="text-[13px] font-bold text-on-surface mb-3">How&apos;s {possessiveLower} energy today?</p>
+          <p className="text-[13px] lg:text-[15px] font-bold text-on-surface mb-3">How&apos;s {possessiveLower} energy today?</p>
           <div className="grid grid-cols-2 gap-2">
             {ENERGY_OPTIONS.map(opt => {
               const sel = energyLevel === opt.key;
@@ -552,8 +719,67 @@ export default function InsightsPage() {
           )}
         </div>
 
+        {/* ── Secondary daily check-in (rotating: sleep / focus / physical) ── */}
+        <div
+          className={`rounded-3xl p-4 border ${ACTIVE_SECONDARY.border}`}
+          style={{ background: ACTIVE_SECONDARY.bgGradient }}
+        >
+          <p className="text-[13px] lg:text-[15px] font-bold text-on-surface mb-3">{ACTIVE_SECONDARY.question}</p>
+          <div className="grid grid-cols-2 gap-2">
+            {ACTIVE_SECONDARY.options.map(opt => {
+              const sel = secondaryAnswer === opt.key;
+              return (
+                <button
+                  key={opt.key}
+                  onClick={() => handleSecondary(opt.key)}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-2xl border transition-all duration-200 cursor-pointer text-left ${
+                    sel
+                      ? "text-white border-transparent"
+                      : "bg-white border-outline-variant/15 text-on-surface-variant hover:bg-white/80"
+                  }`}
+                  style={sel ? { background: ACTIVE_SECONDARY.accentColor, borderColor: ACTIVE_SECONDARY.accentColor } : {}}
+                >
+                  <span className="text-[18px] leading-none">{opt.emoji}</span>
+                  <span className="text-[12px] font-semibold">{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          {secondaryHistory.some(h => h.key) && (
+            <div className="mt-3 pt-3 border-t border-outline-variant/8">
+              <p className="text-[10px] font-semibold text-on-surface-variant/40 uppercase tracking-wider mb-2.5">This week</p>
+              <div className="grid grid-cols-7">
+                {secondaryHistory.map((h, i) => {
+                  const isToday = h.date === today;
+                  const opt = ACTIVE_SECONDARY.options.find(o => o.key === h.key);
+                  return (
+                    <div key={i} className="flex flex-col items-center gap-1">
+                      <div
+                        className="w-7 h-7 rounded-full flex items-center justify-center"
+                        style={h.key
+                          ? { background: `${ACTIVE_SECONDARY.accentColor}18`, boxShadow: isToday ? `0 0 0 2px ${ACTIVE_SECONDARY.accentColor}55` : "none" }
+                          : { background: isToday ? "rgba(0,0,0,0.04)" : "transparent", boxShadow: isToday ? "0 0 0 1.5px rgba(0,0,0,0.1)" : "none" }}
+                      >
+                        {opt
+                          ? <span className="text-[13px] leading-none">{opt.emoji}</span>
+                          : <span className="w-1.5 h-1.5 rounded-full bg-gray-200 block" />}
+                      </div>
+                      <span className={`text-[9px] font-bold ${isToday ? "text-on-surface-variant/60" : "text-on-surface-variant/30"}`}>{h.dayLabel}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Warm message */}
-        <p className="text-[13px] text-on-surface-variant/60 leading-relaxed px-0.5">{vitalMsg}</p>
+        <p className="text-[13px] lg:text-[14px] text-on-surface-variant/60 leading-relaxed px-0.5">{vitalMsg}</p>
+
+        </div>{/* end left column */}
+
+        {/* ── Right column ── */}
+        <div className="space-y-5 mt-5 lg:mt-0">
 
         {/* ── Calendar ── */}
         <div className="rounded-3xl bg-white border border-outline-variant/10 overflow-hidden">
@@ -561,7 +787,7 @@ export default function InsightsPage() {
             <button onClick={prevMonth} className="w-7 h-7 rounded-xl hover:bg-surface-container flex items-center justify-center transition-colors cursor-pointer">
               <ChevronLeft className="w-4 h-4 text-on-surface-variant/50" />
             </button>
-            <p className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">{MONTH_NAMES[calMonth]} {calYear}</p>
+            <p className="text-[13px] lg:text-[15px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">{MONTH_NAMES[calMonth]} {calYear}</p>
             <button onClick={nextMonth} className="w-7 h-7 rounded-xl hover:bg-surface-container flex items-center justify-center transition-colors cursor-pointer">
               <ChevronRight className="w-4 h-4 text-on-surface-variant/50" />
             </button>
@@ -653,13 +879,19 @@ export default function InsightsPage() {
           )}
         </div>
 
+        </div>{/* end right column */}
+        </div>{/* end two-column grid */}
+
+        {/* ── Full-width section ── */}
+        <div className="space-y-5 mt-5">
+
         {/* ── Current Stack ── */}
         {supplements.length > 0 && (
           <div>
             <div className="flex items-baseline justify-between mb-3 px-0.5">
               <div>
                 <p className="text-[10px] font-bold text-on-surface-variant/35 uppercase tracking-widest">Daily Protocol</p>
-                <p className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mt-0.5">{possessive} Current Stack</p>
+                <p className="text-[18px] lg:text-[22px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mt-0.5">{possessive} Current Stack</p>
               </div>
               <span className="text-[11px] font-semibold text-primary-container">{supplements.length} products</span>
             </div>
@@ -809,7 +1041,7 @@ export default function InsightsPage() {
           <div>
             <div className="mb-3 px-0.5">
               <p className="text-[10px] font-bold text-on-surface-variant/35 uppercase tracking-widest">Level Up</p>
-              <p className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mt-0.5">Boost {possessive} Results</p>
+              <p className="text-[18px] lg:text-[22px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mt-0.5">Boost {possessive} Results</p>
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5 snap-x snap-mandatory" style={{ scrollbarWidth: "none" }}>
               {complementary.map(p => {
@@ -852,7 +1084,81 @@ export default function InsightsPage() {
           </div>
         )}
 
-      </div>
+        </div>{/* end full-width section */}
+
+      </div>{/* end max-w-4xl container */}
+
+      {/* ── Vitality breakdown popover ── */}
+      {showVitalityPopover && (
+        <>
+          <div className="fixed inset-0 z-[70] bg-black/30 backdrop-blur-[2px]" onClick={() => setShowVitalityPopover(false)} />
+          <div className="fixed inset-0 z-[71] flex items-center justify-center px-5 pointer-events-none">
+            <div className="w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl pointer-events-auto animate-fade-in-up">
+
+              {/* Dark header */}
+              <div className="px-5 pt-5 pb-6" style={{ background: "linear-gradient(135deg, #2e1065, #4c1d95, #5b21b6)" }}>
+                <div className="flex items-center justify-between mb-5">
+                  <p className="text-[10px] font-bold text-purple-300 uppercase tracking-widest">Vitality Score</p>
+                  <button
+                    onClick={() => setShowVitalityPopover(false)}
+                    className="w-7 h-7 rounded-full flex items-center justify-center cursor-pointer"
+                    style={{ background: "rgba(255,255,255,0.12)" }}
+                  >
+                    <X className="w-3.5 h-3.5 text-white/70" />
+                  </button>
+                </div>
+                <div className="flex items-end gap-4">
+                  <div>
+                    <p className="text-[68px] font-extrabold text-white leading-none font-[family-name:var(--font-manrope)]">{vitality}</p>
+                    <p className="text-[13px] font-semibold mt-1" style={{ color: "#c4b5fd" }}>{vitalityLabel}</p>
+                  </div>
+                  {/* Mini ring */}
+                  <div className="pb-1">
+                    <svg width="56" height="56" viewBox="0 0 90 90">
+                      <circle cx="45" cy="45" r={RING_R} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="8" />
+                      <circle cx="45" cy="45" r={RING_R} fill="none" stroke="rgba(196,181,253,0.9)" strokeWidth="8"
+                        strokeLinecap="round"
+                        strokeDasharray={`${ringDash} ${RING_CIRC}`}
+                        transform="rotate(-90 45 45)"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pillars */}
+              <div className="bg-white px-5 pt-5 pb-4 space-y-4">
+                <p className="text-[10px] font-bold text-on-surface-variant/35 uppercase tracking-widest">What makes up your score</p>
+                {pillars.map(p => (
+                  <div key={p.label}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[15px] leading-none">{p.emoji}</span>
+                        <span className="text-[13px] font-semibold text-on-surface">{p.label}</span>
+                      </div>
+                      <span className="text-[13px] font-extrabold font-[family-name:var(--font-manrope)]" style={{ color: p.color }}>{p.score}</span>
+                    </div>
+                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${p.score}%`, background: p.color }} />
+                    </div>
+                    <p className="text-[10px] text-on-surface-variant/40 mt-1">{p.sublabel}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Key insight */}
+              <div className="bg-white px-5 pb-6">
+                <div className="rounded-2xl px-4 py-3.5" style={{ background: "#f5f3ff" }}>
+                  <p className="text-[9px] font-bold text-purple-400 uppercase tracking-widest mb-1.5">Key insight</p>
+                  <p className="text-[12px] text-on-surface/70 leading-relaxed">{keyInsight}</p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </>
+      )}
+
     </div>
   );
 }

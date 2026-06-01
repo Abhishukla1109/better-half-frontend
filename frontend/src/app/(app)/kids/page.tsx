@@ -44,27 +44,40 @@ const CONCERN_FOLLOWUP: Record<string, string[]> = {
   nutrition: ["nutrition","protein","vitamins"],
 };
 
-function getKidsRecs(childAge: string, concern: string) {
+function getKidsRecs(childAge: string, concern: string, nudgeAnswers: Record<string, string> = {}) {
   const seg =
     childAge === "2-5"  ? "kids-2-5"    :
     childAge === "6-12" ? "kids-6-12"   : "kids-13-plus";
 
-  const followUps        = CONCERN_FOLLOWUP[concern] ?? [];
-  const directConcern    = ["sleep","skin","hair"].includes(concern);
+  const followUps     = CONCERN_FOLLOWUP[concern] ?? [];
+  const directConcern = ["sleep","skin","hair"].includes(concern);
+
+  // Nudge-based score bonus — applied before slicing so the right products surface to primary
+  function nudgeBonus(p: Product): number {
+    let bonus = 0;
+    if (nudgeAnswers.supplement_form === "Gummies"       && p.category === "gummies")   bonus += 15;
+    if (nudgeAnswers.supplement_form === "Mixed in milk" && p.category === "nutrition") bonus += 15;
+    if (nudgeAnswers.eating_habits   === "Very picky 😅" && p.category === "gummies")   bonus += 8;
+    if (nudgeAnswers.diet_type === "Yes, vegetarian" &&
+        p.followUp.some(f => ["protein","nutrition","growth"].includes(f)))             bonus += 6;
+    if (nudgeAnswers.teen_gender === "Girl" &&
+        ["skin","hair","personal-care"].some(t => p.category === t || p.concern.includes(t))) bonus += 10;
+    return bonus;
+  }
 
   let primary = LJ_PRODUCTS.filter(p => {
     if (!p.segment.includes(seg)) return false;
     if (directConcern) return p.concern.includes(concern);
     if (followUps.length === 0)   return p.concern.includes("energy");
     return p.followUp.some(f => followUps.some(t => f.toLowerCase().includes(t)));
-  }).sort((a, b) => b.baseScore - a.baseScore).slice(0, 3);
+  }).sort((a, b) => (b.baseScore + nudgeBonus(b)) - (a.baseScore + nudgeBonus(a))).slice(0, 3);
 
   // Pad to 3 with highest-scored same-segment products when catalog is thin
   if (primary.length < 3) {
     const primaryIds = new Set(primary.map(p => p.id));
     const filler = LJ_PRODUCTS
       .filter(p => p.segment.includes(seg) && !primaryIds.has(p.id))
-      .sort((a, b) => b.baseScore - a.baseScore)
+      .sort((a, b) => (b.baseScore + nudgeBonus(b)) - (a.baseScore + nudgeBonus(a)))
       .slice(0, 3 - primary.length);
     primary = [...primary, ...filler];
   }
@@ -72,7 +85,7 @@ function getKidsRecs(childAge: string, concern: string) {
   const primaryIds = new Set(primary.map(p => p.id));
   const rest = LJ_PRODUCTS
     .filter(p => p.segment.includes(seg) && !primaryIds.has(p.id))
-    .sort((a, b) => b.baseScore - a.baseScore);
+    .sort((a, b) => (b.baseScore + nudgeBonus(b)) - (a.baseScore + nudgeBonus(a)));
 
   return { primary, rest };
 }
@@ -183,6 +196,54 @@ const EDIT_CONCERNS: Record<string, { key: string; emoji: string; label: string 
   ],
 };
 
+/* ── Progressive nudge system ── */
+const NUDGE_DEFS: Array<{
+  id: string; emoji: string; question: string;
+  options: string[]; minVisit: number; ageGroups?: string[];
+}> = [
+  { id: "eating_habits",   emoji: "🍽️", question: "Is [name] a picky eater?",    options: ["Very picky 😅", "Sometimes", "Eats anything"],  minVisit: 1 },
+  { id: "supplement_form", emoji: "💊",  question: "What form works for [name]?", options: ["Gummies", "Mixed in milk", "Either works"],     minVisit: 2 },
+  { id: "diet_type",       emoji: "🌱",  question: "Is [name] vegetarian?",       options: ["Yes, vegetarian", "No, eats non-veg"],          minVisit: 3 },
+  { id: "teen_gender",     emoji: "👤",  question: "Is [name] a boy or girl?",    options: ["Boy", "Girl"],                                  minVisit: 1, ageGroups: ["13+"] },
+];
+
+type NudgeRecord = Record<string, { status: "answered" | "dismissed"; answer?: string }>;
+
+function readKidsNudges(memberId: string): NudgeRecord {
+  try {
+    const all = JSON.parse(localStorage.getItem("bh_kids_nudges") ?? "{}") as Record<string, NudgeRecord>;
+    return all[memberId] ?? {};
+  } catch { return {}; }
+}
+
+function writeKidsNudge(memberId: string, id: string, status: "answered" | "dismissed", answer?: string) {
+  try {
+    const all = JSON.parse(localStorage.getItem("bh_kids_nudges") ?? "{}") as Record<string, NudgeRecord>;
+    if (!all[memberId]) all[memberId] = {};
+    all[memberId][id] = { status, ...(answer ? { answer } : {}) };
+    localStorage.setItem("bh_kids_nudges", JSON.stringify(all));
+  } catch {}
+}
+
+function bumpKidsVisit(memberId: string): number {
+  try {
+    const all = JSON.parse(localStorage.getItem("bh_kids_visits") ?? "{}") as Record<string, number>;
+    const next = (all[memberId] ?? 0) + 1;
+    all[memberId] = next;
+    localStorage.setItem("bh_kids_visits", JSON.stringify(all));
+    return next;
+  } catch { return 1; }
+}
+
+function pickNextNudge(memberId: string, childAge: string, visits: number) {
+  const done = readKidsNudges(memberId);
+  return NUDGE_DEFS.find(n => {
+    if (done[n.id]) return false;
+    if (n.ageGroups && !n.ageGroups.includes(childAge)) return false;
+    return visits >= n.minVisit;
+  }) ?? null;
+}
+
 /* ── Page ── */
 export default function KidsHomePage() {
   const router = useRouter();
@@ -201,6 +262,10 @@ export default function KidsHomePage() {
   const [editConcern, setEditConcern] = useState("");
   const [editAge, setEditAge] = useState<"2-5" | "6-12" | "13+">("6-12");
 
+  // Nudge state
+  const [currentNudge, setCurrentNudge] = useState<typeof NUDGE_DEFS[number] | null>(null);
+  const [nudgeAnswers, setNudgeAnswers] = useState<Record<string, string>>({});
+
   useEffect(() => {
     if (!activeMember) return;
     if (activeMember.type !== "child") { router.replace("/protocol"); return; }
@@ -210,6 +275,20 @@ export default function KidsHomePage() {
       router.replace("/home");
     }
   }, [activeMember, onboarded, router]);
+
+  // Visit counting + nudge selection (runs once per member load)
+  useEffect(() => {
+    if (!activeMember?.id || !onboarded) return;
+    const visits = bumpKidsVisit(activeMember.id);
+    // Load all previously answered nudges for rec scoring
+    const saved = readKidsNudges(activeMember.id);
+    const answers: Record<string, string> = {};
+    Object.entries(saved).forEach(([k, v]) => { if (v.status === "answered" && v.answer) answers[k] = v.answer; });
+    setNudgeAnswers(answers);
+    // Only surface a nudge from the second visit onward so first visit stays clean
+    if (visits > 1) setCurrentNudge(pickNextNudge(activeMember.id, childAge, visits));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeMember?.id]);
 
   const openEdit = () => {
     setEditName(childName ?? "");
@@ -222,6 +301,19 @@ export default function KidsHomePage() {
     setEditAge(age);
     const validConcerns = (EDIT_CONCERNS[age] ?? []).map(c => c.key);
     if (!validConcerns.includes(editConcern)) setEditConcern(validConcerns[0] ?? "immunity");
+  };
+
+  const handleNudgeAnswer = (nudgeId: string, answer: string) => {
+    if (!activeMember) return;
+    writeKidsNudge(activeMember.id, nudgeId, "answered", answer);
+    setNudgeAnswers(prev => ({ ...prev, [nudgeId]: answer }));
+    setCurrentNudge(null);
+  };
+
+  const handleNudgeDismiss = (nudgeId: string) => {
+    if (!activeMember) return;
+    writeKidsNudge(activeMember.id, nudgeId, "dismissed");
+    setCurrentNudge(null);
   };
 
   const saveEdit = () => {
@@ -247,7 +339,7 @@ export default function KidsHomePage() {
     window.location.reload();
   };
 
-  const { primary, rest } = useMemo(() => getKidsRecs(childAge, concern), [childAge, concern]);
+  const { primary, rest } = useMemo(() => getKidsRecs(childAge, concern, nudgeAnswers), [childAge, concern, nudgeAnswers]);
   const habits = useMemo(() => getHabits(concern, childAge), [concern, childAge]);
 
   const tips = EDU_TIPS[childAge] ?? EDU_TIPS["6-12"];
@@ -333,6 +425,46 @@ export default function KidsHomePage() {
             </>
           )}
         </div>
+
+        {/* ── Progressive nudge card ── */}
+        {currentNudge && (
+          <div
+            className="mx-5 rounded-3xl p-4 animate-fade-in-up"
+            style={{ background: "linear-gradient(135deg, #fff8f0, #fff3e0)", border: "1px solid #fed7aa" }}
+          >
+            <div className="flex items-start justify-between gap-2 mb-3">
+              <div className="flex items-start gap-2.5">
+                <span className="text-[22px] leading-none mt-0.5">{currentNudge.emoji}</span>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-widest mb-0.5" style={{ color: "#f97316" }}>
+                    Quick question
+                  </p>
+                  <p className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug">
+                    {currentNudge.question.replace("[name]", childName ?? "your child")}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => handleNudgeDismiss(currentNudge.id)}
+                className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer hover:bg-orange-100 transition-colors mt-0.5"
+              >
+                <X className="w-3.5 h-3.5" style={{ color: "#c2410c", opacity: 0.5 }} />
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {currentNudge.options.map(opt => (
+                <button
+                  key={opt}
+                  onClick={() => handleNudgeAnswer(currentNudge.id, opt)}
+                  className="px-3 py-1.5 rounded-full text-[12px] font-semibold cursor-pointer transition-all active:scale-95"
+                  style={{ background: "rgba(255,255,255,0.85)", border: "1px solid #fed7aa", color: "#c2410c" }}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── Unified picks card: top picks + complete the kit ── */}
         <div
