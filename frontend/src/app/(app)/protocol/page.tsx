@@ -757,16 +757,17 @@ export default function ProtocolPage() {
     if (!protocol) return;
     setCheckingOutCart(true);
     try {
+      const addedVariantIds = new Set<string>();
       for (let i = 0; i < protocol.supplements.length; i++) {
         if (!cartChecked[i]) continue;
         const s = protocol.supplements[i];
         const active = (cartSwapped[i] && s.alternative) ? s.alternative : s;
-        if (!addedIds.has(active.id)) {
-          const variantId = await resolveVariantId(active.id);
-          if (variantId) {
-            await addItem(variantId);
-            setAddedIds((prev) => new Set([...prev, active.id]));
-          }
+        if (addedIds.has(active.id)) continue;
+        const variantId = await resolveVariantId(active.id);
+        if (variantId && !addedVariantIds.has(variantId)) {
+          await addItem(variantId);
+          addedVariantIds.add(variantId);
+          setAddedIds((prev) => new Set([...prev, active.id]));
         }
       }
       setShowProtocolCart(false);

@@ -14,10 +14,11 @@ export const shopifyHandleMap: Record<string, string> = {
   "kids-multivitamin-gummies":  "lj-multivitamin-gummies-mothers",
 
   // ── Man Matters — Hair ──────────────────────────────────────────────────────
-  "biotin-hair-gummies-30n":            "hair-gummies",
-  "biotin-hair-gummies-30n-mm":         "hair-gummies",
+  "biotin-hair-gummies-30n":            "hair-health-gummies-xp",  // 30N → 30N product
+  "biotin-hair-gummies-30n-mm":         "hair-health-gummies-xp",
+  "biotin-hair-gummies-30n-no-sugar":   "hair-health-gummies-xp",  // no sugar variant → closest match
   "hair-gummies-60-pack-of-2":          "hair-gummies",
-  "hair-health-gummies-60n":            "hair-health-gummies-xp",
+  "hair-health-gummies-60n":            "hair-gummies",             // 60N → 60N product
   "hair-strengthening-serum-60ml":      "hair-strength-serum",
   "anti-hair-fall-shampoo-200ml":       "ahs",
   "anti-hair-fall-shampoo-300ml":       "ahs",
