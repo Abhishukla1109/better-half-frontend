@@ -752,7 +752,7 @@ function buildMultiConcernSupplements(
 ): ProtocolSupplement[] {
   const seen = new Set<string>();
   const result: ProtocolSupplement[] = [];
-  const MAX = 5;
+  const MAX = Math.max(5, allConcerns.length * 3);
 
   const followUp = buildFollowUpString(profile);
 
@@ -818,7 +818,7 @@ function buildMultiConcernLifestyle(allConcerns: string[]): string[] {
   for (let i = 0; i < allConcerns.length; i++) {
     const narrative = CONCERN_NARRATIVES[allConcerns[i]];
     if (!narrative) continue;
-    const limit = i === 0 ? 3 : 1;
+    const limit = i === 0 ? 2 : 1;
     let added = 0;
     for (const tip of narrative.lifestyle) {
       if (!seen.has(tip) && added < limit) {
@@ -827,7 +827,7 @@ function buildMultiConcernLifestyle(allConcerns: string[]): string[] {
         added++;
       }
     }
-    if (tips.length >= 5) break;
+    if (tips.length >= 4) break;
   }
 
   return tips;

@@ -838,7 +838,7 @@ export default function ProtocolPage() {
   // Group supplements by user concern — only when 2+ concerns
   const groupedSupplements = useMemo(() => {
     if (!protocol || concernList.length <= 1) return null;
-    const pool = protocol.supplements.slice(0, 5);
+    const pool = protocol.supplements;
     const groups = concernList.map((label) => ({
       label,
       displayLabel: CONCERN_DISPLAY[label] ?? label,
@@ -1523,12 +1523,12 @@ export default function ProtocolPage() {
           {protocol.lifestyle.length > 0 && (
             <>
               <div className="mx-4 h-px bg-black/8" />
-              <div className="pt-3 pb-4">
-                <p className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug px-4 mb-3">
+              <div className="pt-3 pb-4 px-4">
+                <p className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-3">
                   Habits before supplements.
                 </p>
-                <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-1 px-4">
-                  {protocol.lifestyle.map((tip, i) => {
+                <div className={`grid gap-2 ${protocol.lifestyle.length === 3 ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4"}`}>
+                  {protocol.lifestyle.slice(0, 4).map((tip, i) => {
                     const { action } = splitRoutineText(tip);
                     const emoji = getLifestyleEmoji(tip);
                     const tint =
@@ -1540,9 +1540,9 @@ export default function ProtocolPage() {
                       emoji === "✨" || emoji === "☀️" ? "bg-amber-500/8 border-amber-500/15" :
                       "bg-surface-container-low border-outline-variant/10";
                     return (
-                      <div key={i} className={`flex-shrink-0 w-[36vw] max-w-[148px] min-w-[124px] rounded-2xl border p-3.5 flex flex-col ${tint}`}>
-                        <span className="text-4xl leading-none mb-3">{emoji}</span>
-                        <p className="text-xs font-semibold text-on-surface leading-snug">{compressHabit(action)}</p>
+                      <div key={i} className={`rounded-xl border p-3 flex flex-col ${tint}`}>
+                        <span className="text-2xl leading-none mb-2">{emoji}</span>
+                        <p className="text-[11px] font-semibold text-on-surface leading-snug">{compressHabit(action)}</p>
                       </div>
                     );
                   })}
