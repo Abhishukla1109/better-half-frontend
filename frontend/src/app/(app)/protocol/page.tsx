@@ -540,7 +540,7 @@ export default function ProtocolPage() {
   // Prevent auto-opening question sheet more than once per page load
   const hasAutoOpened = useRef(false);
   // Daily nudge tracking: answered today or too many skips → don't auto-open again
-  const [nudgeState, setNudgeState] = useState<{ date: string; answered: boolean; skipCount: number } | null>(null);
+  const [nudgeState, setNudgeState] = useState<{ date: string; answered: boolean; skipCount: number; shown?: boolean } | null>(null);
   // Cart
   const { addItem, openCart } = useCart();
   const [addingId, setAddingId] = useState<string | null>(null);
@@ -676,7 +676,7 @@ export default function ProtocolPage() {
       const today = new Date().toDateString();
       const nudgeRaw = localStorage.getItem(nudgeKey);
       if (nudgeRaw) {
-        const nd = JSON.parse(nudgeRaw) as { date: string; answered: boolean; skipCount: number };
+        const nd = JSON.parse(nudgeRaw) as { date: string; answered: boolean; skipCount: number; shown?: boolean };
         if (nd.date === today) {
           setNudgeState(nd);
         } else {
@@ -1055,7 +1055,7 @@ export default function ProtocolPage() {
     if (introPlayed.current) setDisplayDepth(liveDepth);
   }, [liveDepth]);
 
-  // Auto-open question sheet every visit unless already answered or skipped twice today
+  // Auto-open question sheet once per day — survives navigation within the same day
   useEffect(() => {
     if (loading || !protocol || !profile) return;
     if (hasAutoOpened.current) return;
@@ -1063,12 +1063,20 @@ export default function ProtocolPage() {
     if (!nudgeState) return;
     if (nudgeState.answered) return;
     if (nudgeState.skipCount >= 2) return;
+    if (nudgeState.shown) return; // already shown today
     hasAutoOpened.current = true;
+    // Mark as shown in localStorage so navigation back doesn't re-trigger
+    try {
+      const ak = activeProfileId ?? "main";
+      const updated = { ...nudgeState, shown: true };
+      setNudgeState(updated);
+      localStorage.setItem(`bh_question_nudge_${ak}`, JSON.stringify(updated));
+    } catch { /* non-critical */ }
     // First visit: wait 5s so user can read their recommendations first
     const delay = visitCount === 1 ? 5000 : 1500;
     const t = setTimeout(() => setShowQuestionSheet(true), delay);
     return () => clearTimeout(t);
-  }, [loading, protocol, profile, currentQuestion, nudgeState, visitCount]);
+  }, [loading, protocol, profile, currentQuestion, nudgeState, visitCount, activeProfileId]);
 
   useEffect(() => {
     if (protocol?.supplements?.length) {
