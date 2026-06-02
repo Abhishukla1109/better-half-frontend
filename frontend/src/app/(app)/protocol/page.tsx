@@ -1852,13 +1852,13 @@ export default function ProtocolPage() {
         {true && (
           <>
 
-            {/* Why these work — horizontal scroll */}
+            {/* Why these work — 2×2 grid */}
             {ingredientList.length > 0 && (
               <div className="mb-3 animate-fade-in-up">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50 mb-2 px-1">
                   Why these work
                 </p>
-                <div className="flex gap-2.5 overflow-x-auto overscroll-x-contain hide-scrollbar pb-1">
+                <div className="grid grid-cols-2 gap-2">
                   {ingredientList.map((item) => {
                     const isExpanded = expandedReasonings.has(item.name);
                     const cardStyle =
@@ -1877,16 +1877,22 @@ export default function ProtocolPage() {
                       <button
                         key={item.name}
                         onClick={() => toggleReasoning(item.name)}
-                        className={`flex-shrink-0 w-[36vw] max-w-[148px] min-w-[120px] text-left rounded-2xl border p-3 transition-all duration-200 cursor-pointer active:scale-[0.98] ${cardStyle} ${isExpanded ? "min-w-[200px] max-w-[220px]" : ""}`}
+                        className={`w-full text-left rounded-2xl border p-3 transition-all duration-200 cursor-pointer active:scale-[0.98] ${cardStyle}`}
                       >
-                        <span className="text-xl block mb-2 leading-none">{getSupplementEmoji(item.name)}</span>
+                        <div className="flex items-start justify-between mb-2">
+                          <span className="text-xl leading-none">{getSupplementEmoji(item.name)}</span>
+                          <ChevronDown
+                            className={`w-3.5 h-3.5 text-on-surface-variant/35 shrink-0 transition-transform duration-200 mt-0.5 ${isExpanded ? "rotate-180" : ""}`}
+                            strokeWidth={2.5}
+                          />
+                        </div>
                         <p className="text-[12px] font-bold text-on-surface leading-snug mb-1.5">{item.name}</p>
                         <span className={`text-[8px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${badgeStyle}`}>
                           {item.priority}
                         </span>
                         <p className="text-[10px] text-on-surface-variant/55 mt-1.5 leading-relaxed">{item.timing}</p>
                         {isExpanded && (
-                          <p className="text-[10px] text-on-surface-variant/80 mt-2 leading-relaxed border-t border-outline-variant/10 pt-2">
+                          <p className="text-[10px] text-on-surface-variant/80 mt-2 leading-relaxed border-t border-outline-variant/15 pt-2">
                             {item.why}
                           </p>
                         )}
