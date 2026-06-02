@@ -562,6 +562,7 @@ export default function ProtocolPage() {
 
   useEffect(() => {
     let stored: UserProfile | null = null;
+    const activeId = localStorage.getItem("bh_active_profile") ?? "main";
     try {
       const raw = localStorage.getItem("bh_profile");
       if (!raw) { router.replace("/home"); return; }
@@ -572,16 +573,20 @@ export default function ProtocolPage() {
         return;
       }
       setProfile(stored);
-      setActiveProfileId(localStorage.getItem("bh_active_profile"));
+      setActiveProfileId(activeId);
     } catch {
       router.replace("/home");
       return;
     }
 
+    const visitKey  = `bh_protocol_visits_${activeId}`;
+    const nudgeKey  = `bh_question_nudge_${activeId}`;
+    const todayKey  = `bh_today_answers_${activeId}`;
+
     // Visit tracking — day 1 gets 2 questions, return visits get 1
     // Syncs with Supabase protocol_state so count persists across devices
     try {
-      const visitRaw = localStorage.getItem("bh_protocol_visits");
+      const visitRaw = localStorage.getItem(visitKey);
       const today = new Date().toDateString();
       let localCount = 0;
       let localLastVisit = "";
@@ -596,12 +601,12 @@ export default function ProtocolPage() {
           localCount = vd.count + 1;
           localLastVisit = today;
           setVisitCount(localCount);
-          localStorage.setItem("bh_protocol_visits", JSON.stringify({ lastVisit: today, count: localCount }));
+          localStorage.setItem(visitKey, JSON.stringify({ lastVisit: today, count: localCount }));
         }
       } else {
         localCount = 1;
         localLastVisit = today;
-        localStorage.setItem("bh_protocol_visits", JSON.stringify({ lastVisit: today, count: 1 }));
+        localStorage.setItem(visitKey, JSON.stringify({ lastVisit: today, count: 1 }));
         setVisitCount(1);
       }
 
@@ -624,7 +629,7 @@ export default function ProtocolPage() {
           if (remoteCount > localCount) {
             finalCount = state.last_visit_date === today ? remoteCount : remoteCount + 1;
             finalLastVisit = today;
-            localStorage.setItem("bh_protocol_visits", JSON.stringify({ lastVisit: today, count: finalCount }));
+            localStorage.setItem(visitKey, JSON.stringify({ lastVisit: today, count: finalCount }));
             setVisitCount(finalCount);
           }
           // Merge follow-up answers from Supabase into localStorage profile
@@ -659,7 +664,7 @@ export default function ProtocolPage() {
 
     // Restore today's answered question count so the daily limit survives navigation
     try {
-      const todayRaw = localStorage.getItem("bh_today_answers");
+      const todayRaw = localStorage.getItem(todayKey);
       if (todayRaw) {
         const td = JSON.parse(todayRaw) as { date: string; count: number };
         if (td.date === new Date().toDateString()) setSavedAnswerCount(td.count);
@@ -669,7 +674,7 @@ export default function ProtocolPage() {
     // Daily nudge state — tracks if user answered or exhausted skips today
     try {
       const today = new Date().toDateString();
-      const nudgeRaw = localStorage.getItem("bh_question_nudge");
+      const nudgeRaw = localStorage.getItem(nudgeKey);
       if (nudgeRaw) {
         const nd = JSON.parse(nudgeRaw) as { date: string; answered: boolean; skipCount: number };
         if (nd.date === today) {
@@ -677,12 +682,12 @@ export default function ProtocolPage() {
         } else {
           const fresh = { date: today, answered: false, skipCount: 0 };
           setNudgeState(fresh);
-          localStorage.setItem("bh_question_nudge", JSON.stringify(fresh));
+          localStorage.setItem(nudgeKey, JSON.stringify(fresh));
         }
       } else {
         const fresh = { date: today, answered: false, skipCount: 0 };
         setNudgeState(fresh);
-        localStorage.setItem("bh_question_nudge", JSON.stringify(fresh));
+        localStorage.setItem(nudgeKey, JSON.stringify(fresh));
       }
     } catch { /* non-critical */ }
 
@@ -718,7 +723,8 @@ export default function ProtocolPage() {
     setSavedAnswerCount((prev) => {
       const next = prev + 1;
       try {
-        localStorage.setItem("bh_today_answers", JSON.stringify({ date: new Date().toDateString(), count: next }));
+        const ak = activeProfileId ?? "main";
+        localStorage.setItem(`bh_today_answers_${ak}`, JSON.stringify({ date: new Date().toDateString(), count: next }));
       } catch { /* non-critical */ }
       return next;
     });
@@ -730,7 +736,8 @@ export default function ProtocolPage() {
         supabase.auth.getSession().then(({ data: { session } }) => {
           if (session) {
             supabase.from("profiles").upsert({ id: session.user.id, data: updatedProfile }).then(() => {});
-            const visitRaw = localStorage.getItem("bh_protocol_visits");
+            const ak = activeProfileId ?? "main";
+            const visitRaw = localStorage.getItem(`bh_protocol_visits_${ak}`);
             const vc = visitRaw ? (JSON.parse(visitRaw) as { count: number }).count : 0;
             supabase.from("protocol_state").upsert({
               user_id: session.user.id,
@@ -747,7 +754,10 @@ export default function ProtocolPage() {
     setNudgeState((prev) => {
       if (!prev) return prev;
       const updated = { ...prev, answered: true };
-      try { localStorage.setItem("bh_question_nudge", JSON.stringify(updated)); } catch { /* non-critical */ }
+      try {
+        const ak = activeProfileId ?? "main";
+        localStorage.setItem(`bh_question_nudge_${ak}`, JSON.stringify(updated));
+      } catch { /* non-critical */ }
       return updated;
     });
     setShowingUpdate(true);
@@ -764,7 +774,10 @@ export default function ProtocolPage() {
     setNudgeState((prev) => {
       if (!prev) return prev;
       const updated = { ...prev, skipCount: prev.skipCount + 1 };
-      try { localStorage.setItem("bh_question_nudge", JSON.stringify(updated)); } catch { /* non-critical */ }
+      try {
+        const ak = activeProfileId ?? "main";
+        localStorage.setItem(`bh_question_nudge_${ak}`, JSON.stringify(updated));
+      } catch { /* non-critical */ }
       return updated;
     });
     setShowQuestionSheet(false);
