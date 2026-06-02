@@ -1589,7 +1589,9 @@ export default function ProtocolPage() {
                       {sessionLimitReached ? "That's good for today" : "Sharpen your protocol"}
                     </p>
                     <p className="text-[10px] text-on-surface-variant/55 mt-0.5">
-                      {sessionLimitReached ? `${liveDepth}% · Come back tomorrow` : `Question ${answeredCount + 1} · Takes 10 seconds`}
+                      {sessionLimitReached
+                        ? `${liveDepth}% complete — from your ${[profile?.concern ? "concern" : null, profile?.age ? "age" : null, profile?.diet ? "diet" : null].filter(Boolean).join(", ") || "profile"}`
+                        : `Question ${answeredCount + 1} · Takes 10 seconds`}
                     </p>
                   </div>
                 </div>
