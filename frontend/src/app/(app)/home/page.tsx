@@ -615,37 +615,74 @@ export default function HomePage() {
      ═══════════════════════════════════════════════════════ */
   if (showGenerating) {
     const isKids = memberFlow === "kids";
+
+    const CONCERN_META: Record<string, { label: string; emoji: string; style: string }> = {
+      "Hair / beard": { label: "Hair & Beard", emoji: "🪮", style: "bg-rose-500/10 text-rose-700 border border-rose-500/20" },
+      "Skin / acne":  { label: "Skin & Acne",  emoji: "✨", style: "bg-amber-500/10 text-amber-700 border border-amber-500/20" },
+      "Weight":       { label: "Weight",        emoji: "⚖️", style: "bg-orange-500/10 text-orange-700 border border-orange-500/20" },
+      "Energy / gut": { label: "Energy & Gut",  emoji: "⚡", style: "bg-yellow-500/10 text-yellow-700 border border-yellow-500/20" },
+      "Sleep / mind": { label: "Sleep & Mind",  emoji: "🌙", style: "bg-indigo-500/10 text-indigo-700 border border-indigo-500/20" },
+      "Hormones":     { label: "Hormones",      emoji: "🧬", style: "bg-teal-500/10 text-teal-700 border border-teal-500/20" },
+    };
+
+    const concern1 = selectedConcerns[0];
+    const loadingSteps = isKids
+      ? ["Checking age group", "Matching Little Joys products", "Setting up their profile"]
+      : selectedConcerns.length === 1 && concern1
+        ? [
+            `Reading your ${CONCERN_META[concern1]?.label?.toLowerCase() ?? "health"} profile`,
+            `Matching ${CONCERN_META[concern1]?.label?.toLowerCase() ?? "products"} to your needs`,
+            "Crafting your daily habits",
+          ]
+        : ["Reading your health profile", "Matching products to your needs", "Crafting your daily habits"];
+
     return (
-      <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center bg-surface px-6">
+      <div
+        className="fixed inset-0 z-[80] flex flex-col items-center justify-center px-6"
+        style={{ background: "linear-gradient(160deg, rgba(21,89,74,0.09) 0%, rgba(255,255,255,1) 62%)" }}
+      >
 
         {/* Generating phase */}
         {generatingPhase === "generating" && (
-          <div className="flex flex-col items-center text-center animate-fade-in-up">
-            <div className="relative flex items-center justify-center w-24 h-24 mb-8">
+          <div className="flex flex-col items-center text-center animate-fade-in-up w-full max-w-xs">
+            <div className="relative flex items-center justify-center w-24 h-24 mb-7">
               <div className="absolute inset-0 rounded-full bg-primary-container/15 animate-ping" style={{ animationDuration: "1.4s" }} />
               <div className="absolute inset-2 rounded-full bg-primary-container/10" />
               {isKids
                 ? <span className="relative text-4xl leading-none">🧒</span>
                 : <Sparkles className="relative w-9 h-9 text-primary-container" strokeWidth={1.5} />}
             </div>
-            <h2 className="text-2xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-3">
-              {isKids ? "Finding their picks…" : "Building your protocol…"}
+
+            <h2 className="text-[26px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-2 leading-tight">
+              {isKids ? "Finding their picks…" : `Building ${name ? `${name}'s` : "your"} protocol…`}
             </h2>
-            <p className="text-sm text-on-surface-variant/70 max-w-xs leading-relaxed">
+            <p className="text-sm text-on-surface-variant/60 max-w-xs leading-relaxed mb-5">
               {isKids
                 ? "Curating age-appropriate products from Little Joys for your child."
-                : "Analysing your profile across 6.5M Indian health journeys to find your exact match."}
+                : "Scanning your profile and matching the right products for you."}
             </p>
-            <div className="flex gap-2 mt-8">
+
+            {!isKids && selectedConcerns.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 justify-center mb-5">
+                {selectedConcerns.map((c) => {
+                  const m = CONCERN_META[c];
+                  return m ? (
+                    <span key={c} className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${m.style}`}>
+                      {m.emoji} {m.label}
+                    </span>
+                  ) : null;
+                })}
+              </div>
+            )}
+
+            <div className="flex gap-2 mb-5">
               {[0, 1, 2, 3].map((i) => (
                 <div key={i} className="w-2 h-2 rounded-full bg-primary-container/40 animate-pulse" style={{ animationDelay: `${i * 250}ms` }} />
               ))}
             </div>
-            <div className="mt-6 space-y-1.5 text-left w-full max-w-xs">
-              {(isKids
-                ? ["Checking age group", "Matching Little Joys products", "Setting up their profile"]
-                : ["Matching your concern profile", "Scoring 86 products", "Personalising daily routine"]
-              ).map((step, i) => (
+
+            <div className="space-y-2 text-left w-full">
+              {loadingSteps.map((step, i) => (
                 <div key={i} className="flex items-center gap-2.5 animate-fade-in-up" style={{ animationDelay: `${i * 600 + 200}ms` }}>
                   <div className="w-4 h-4 rounded-full bg-primary-container/15 flex items-center justify-center shrink-0">
                     <Check className="w-2.5 h-2.5 text-primary-container" strokeWidth={2.5} />
@@ -660,20 +697,40 @@ export default function HomePage() {
         {/* Ready phase */}
         {generatingPhase === "ready" && (
           <div className="flex flex-col items-center text-center animate-fade-in-up w-full max-w-xs">
-            <div className="flex items-center justify-center w-20 h-20 rounded-full bg-primary-container/15 mb-6">
-              {isKids ? <span className="text-4xl leading-none">🧒</span> : <Check className="w-9 h-9 text-primary-container" strokeWidth={2} />}
+            <div className="relative flex items-center justify-center w-20 h-20 mb-6">
+              <div className="absolute inset-0 rounded-full bg-primary-container/15" />
+              {isKids
+                ? <span className="relative text-4xl leading-none">🧒</span>
+                : <Sparkles className="relative w-9 h-9 text-primary-container" strokeWidth={1.5} />}
             </div>
-            <h2 className="text-2xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-2">
-              {isKids ? `${childName ? `${childName}'s` : "Their"} picks are ready!` : "Your protocol is ready!"}
+
+            <h2 className="text-[26px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-2 leading-tight">
+              {isKids
+                ? `${childName ? `${childName}'s` : "Their"} picks are ready!`
+                : `${name ? `${name}, your` : "Your"} protocol is ready`}
             </h2>
-            <p className="text-sm text-on-surface-variant/70 leading-relaxed mb-8">
+            <p className="text-sm text-on-surface-variant/60 leading-relaxed mb-5">
               {isKids
                 ? "We've curated age-matched products from Little Joys for your child."
-                : "We've built a personalised plan based on your profile."}
+                : "Your supplements, habits and daily routine — personalized for you."}
             </p>
+
+            {!isKids && selectedConcerns.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 justify-center mb-6">
+                {selectedConcerns.map((c) => {
+                  const m = CONCERN_META[c];
+                  return m ? (
+                    <span key={c} className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${m.style}`}>
+                      {m.emoji} {m.label}
+                    </span>
+                  ) : null;
+                })}
+              </div>
+            )}
+
             <button
               onClick={() => router.replace(isKids ? "/kids" : "/protocol")}
-              className="w-full py-4 rounded-2xl bg-primary-container text-white font-bold text-base hover:bg-primary transition-colors duration-200 cursor-pointer"
+              className="w-full py-4 rounded-2xl bg-primary-container text-white font-bold text-base hover:bg-primary transition-colors duration-200 cursor-pointer mb-3"
             >
               {isKids
                 ? `Set up ${childName ? `${childName}'s` : "their"} wellness →`
@@ -681,6 +738,9 @@ export default function HomePage() {
                   ? `View ${name ? `${name}'s` : "their"} protocol →`
                   : "View my protocol →"}
             </button>
+            {!isKids && (
+              <p className="text-[11px] text-on-surface-variant/40">Free · Personalized · Updates as you share more</p>
+            )}
           </div>
         )}
       </div>

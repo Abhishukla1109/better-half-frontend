@@ -350,18 +350,52 @@ function getConcernEmoji(concernList: string[], sex?: string): string {
 
 /* Strips filler phrases from habit tips to produce a compact but meaningful headline */
 function compressHabit(text: string): string {
+  // splitRoutineText already strips the " — explanation" part before this runs,
+  // so `text` here is just the action clause. Strip remaining verbose suffixes.
   let s = text
+    // Protocol-duration phrases
     .replace(/\s+for the first \d+[\w ]*of your protocol\.?/gi, "")
     .replace(/\s+for the first \d+[\w ]*\.?$/gi, "")
-    .replace(/\s+for \d+[\w ]*\.?$/gi, "")
-    .replace(/\s*at the end of your shower/gi, " after shower")
+    .replace(/\s+for \d+ weeks?\.?$/gi, "")
+    // "within X hour/minute of Y" — e.g. "within 1 hour of iron"
+    .replace(/\s+within \d+[\w\s]*(?:of|before|after)\s+\w+/gi, "")
+    // "for X seconds at the end of your shower"
+    .replace(/\s+for \d+[\w\s]*at the end of[^,]*/gi, "")
+    // "every X–Y days" → "regularly"
+    .replace(/\s+every \d+[–\-]\d+ days/gi, " regularly")
+    // "X hour(s) before your target bedtime" → "before bed"
+    .replace(/\s+\d+ hours? before your target bedtime/gi, " before bed")
+    // Parenthetical elaborations: "(ghee, nuts, avocado)", "(even on weekends)"
+    .replace(/\s*\([^)]+\)/g, "")
+    // "like curd, idli, or dosa" style lists (before action verbs or end of string)
+    .replace(/\s+like\s+[^.]+?(?=\s+(?:actively|directly|significantly|support|improve|boost|are|can|will|help)|$)/gi, "")
+    // Trailing result/benefit clauses
+    .replace(/\s+even on rest days.*$/gi, "")
+    .replace(/\s+independently of.*$/gi, "")
+    .replace(/\s+improves.*$/gi, "")
+    .replace(/\s+which helps.*$/gi, "")
+    .replace(/\s+to prevent.*$/gi, "")
+    .replace(/\s+is non-negotiable/gi, "")
+    .replace(/\s+is more powerful than.*$/gi, "")
+    .replace(/\s+resets circadian.*$/gi, "")
+    .replace(/\s+(actively|directly)\s+support.*$/gi, "")
+    .replace(/\s+(support|improve|boost|help)\s+your.*$/gi, "")
+    .replace(/\s+if possible/gi, "")
     .replace(/\s*reduces? \w+ significantly\.?$/gi, "")
     .replace(/\s*(significantly|considerably|dramatically)\.?$/gi, "")
     .replace(/\s*of your protocol\.?$/gi, "")
     .replace(/\bin at least (\d+) meals? daily\b/gi, "daily")
+    // Number formatting: 7,000 → 7k
+    .replace(/(\d{1,3}),(\d{3})/g, (_, a, b) => `${a}${b}`)
+    .replace(/\b(\d{4,})\b/g, (m) => { const n = parseInt(m); return n >= 1000 ? `${Math.round(n / 1000)}k` : m; })
     .replace(/\s{2,}/g, " ")
     .trim()
     .replace(/[,.]$/, "");
+  // Strip trailing incomplete words left by regex cuts
+  s = s.replace(/\s+(within|of|for|from|in|at|by|or|with|to|the|a|an|like|actively|directly)$/i, "");
+  // Soft cap at 7 words — gives room for natural completeness
+  const words = s.split(" ");
+  if (words.length > 7) s = words.slice(0, 6).join(" ");
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
@@ -392,19 +426,32 @@ function getConcernTagStyle(c: string): string {
   return "bg-primary-container/10 text-primary-container border-primary-container/20";
 }
 
-/* Keyword-based emoji for lifestyle tips */
-function getLifestyleEmoji(tip: string): string {
+/* Keyword-based emoji + background for habit tiles.
+   Domain-specific checks come first so "Avoid tight hairstyles" → hair, not "avoid".
+   isVeg: true for vegetarian/vegan users — protein tips get 🌱 instead of 🥩. */
+function getHabitStyle(tip: string, isVeg = false): { emoji: string; bg: string } {
   const t = tip.toLowerCase();
-  if (t.includes("hair") || t.includes("scalp") || t.includes("hairstyle")) return "💆";
-  if (t.includes("protein") || t.includes("food") || t.includes("eat") || t.includes("meal") || t.includes("diet")) return "🥗";
-  if (t.includes("water") || t.includes("rinse") || t.includes("cold shower")) return "💧";
-  if (t.includes("sleep") || t.includes("bed")) return "😴";
-  if (t.includes("sugar") || t.includes("dairy") || t.includes("cut ") || t.includes("avoid")) return "🚫";
-  if (t.includes("exercise") || t.includes("workout") || t.includes("walk") || t.includes("gym")) return "🏃";
-  if (t.includes("stress") || t.includes("meditat") || t.includes("breath")) return "🧘";
-  if (t.includes("skin") || t.includes("acne") || t.includes("face") || t.includes("wash")) return "✨";
-  if (t.includes("sun") || t.includes("morning")) return "☀️";
-  return "✅";
+  if (t.includes("hair") || t.includes("scalp") || t.includes("hairstyle") || t.includes("dandruff"))
+    return { emoji: "🪮", bg: "bg-rose-500/12" };
+  if (t.includes("skin") || t.includes("acne") || t.includes("moistur") || t.includes("sunscreen") || t.includes("face wash"))
+    return { emoji: "✨", bg: "bg-amber-500/12" };
+  if (t.includes("sleep") || t.includes("bed") || t.includes("screen time"))
+    return { emoji: "🌙", bg: "bg-indigo-500/12" };
+  if (t.includes("protein"))
+    return { emoji: isVeg ? "🌱" : "🥩", bg: "bg-emerald-500/12" };
+  if (t.includes("water") || t.includes("rinse") || t.includes("cold shower") || t.includes("hydrat"))
+    return { emoji: "💧", bg: "bg-sky-500/12" };
+  if (t.includes("exercise") || t.includes("workout") || t.includes("walk") || t.includes("step") || t.includes("gym"))
+    return { emoji: "🏃", bg: "bg-orange-500/12" };
+  if (t.includes("stress") || t.includes("meditat") || t.includes("breath") || t.includes("mind"))
+    return { emoji: "🧘", bg: "bg-violet-500/12" };
+  if (t.includes("sun") || t.includes("vitamin d") || t.includes("morning light"))
+    return { emoji: "☀️", bg: "bg-amber-500/12" };
+  if (t.includes("sugar") || t.includes("dairy") || t.includes("junk") || t.includes("avoid") || t.includes("cut "))
+    return { emoji: "🚫", bg: "bg-red-500/10" };
+  if (t.includes("eat") || t.includes("meal") || t.includes("diet") || t.includes("food") || t.includes("nutrient"))
+    return { emoji: "🥗", bg: "bg-emerald-500/10" };
+  return { emoji: "✅", bg: "bg-surface-container-low" };
 }
 
 /* ── Loading skeleton ──────────────────────────────────────── */
@@ -1541,19 +1588,13 @@ export default function ProtocolPage() {
                 <div className={`grid gap-2 ${protocol.lifestyle.length === 3 ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4"}`}>
                   {protocol.lifestyle.slice(0, 4).map((tip, i) => {
                     const { action } = splitRoutineText(tip);
-                    const emoji = getLifestyleEmoji(tip);
-                    const tint =
-                      emoji === "😴" || emoji === "🌙" ? "bg-indigo-500/8 border-indigo-500/15" :
-                      emoji === "🏃" || emoji === "💪" ? "bg-orange-500/8 border-orange-500/15" :
-                      emoji === "🥗" || emoji === "🌿" ? "bg-emerald-500/8 border-emerald-500/15" :
-                      emoji === "💧" ? "bg-sky-500/8 border-sky-500/15" :
-                      emoji === "🧘" ? "bg-violet-500/8 border-violet-500/15" :
-                      emoji === "✨" || emoji === "☀️" ? "bg-amber-500/8 border-amber-500/15" :
-                      "bg-surface-container-low border-outline-variant/10";
+                    const profileDiet = String(profile?.diet || "").toLowerCase();
+                    const isVeg = !profileDiet.includes("non") && (profileDiet.includes("veg") || profileDiet.includes("vegan") || profileDiet.includes("egg"));
+                    const { emoji, bg } = getHabitStyle(tip, isVeg);
                     return (
-                      <div key={i} className={`rounded-xl border p-3 flex flex-col ${tint}`}>
-                        <span className="text-2xl leading-none mb-2">{emoji}</span>
-                        <p className="text-[11px] font-semibold text-on-surface leading-snug">{compressHabit(action)}</p>
+                      <div key={i} className={`rounded-2xl p-3.5 flex flex-col ${bg}`}>
+                        <span className="text-4xl leading-none mb-2">{emoji}</span>
+                        <p className="text-[11px] font-bold text-on-surface/80 leading-snug">{compressHabit(action)}</p>
                       </div>
                     );
                   })}
@@ -1607,28 +1648,35 @@ export default function ProtocolPage() {
                                 <span className="absolute top-2 left-2 bg-primary-container text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-md leading-none">{discountPct}% OFF</span>
                               )}
                               {displayScore >= 70 && (
-                                <div className="absolute top-2 right-2 bg-amber-500 text-white text-[11px] font-extrabold px-2 py-1 rounded-full leading-none tabular-nums">
-                                  {displayScore}%
+                                <div className="absolute top-2 right-2 bg-amber-500 text-white rounded-full px-2 py-1 flex flex-col items-center leading-none">
+                                  <span className="text-[11px] font-extrabold tabular-nums">{displayScore}%</span>
+                                  <span className="text-[7px] font-bold opacity-80">match</span>
                                 </div>
                               )}
                             </div>
                             <div className="p-3">
-                              <p className="text-[9px] font-bold text-primary-container/60 uppercase tracking-wider mb-0.5">{s.brand}</p>
-                              <p className="text-[12px] font-bold text-on-surface leading-snug line-clamp-2 mb-0.5">{s.name}</p>
-                              {s.reasoning && (
-                                <p className="text-[9px] italic text-on-surface-variant/55 leading-snug line-clamp-2 mb-1">{s.reasoning}</p>
+                              <p className="text-[10px] font-bold text-primary-container/60 uppercase tracking-wider mb-0.5">{s.brand}</p>
+                              <p className="text-[13px] font-bold text-on-surface leading-snug line-clamp-2 mb-1">{s.name}</p>
+                              {s.reasonTags && s.reasonTags.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mb-2">
+                                  {s.reasonTags.slice(0, 2).map((tag, i) => (
+                                    <span key={i} className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-primary-container/10 text-primary-container leading-none whitespace-nowrap">
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
                               )}
                               {trustBadge && (
-                                <span className={`inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-md mb-1 leading-none ${trustBadge.style}`}>{trustBadge.label}</span>
+                                <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-1.5 leading-none ${trustBadge.style}`}>{trustBadge.label}</span>
                               )}
                               {s.rating && (
                                 <div className="flex items-center gap-1 mb-1">
-                                  <span className="text-amber-400 text-[10px] leading-none">★</span>
-                                  <span className="text-[10px] font-bold text-on-surface">{s.rating}</span>
-                                  {reviewLabel && <span className="text-[9px] text-on-surface-variant/40">({reviewLabel})</span>}
+                                  <span className="text-amber-400 text-[12px] leading-none">★</span>
+                                  <span className="text-[11px] font-bold text-on-surface">{s.rating}</span>
+                                  {reviewLabel && <span className="text-[10px] text-on-surface-variant/40">({reviewLabel})</span>}
                                 </div>
                               )}
-                              <p className="text-[9px] text-on-surface-variant/45 leading-none mb-1.5">👥 {getSocialCount(s)} similar</p>
+                              <p className="text-[10px] text-on-surface-variant/45 leading-none mb-1.5">👥 {getSocialCount(s)} similar</p>
                               <div className="flex items-end justify-between gap-1">
                                 <div>
                                   <p className="text-[15px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
@@ -1687,28 +1735,35 @@ export default function ProtocolPage() {
                           <span className="absolute top-2 left-2 bg-primary-container text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-md leading-none">{discountPct}% OFF</span>
                         )}
                         {displayScore >= 70 && (
-                          <div className="absolute top-2 right-2 bg-primary-container/90 text-white text-[11px] font-extrabold px-2 py-1 rounded-full leading-none tabular-nums">
-                            {displayScore}%
+                          <div className="absolute top-2 right-2 bg-amber-500 text-white rounded-full px-2 py-1 flex flex-col items-center leading-none">
+                            <span className="text-[11px] font-extrabold tabular-nums">{displayScore}%</span>
+                            <span className="text-[7px] font-bold opacity-80">match</span>
                           </div>
                         )}
                       </div>
                       <div className="p-3">
-                        <p className="text-[9px] font-bold text-primary-container/60 uppercase tracking-wider mb-0.5">{s.brand}</p>
-                        <p className="text-[12px] font-bold text-on-surface leading-snug line-clamp-2 mb-0.5">{s.name}</p>
-                        {s.reasoning && (
-                          <p className="text-[9px] italic text-on-surface-variant/55 leading-snug line-clamp-2 mb-1">{s.reasoning}</p>
+                        <p className="text-[10px] font-bold text-primary-container/60 uppercase tracking-wider mb-0.5">{s.brand}</p>
+                        <p className="text-[13px] font-bold text-on-surface leading-snug line-clamp-2 mb-1">{s.name}</p>
+                        {s.reasonTags && s.reasonTags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {s.reasonTags.slice(0, 2).map((tag, i) => (
+                              <span key={i} className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-primary-container/10 text-primary-container leading-none whitespace-nowrap">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
                         )}
                         {trustBadge && (
-                          <span className={`inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-md mb-1 leading-none ${trustBadge.style}`}>{trustBadge.label}</span>
+                          <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-1.5 leading-none ${trustBadge.style}`}>{trustBadge.label}</span>
                         )}
                         {s.rating && (
                           <div className="flex items-center gap-1 mb-1">
-                            <span className="text-amber-400 text-[10px] leading-none">★</span>
-                            <span className="text-[10px] font-bold text-on-surface">{s.rating}</span>
-                            {reviewLabel && <span className="text-[9px] text-on-surface-variant/40">({reviewLabel})</span>}
+                            <span className="text-amber-400 text-[12px] leading-none">★</span>
+                            <span className="text-[11px] font-bold text-on-surface">{s.rating}</span>
+                            {reviewLabel && <span className="text-[10px] text-on-surface-variant/40">({reviewLabel})</span>}
                           </div>
                         )}
-                        <p className="text-[9px] text-on-surface-variant/45 leading-none mb-1.5">👥 {getSocialCount(s)} similar</p>
+                        <p className="text-[10px] text-on-surface-variant/45 leading-none mb-1.5">👥 {getSocialCount(s)} similar</p>
                         <div className="flex items-end justify-between gap-1">
                           <div>
                             <p className="text-[15px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>

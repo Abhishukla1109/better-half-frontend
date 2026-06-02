@@ -1112,11 +1112,14 @@ const QUESTION_NODES: QuestionNode[] = [
 /**
  * Returns the single best next question to ask, or null when done.
  *
- * Priority order:
- * 1. Triage for primary concern first — so Q1 is always concern-specific
- * 2. Triage for secondary concerns
- * 3. Shared questions (lifestyle signals, asked once across all concerns)
- * 4. Branch questions unlocked by triage answers (per concern)
+ * Priority order (multi-concern):
+ * 1. Primary concern triage — Q1 is always concern-specific
+ * 2. Primary concern branches — surfaced immediately after primary triage, before secondary triage
+ * 3. Secondary concerns triage
+ * 4. Shared questions (lifestyle signals, asked once across all concerns)
+ * 5. Remaining branches for all concerns
+ *
+ * Single-concern behaviour is identical to before (step 2 is skipped, step 3 is empty).
  */
 export function selectNextQuestion(
   profile: UserProfile,
@@ -1143,50 +1146,51 @@ export function selectNextQuestion(
   };
   const concernSet = new Set(allConcerns);
 
-  // 1. Triage for all concerns (primary first) — Q1 is always concern-specific
-  for (const concern of allConcerns) {
-    const triageNodes = QUESTION_NODES
-      .filter(n => n.concerns.includes(concern) && n.tier === "triage")
-      .filter(n => !isAnswered(n.key))
-      .filter(n => matchesAge(n))
-      .filter(n => meetsMinDays(n))
-      .filter(n => conditionMet(n))
-      .sort((a, b) => {
-        const pa = a.agePriority?.[age] ?? a.priority;
-        const pb = b.agePriority?.[age] ?? b.priority;
-        return pa - pb;
-      });
-    if (triageNodes.length > 0) return QUESTION_BANK[triageNodes[0].key] ?? null;
+  const eligible = (n: QuestionNode) =>
+    !isAnswered(n.key) && matchesAge(n) && meetsMinDays(n) && conditionMet(n);
+
+  const pickTriage = (concern: string) =>
+    QUESTION_NODES
+      .filter(n => n.concerns.includes(concern) && n.tier === "triage" && eligible(n))
+      .sort((a, b) => (a.agePriority?.[age] ?? a.priority) - (b.agePriority?.[age] ?? b.priority));
+
+  const pickBranch = (concern: string) =>
+    QUESTION_NODES
+      .filter(n => n.concerns.includes(concern) && n.tier === "branch" && eligible(n))
+      .sort((a, b) => a.priority - b.priority);
+
+  // 1. Primary concern triage
+  const pt = pickTriage(allConcerns[0]);
+  if (pt.length > 0) return QUESTION_BANK[pt[0].key] ?? null;
+
+  // 2. [Multi-concern only] Primary concern branches — before secondary triage,
+  //    so the user's main concern gets its refinement questions early.
+  if (allConcerns.length > 1) {
+    const pb = pickBranch(allConcerns[0]);
+    if (pb.length > 0) return QUESTION_BANK[pb[0].key] ?? null;
   }
 
-  // 2. Shared questions (lifestyle signals — asked once, after concern is established)
-  const sharedNodes = QUESTION_NODES
-    .filter(n => n.tier === "shared")
-    .filter(n => n.concerns.some(c => concernSet.has(c)))
-    .filter(n => !isAnswered(n.key))
-    .filter(n => matchesAge(n))
-    .filter(n => meetsMinDays(n))
-    .filter(n => conditionMet(n))
-    .sort((a, b) => a.priority - b.priority);
+  // 3. Secondary concerns triage
+  for (const concern of allConcerns.slice(1)) {
+    const st = pickTriage(concern);
+    if (st.length > 0) return QUESTION_BANK[st[0].key] ?? null;
+  }
 
+  // 4. Shared questions (lifestyle signals — asked once across all concerns)
+  const sharedNodes = QUESTION_NODES
+    .filter(n => n.tier === "shared" && n.concerns.some(c => concernSet.has(c)) && eligible(n))
+    .sort((a, b) => a.priority - b.priority);
   if (sharedNodes.length > 0) return QUESTION_BANK[sharedNodes[0].key] ?? null;
 
-  // 3. Branch questions (unlocked after triage for that concern is complete)
+  // 5. Remaining branches for all concerns (secondary + any primary not yet answered)
   for (const concern of allConcerns) {
     const triageKeys = QUESTION_NODES
       .filter(n => n.concerns.includes(concern) && n.tier === "triage")
       .map(n => n.key);
     if (!triageKeys.every(k => isAnswered(k))) continue;
 
-    const branchNodes = QUESTION_NODES
-      .filter(n => n.concerns.includes(concern) && n.tier === "branch")
-      .filter(n => !isAnswered(n.key))
-      .filter(n => matchesAge(n))
-      .filter(n => meetsMinDays(n))
-      .filter(n => conditionMet(n))
-      .sort((a, b) => a.priority - b.priority);
-
-    if (branchNodes.length > 0) return QUESTION_BANK[branchNodes[0].key] ?? null;
+    const sb = pickBranch(concern);
+    if (sb.length > 0) return QUESTION_BANK[sb[0].key] ?? null;
   }
 
   return null;
