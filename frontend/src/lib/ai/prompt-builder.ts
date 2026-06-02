@@ -19,11 +19,13 @@ export function buildPrompt(profile: UserProfile): { system: string; user: strin
   const seenIds = new Set<string>();
   const allMatchedProducts: ReturnType<typeof calculateProtocolMatch> = [];
   for (const concern of allConcerns) {
+    const p = profile as Record<string, string | undefined>;
+    const isBearder = concern === "Hair / beard" && (p.hair_primary === "beard" || p.hair_concern_type === "beard");
     const matched = calculateProtocolMatch({
       gender: profile.sex || "male",
       age: profile.age || "25-34",
       diet: profile.diet || "non-veg",
-      concern: concern.toLowerCase().split(" / ")[0] || "energy",
+      concern: isBearder ? "beard" : (concern.toLowerCase().split(" / ")[0] || "energy"),
     });
     for (const p of matched) {
       if (!seenIds.has(p.id)) {

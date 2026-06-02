@@ -358,16 +358,22 @@ const CONCERN_NARRATIVES: Record<string, ConcernNarrative> = {
       energy: "Morning with breakfast",
       immunity: "Morning",
       hair: "Morning with food",
+      nutrition: "Morning with breakfast",
+      performance: "Morning with food",
     },
     productReasoning: {
       energy: "Most common cause of persistent fatigue — addresses the nutrient pipeline at the source",
       immunity: "Restores microbiome balance and improves absorption of every nutrient you eat",
       hair: "Micronutrient support that compounds the energy protocol's effectiveness",
+      nutrition: "Corrects the micronutrient deficiencies that compound fatigue and gut symptoms over time",
+      performance: "Supports sustained energy and mental clarity without the crash of stimulants",
     },
     productReasonTags: {
       energy: ["iron & B12", "energy deficit", "absorption"],
       immunity: ["gut microbiome", "microbiome balance"],
       hair: ["compound support"],
+      nutrition: ["micronutrient gaps", "absorption"],
+      performance: ["sustained energy", "no crash"],
     },
     priorityQuestions: ["sleep", "bloating", "stress"],
   },
@@ -397,19 +403,25 @@ const CONCERN_NARRATIVES: Record<string, ConcernNarrative> = {
       "Sleep is the most underrated fat-loss lever — under 7 hours raises ghrelin (hunger hormone) significantly",
     ],
     productTiming: {
+      weight: "Before or after your workout",
       fitness: "Post-workout or before bed",
       energy: "Morning with breakfast",
       hormones: "Evening",
+      nutrition: "Morning with breakfast",
     },
     productReasoning: {
+      weight: "Supports body composition change — builds lean mass while reducing fat storage",
       fitness: "Preserves muscle during fat loss and drives recovery — the cornerstone of body composition change",
       energy: "Manages cortisol — the primary hormone that drives belly fat storage and emotional eating",
       hormones: "Supports the hormonal balance that determines how efficiently your body burns fat",
+      nutrition: "Micronutrient support that keeps your metabolism running efficiently during fat loss",
     },
     productReasonTags: {
+      weight: ["body composition", "fat loss", "lean muscle"],
       fitness: ["body composition", "muscle preservation", "recovery"],
       energy: ["cortisol control", "metabolism"],
       hormones: ["fat storage", "insulin balance"],
+      nutrition: ["metabolism support", "micronutrients"],
     },
     priorityQuestions: ["goal", "activity", "stress"],
   },
@@ -442,6 +454,7 @@ const CONCERN_NARRATIVES: Record<string, ConcernNarrative> = {
     ],
     productTiming: {
       hormones: "Evening with dinner",
+      performance: "Evening with dinner",
       sleep: "30–45 min before bed",
       energy: "Morning with food",
       nutrition: "Morning with breakfast",
@@ -449,6 +462,7 @@ const CONCERN_NARRATIVES: Record<string, ConcernNarrative> = {
     },
     productReasoning: {
       hormones: "Magnesium is the most clinically supported intervention for PMS, cycle regularity, and cortisol-driven hormonal symptoms",
+      performance: "Clinically backed adaptogens that reset the cortisol-testosterone balance — the root of most male hormonal symptoms",
       sleep: "Restores the sleep depth that drives overnight hormonal repair — especially critical in the luteal phase",
       energy: "Corrects B-vitamin and mineral gaps that directly affect estrogen metabolism and energy production",
       nutrition: "Essential micronutrients support the hormonal synthesis pathway that most Indian diets consistently under-deliver",
@@ -456,6 +470,7 @@ const CONCERN_NARRATIVES: Record<string, ConcernNarrative> = {
     },
     productReasonTags: {
       hormones: ["PMS relief", "cycle support", "cortisol balance"],
+      performance: ["testosterone support", "cortisol reset", "vitality"],
       sleep: ["overnight repair", "luteal phase"],
       energy: ["estrogen metabolism", "B vitamins"],
       nutrition: ["micronutrient gaps", "hormone synthesis"],
@@ -635,11 +650,20 @@ function enrichWithAlternatives(
 }
 
 /* ── Supplement builder ─────────────────────────────────────── */
+function resolveConcern(rawConcern: string, profile: UserProfile): string {
+  const p = profile as Record<string, string | undefined>;
+  if (rawConcern === "Hair / beard") {
+    const isBearder = p.hair_primary === "beard" || p.hair_concern_type === "beard";
+    return isBearder ? "beard" : "hair";
+  }
+  return CONCERN_MAP[rawConcern] || "energy";
+}
+
 function buildSupplements(
   profile: UserProfile,
   narrative: ConcernNarrative,
 ): ProtocolSupplement[] {
-  const concern = CONCERN_MAP[profile.concern ?? ""] || "energy";
+  const concern = resolveConcern(profile.concern ?? "", profile);
   const segments = resolveSegment(
     profile.sex || "male",
     profile.age || "25-34",
@@ -763,7 +787,7 @@ function buildMultiConcernSupplements(
       gender: profile.sex || "male",
       age: profile.age || "25-34",
       diet: profile.diet || "non-veg",
-      concern: CONCERN_MAP[rawConcern] || "energy",
+      concern: resolveConcern(rawConcern, profile),
       followUp,
     }),
   }));
