@@ -11,7 +11,7 @@ export default function AuthPage() {
   const router = useRouter();
   const [step, setStep]       = useState<Step>("email");
   const [email, setEmail]     = useState("");
-  const [digits, setDigits]   = useState(["", "", "", "", "", ""]);
+  const [digits, setDigits]   = useState(["", "", "", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [error, setError]     = useState("");
@@ -68,14 +68,14 @@ export default function AuthPage() {
       setError(err.message);
     } else {
       setStep("code");
-      setDigits(["", "", "", "", "", ""]);
+      setDigits(["", "", "", "", "", "", "", ""]);
       setCountdown(60);
       setTimeout(() => inputRefs.current[0]?.focus(), 80);
     }
   };
 
   const handleVerify = async (token: string) => {
-    if (token.length < 6 || verifying) return;
+    if (token.length < 8 || verifying) return;
     setVerifying(true);
     setError("");
 
@@ -88,7 +88,7 @@ export default function AuthPage() {
     if (err) {
       setVerifying(false);
       setError("That code didn't work. Check it and try again.");
-      setDigits(["", "", "", "", "", ""]);
+      setDigits(["", "", "", "", "", "", "", ""]);
       setTimeout(() => inputRefs.current[0]?.focus(), 50);
     }
     // On success the onAuthStateChange listener fires SIGNED_IN → redirect
@@ -97,13 +97,13 @@ export default function AuthPage() {
   const handleDigitChange = (index: number, value: string) => {
     // Support pasting a full 6-digit code into any box
     if (value.length > 1) {
-      const clean = value.replace(/\D/g, "").slice(0, 6);
+      const clean = value.replace(/\D/g, "").slice(0, 8);
       const next = [...digits];
-      clean.split("").forEach((d, i) => { if (i < 6) next[i] = d; });
+      clean.split("").forEach((d, i) => { if (i < 8) next[i] = d; });
       setDigits(next);
-      const focusAt = Math.min(clean.length, 5);
+      const focusAt = Math.min(clean.length, 7);
       inputRefs.current[focusAt]?.focus();
-      if (clean.length === 6) handleVerify(clean);
+      if (clean.length === 8) handleVerify(clean);
       return;
     }
 
@@ -112,10 +112,10 @@ export default function AuthPage() {
     next[index] = digit;
     setDigits(next);
 
-    if (digit && index < 5) {
+    if (digit && index < 7) {
       inputRefs.current[index + 1]?.focus();
     }
-    if (digit && index === 5 && next.every(d => d)) {
+    if (digit && index === 7 && next.every(d => d)) {
       handleVerify(next.join(""));
     }
   };
@@ -172,7 +172,7 @@ export default function AuthPage() {
         ) : (
           <>
             <button
-              onClick={() => { setStep("email"); setError(""); setDigits(["","","","","",""]); }}
+              onClick={() => { setStep("email"); setError(""); setDigits(["","","","","","","",""]); }}
               className="flex items-center gap-1 text-[13px] text-on-surface-variant/60 hover:text-primary-container mb-6 cursor-pointer transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" strokeWidth={2} />
@@ -183,7 +183,7 @@ export default function AuthPage() {
               Enter your code
             </h1>
             <p className="text-sm text-on-surface-variant/70 text-center leading-relaxed mb-8">
-              We sent a 6-digit code to{" "}
+              We sent an 8-digit code to{" "}
               <span className="font-semibold text-on-surface">{email}</span>
             </p>
 
@@ -215,7 +215,7 @@ export default function AuthPage() {
 
             <button
               onClick={() => handleVerify(digits.join(""))}
-              disabled={digits.join("").length < 6 || verifying}
+              disabled={digits.join("").length < 8 || verifying}
               className="w-full flex items-center justify-between py-4 px-5 rounded-2xl bg-primary-container text-white font-bold text-sm hover:bg-primary transition-colors duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed mt-5 mb-4"
             >
               <span>{verifying ? "Verifying…" : "Confirm code"}</span>
