@@ -1534,12 +1534,15 @@ export default function ProtocolPage() {
             )}
 
             {/* Strength bar */}
-            <div className="h-1.5 bg-black/8 rounded-full overflow-hidden mb-3">
+            <div className="h-1.5 bg-black/8 rounded-full overflow-hidden mb-1.5">
               <div
                 className="h-full bg-gradient-to-r from-primary-container/80 to-primary-container rounded-full transition-all duration-200 ease-out"
                 style={{ width: `${displayDepth}%` }}
               />
             </div>
+            <p className="text-[10px] text-on-surface-variant/45 mb-3">
+              Based on your onboarding answers — answer more below to improve
+            </p>
 
             {/* Insight chips — visual signals derived from profile, replaces prose sentence */}
             {(() => {
@@ -1589,9 +1592,7 @@ export default function ProtocolPage() {
                       {sessionLimitReached ? "That's good for today" : "Sharpen your protocol"}
                     </p>
                     <p className="text-[10px] text-on-surface-variant/55 mt-0.5">
-                      {sessionLimitReached
-                        ? `${liveDepth}% complete — from your ${[profile?.concern ? "concern" : null, profile?.age ? "age" : null, profile?.diet ? "diet" : null].filter(Boolean).join(", ") || "profile"}`
-                        : `Question ${answeredCount + 1} · Takes 10 seconds`}
+                      {sessionLimitReached ? `${liveDepth}% · Come back tomorrow` : "Answer more to sharpen more"}
                     </p>
                   </div>
                 </div>
