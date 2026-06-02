@@ -456,10 +456,18 @@ function ExplorePageContent() {
   }, [activeCategory, profile, displayedProducts, activeBrand]);
 
   const pinnedPicks = useMemo<Product[]>(() => {
-    if (!picksParam || !picksVisible) return [];
-    const ids = picksParam.split(",").filter(Boolean);
-    return ids.map((id) => ALL_PRODUCTS.find((p) => p.id === id)).filter(Boolean) as Product[];
-  }, [picksParam, picksVisible]);
+    if (!picksVisible || isKid) return [];
+    // If navigated from protocol with explicit picks in URL — use those
+    if (picksParam) {
+      const ids = picksParam.split(",").filter(Boolean);
+      return ids.map((id) => ALL_PRODUCTS.find((p) => p.id === id)).filter(Boolean) as Product[];
+    }
+    // Otherwise derive top 3 from profile — so sidebar nav shows same structure
+    if (!profile || forYouConcernValues.length === 0) return [];
+    const scored = scoreProducts(forYouConcernValues, profile);
+    const pool = activeBrand ? scored.filter((p) => p.brand === activeBrand) : scored;
+    return pool.slice(0, 3);
+  }, [picksParam, picksVisible, profile, forYouConcernValues, activeBrand, isKid]);
 
   const pinnedPickIds = useMemo(() => new Set(pinnedPicks.map((p) => p.id)), [pinnedPicks]);
   const forYouNonPinned = useMemo(
