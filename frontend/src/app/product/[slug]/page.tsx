@@ -272,7 +272,7 @@ function NewProductPDP({
   const hasProfile = activeMember !== null;
 
   const images = enriched?.images?.length ? enriched.images : product.image ? [product.image] : [];
-  const initialIndex = enriched && images.length > 1 ? 1 : 0;
+  const initialIndex = 0;
 
   // Deduplicate by label, sort smallest size first, keep first 2
   const packOptions = enriched?.packs
@@ -383,27 +383,43 @@ function NewProductPDP({
       <div className="pt-14 max-w-2xl mx-auto">
 
         {/* ── Hero image ── */}
-        <div className="relative w-full h-80 bg-surface-container-low overflow-hidden">
-          {images.length > 0 ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={images[activeImage]} alt={product.name} className="w-full h-full object-contain transition-opacity duration-300" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <span className="text-8xl font-extrabold text-primary-container/15 font-[family-name:var(--font-manrope)]">{product.name.charAt(0)}</span>
+        {(() => {
+          let touchStartX = 0;
+          const onTouchStart = (e: React.TouchEvent) => { touchStartX = e.touches[0].clientX; };
+          const onTouchEnd = (e: React.TouchEvent) => {
+            const dx = e.changedTouches[0].clientX - touchStartX;
+            if (Math.abs(dx) < 40) return;
+            if (dx < 0) setActiveImage((p) => Math.min(p + 1, images.length - 1));
+            else setActiveImage((p) => Math.max(p - 1, 0));
+          };
+          return (
+            <div
+              className="relative w-full h-80 bg-surface-container-low overflow-hidden select-none"
+              onTouchStart={onTouchStart}
+              onTouchEnd={onTouchEnd}
+            >
+              {images.length > 0 ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={images[activeImage]} alt={product.name} className="w-full h-full object-contain transition-opacity duration-300 pointer-events-none" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <span className="text-8xl font-extrabold text-primary-container/15 font-[family-name:var(--font-manrope)]">{product.name.charAt(0)}</span>
+                </div>
+              )}
+              {discountPct >= 5 && (
+                <span className="absolute top-4 left-4 bg-primary-container text-white text-xs font-extrabold px-2.5 py-1 rounded-lg leading-none">{discountPct}% OFF</span>
+              )}
+              {/* Dot indicators */}
+              {images.length > 1 && (
+                <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
+                  {images.map((_, i) => (
+                    <button key={i} onClick={() => setActiveImage(i)} className={`rounded-full transition-all cursor-pointer ${activeImage === i ? "w-5 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/50"}`} />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-          {discountPct >= 5 && (
-            <span className="absolute top-4 left-4 bg-primary-container text-white text-xs font-extrabold px-2.5 py-1 rounded-lg leading-none">{discountPct}% OFF</span>
-          )}
-          {/* Dot indicators */}
-          {images.length > 1 && (
-            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
-              {images.map((_, i) => (
-                <button key={i} onClick={() => setActiveImage(i)} className={`rounded-full transition-all cursor-pointer ${activeImage === i ? "w-5 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/50"}`} />
-              ))}
-            </div>
-          )}
-        </div>
+          );
+        })()}
 
         {/* Thumbnail strip */}
         {images.length > 1 && (
