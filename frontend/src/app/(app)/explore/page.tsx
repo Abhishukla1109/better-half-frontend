@@ -358,9 +358,14 @@ function ExplorePageContent() {
   }, [activeMember]);
 
   const picksParam = searchParams.get("picks");
+  const [storedPicks, setStoredPicks] = useState("");
   useEffect(() => {
-    if (picksParam) setActiveCategory("for-you");
+    const saved = localStorage.getItem("bh_protocol_picks") ?? "";
+    setStoredPicks(saved);
+    if (picksParam || saved) setActiveCategory("for-you");
   }, [picksParam]);
+
+  const effectivePicks = picksParam || storedPicks;
 
   const forYouConcernValues = useMemo<string[]>(() => {
     if (!profile) return [];

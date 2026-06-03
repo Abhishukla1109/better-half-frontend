@@ -700,6 +700,10 @@ export default function ProtocolPage() {
       .then((data: GeneratedProtocol) => {
         setProtocol(data);
         setLoading(false);
+        try {
+          const picks = data.supplements.slice(0, 5).map((s) => s.id).join(",");
+          localStorage.setItem("bh_protocol_picks", picks);
+        } catch { /* non-critical */ }
       })
       .catch(() => setLoading(false));
   }, [router]);
@@ -1017,6 +1021,10 @@ export default function ProtocolPage() {
       .then((data: GeneratedProtocol) => {
         setProtocol((prev) => prev ? { ...prev, supplements: data.supplements } : data);
         setAddedIds(new Set());
+        try {
+          const picks = data.supplements.slice(0, 5).map((s) => s.id).join(",");
+          localStorage.setItem("bh_protocol_picks", picks);
+        } catch { /* non-critical */ }
         // Show popup only when 2+ questions answered — single-answer sessions update silently
         if (answeredCount >= 2) {
           setShowSharpen(true);
@@ -1722,6 +1730,19 @@ export default function ProtocolPage() {
                     </div>
                   </div>
                 ))}
+                {/* View all — multi-concern */}
+                <div className="px-4 pt-1 pb-2">
+                  <button
+                    onClick={() => {
+                      const picks = protocol.supplements.slice(0, 5).map((s) => s.id).join(",");
+                      router.push(`/explore?picks=${encodeURIComponent(picks)}`);
+                    }}
+                    className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-primary-container/20 border-dashed text-[12px] font-semibold text-primary-container/70 hover:bg-primary-container/5 transition-colors cursor-pointer"
+                  >
+                    <ShoppingBag className="w-3.5 h-3.5" strokeWidth={1.5} />
+                    View all matched products
+                  </button>
+                </div>
               </div>
             ) : (
               /* Single concern — flat horizontal scroll */

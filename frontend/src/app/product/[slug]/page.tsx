@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { use } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import {
   ArrowLeft,
   Star,
@@ -27,14 +28,24 @@ import {
   CheckCircle,
   Loader2,
   AlertCircle,
+  Search,
+  User,
+  Menu,
+  X,
+  Home,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react";
+import ProfileSidebar from "@/components/layout/ProfileSidebar";
 import { getProductBySlug } from "@/data/products";
 import { getProductImage } from "@/data/images";
 import { useCart } from "@/context/CartContext";
 import { resolveVariantId } from "@/lib/shopify/variant-resolver";
 import { ALL_PRODUCTS } from "@/lib/protocolEngine";
 import type { Product } from "@/lib/protocolEngine";
+import { getEnrichedPDP } from "@/data/enrichedProducts";
+import type { EnrichedPDP } from "@/data/enrichedProducts";
+import { useActiveProfile } from "@/hooks/useActiveProfile";
 
 /* ── Icon resolver: maps string names from JSON config to Lucide components ── */
 const iconMap: Record<string, LucideIcon> = {
@@ -207,6 +218,17 @@ const CONCERN_LABEL: Record<string, string> = {
   hormones: "hormonal balance and performance",
 };
 
+const CONCERN_DISPLAY: Record<string, string> = {
+  hair: "Hair & Growth",
+  beard: "Beard & Skin",
+  energy: "Energy & Vitality",
+  weight: "Weight Management",
+  sleep: "Sleep & Recovery",
+  immunity: "Immunity",
+  skin: "Skin & Glow",
+  nutrition: "Nutrition",
+};
+
 const BRAND_COLOR: Record<string, string> = {
   "Man Matters": "#00897B",
   "Be Bodywise": "#E91E8C",
@@ -235,16 +257,55 @@ function buildWhyContext(product: Product): string[] {
   return lines;
 }
 
-/* ── Lightweight PDP for new-catalog products ── */
+/* ── Lightweight / Enriched PDP for new-catalog products ── */
 function NewProductPDP({
   product,
+  enriched,
   onBack,
 }: {
   product: Product;
+  enriched: EnrichedPDP | null;
   onBack: () => void;
 }) {
-  const { addItem } = useCart();
+  const { addItem, cart, openCart } = useCart();
+  const { activeMember } = useActiveProfile();
+  const hasProfile = activeMember !== null;
+
+  const images = enriched?.images?.length ? enriched.images : product.image ? [product.image] : [];
+  const initialIndex = enriched && images.length > 1 ? 1 : 0;
+
+  // Deduplicate by label, sort smallest size first, keep first 2
+  const packOptions = enriched?.packs
+    ? [...new Map(enriched.packs.map((p) => [p.label, p])).values()]
+        .sort((a, b) => (parseInt(a.label) || 0) - (parseInt(b.label) || 0))
+        .slice(0, 2)
+    : [];
+
+  const cartCount = cart?.totalQuantity ?? 0;
+
   const [cartState, setCartState] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [activeImage, setActiveImage] = useState(initialIndex);
+  const [selectedPack, setSelectedPack] = useState(0);
+
+  // Replace trailing size like "(30 N)" with the selected pack label
+  const displayName = (() => {
+    const base = enriched?.name ?? product.name;
+    if (!packOptions.length) return base;
+    const label = packOptions[selectedPack]?.label ?? "";
+    return base.replace(/\(\d+\s*[Nn]\)\s*$/, `(${label})`).trim() || base;
+  })();
+
+  const [expandedIngredient, setExpandedIngredient] = useState<number | null>(null);
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<"details" | "how-to-use">("details");
+  const [pincode, setPincode] = useState("");
+  const [deliveryMsg, setDeliveryMsg] = useState<string | null>(null);
+  const [navOpen, setNavOpen] = useState(false);
+
+  const checkDelivery = () => {
+    if (pincode.length !== 6) return;
+    setDeliveryMsg(`Delivery available to ${pincode} · Usually ships in 2–3 days`);
+  };
 
   const discountPct =
     product.mrp > product.price
@@ -253,6 +314,15 @@ function NewProductPDP({
 
   const brandColor = BRAND_COLOR[product.brand] ?? "#00897B";
   const whyLines = buildWhyContext(product);
+
+  const handleShare = useCallback(() => {
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    if (navigator.share) {
+      navigator.share({ title: displayName, url }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(url).catch(() => {});
+    }
+  }, [displayName]);
 
   const handleAddToCart = useCallback(async () => {
     if (cartState !== "idle") return;
@@ -270,181 +340,663 @@ function NewProductPDP({
   }, [addItem, cartState, product.id]);
 
   return (
-    <div className="min-h-dvh bg-surface pb-32">
-      {/* Sticky header */}
-      <header className="glass-header fixed top-0 left-0 right-0 z-50">
-        <div className="max-w-2xl mx-auto flex items-center justify-between h-12 px-4">
-          <button
-            onClick={onBack}
-            className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-low transition-colors cursor-pointer"
-            aria-label="Go back"
-          >
-            <ArrowLeft className="w-5 h-5 text-on-surface" strokeWidth={1.5} />
-          </button>
-          <span
-            className="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full"
-            style={{ backgroundColor: brandColor + "18", color: brandColor }}
-          >
-            {product.brand}
-          </span>
-          <div className="w-10" />
+    <div className="min-h-dvh bg-surface pb-24">
+
+      {/* ── Sticky header ── */}
+      <header className="fixed top-0 left-0 right-0 z-50" style={{ background: "linear-gradient(135deg, #004D40 0%, #00695C 60%, #00897B 100%)" }}>
+        <div className="max-w-2xl mx-auto flex items-center h-14 px-4 gap-3">
+          {/* Left: hamburger + logo */}
+          <div className="flex items-center gap-2 flex-1">
+            <button
+              onClick={() => setNavOpen(true)}
+              className="flex items-center justify-center w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 transition-colors cursor-pointer shrink-0"
+              aria-label="Menu"
+            >
+              <Menu className="w-4 h-4 text-white" strokeWidth={1.5} />
+            </button>
+            <span className="text-sm font-extrabold text-white tracking-wide font-[family-name:var(--font-manrope)]">BetterHalf</span>
+          </div>
+          {/* Right: search + profile + cart */}
+          <div className="flex items-center gap-0.5">
+            <Link href="/explore" className="flex items-center justify-center w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 transition-colors cursor-pointer" aria-label="Search">
+              <Search className="w-4 h-4 text-white" strokeWidth={1.5} />
+            </Link>
+            <button
+              onClick={() => window.dispatchEvent(new Event("bh-profile-sidebar-open"))}
+              className="flex items-center justify-center w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 transition-colors cursor-pointer"
+              aria-label="Profile"
+            >
+              <User className="w-4 h-4 text-white" strokeWidth={1.5} />
+            </button>
+            <button onClick={openCart} className="relative flex items-center justify-center w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 transition-colors cursor-pointer" aria-label="Cart">
+              <ShoppingCart className="w-4 h-4 text-white" strokeWidth={1.5} />
+              {cartCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-amber-400 text-[9px] font-extrabold text-white flex items-center justify-center leading-none">
+                  {cartCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
       </header>
 
-      <div className="pt-12 max-w-2xl mx-auto">
-        {/* Hero image */}
-        <div className="relative w-full aspect-square bg-surface-container-low">
-          {product.image ? (
+      <div className="pt-14 max-w-2xl mx-auto">
+
+        {/* ── Hero image ── */}
+        <div className="relative w-full h-80 bg-surface-container-low overflow-hidden">
+          {images.length > 0 ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={product.image}
-              alt={product.name}
-              className="w-full h-full object-cover"
-            />
+            <img src={images[activeImage]} alt={product.name} className="w-full h-full object-contain transition-opacity duration-300" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <span className="text-8xl font-extrabold text-primary-container/15 font-[family-name:var(--font-manrope)]">
-                {product.name.charAt(0)}
-              </span>
+              <span className="text-8xl font-extrabold text-primary-container/15 font-[family-name:var(--font-manrope)]">{product.name.charAt(0)}</span>
             </div>
           )}
-
           {discountPct >= 5 && (
-            <span className="absolute top-4 left-4 bg-primary-container text-white text-xs font-extrabold px-2 py-1 rounded-lg leading-none">
-              {discountPct}% OFF
-            </span>
+            <span className="absolute top-4 left-4 bg-primary-container text-white text-xs font-extrabold px-2.5 py-1 rounded-lg leading-none">{discountPct}% OFF</span>
+          )}
+          {/* Dot indicators */}
+          {images.length > 1 && (
+            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
+              {images.map((_, i) => (
+                <button key={i} onClick={() => setActiveImage(i)} className={`rounded-full transition-all cursor-pointer ${activeImage === i ? "w-5 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/50"}`} />
+              ))}
+            </div>
           )}
         </div>
 
-        {/* Content */}
-        <div className="px-5 pt-6">
-          {/* Name + rating */}
-          <h1 className="text-2xl font-extrabold text-on-surface leading-tight tracking-tight font-[family-name:var(--font-manrope)]">
-            {product.name}
-          </h1>
+        {/* Thumbnail strip */}
+        {images.length > 1 && (
+          <div className="flex gap-2 px-4 pt-3 overflow-x-auto scrollbar-hide">
+            {images.map((img, i) => (
+              <button key={i} onClick={() => setActiveImage(i)} className={`shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${activeImage === i ? "border-primary-container" : "border-transparent opacity-50"}`}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={img} alt="" className="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+        )}
 
+        {/* ── Product info block ── */}
+        <div className="px-5 pt-5">
+          {/* Brand pill */}
+          <span className="inline-flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-full mb-3" style={{ backgroundColor: brandColor + "22", color: brandColor }}>
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: brandColor }} />
+            {product.brand}
+          </span>
+
+          <div className="flex items-start gap-2">
+            <h1 className="flex-1 text-xl font-extrabold text-on-surface leading-snug tracking-tight font-[family-name:var(--font-manrope)]">
+              {displayName}
+            </h1>
+            <button
+              onClick={handleShare}
+              className="shrink-0 w-8 h-8 rounded-full bg-surface-container-low hover:bg-surface-container flex items-center justify-center transition-colors cursor-pointer mt-0.5"
+              aria-label="Share product"
+            >
+              <Share2 className="w-3.5 h-3.5 text-on-surface-variant/60" strokeWidth={1.5} />
+            </button>
+          </div>
+          {enriched?.subtitle && (
+            <p className="text-sm text-on-surface-variant mt-1 leading-relaxed">{enriched.subtitle}</p>
+          )}
+
+          {/* Suitability chips */}
+          {(() => {
+            const chips: { emoji: string; text: string }[] = [];
+            const suitableFor = enriched?.productDetails.details.find(
+              (d) => d.feature.toLowerCase() === "suitable for age"
+            )?.value;
+            if (suitableFor) chips.push({ emoji: "👤", text: suitableFor });
+            const concern = product.concern?.[0];
+            const concernLabel = CONCERN_DISPLAY[concern?.toLowerCase() ?? ""];
+            if (concernLabel) chips.push({ emoji: "🎯", text: concernLabel });
+            if (!chips.length) return null;
+            return (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {chips.map((c, i) => (
+                  <span key={i} className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant border border-outline-variant/10">
+                    {c.emoji} {c.text}
+                  </span>
+                ))}
+              </div>
+            );
+          })()}
+
+          {/* Rating */}
           {product.rating && (
-            <div className="flex items-center gap-1.5 mt-2">
+            <div className="flex items-center gap-1.5 mt-2.5">
               <div className="flex">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <Star
-                    key={s}
-                    className={`w-4 h-4 ${
-                      s <= Math.floor(product.rating!)
-                        ? "text-amber-400 fill-amber-400"
-                        : "text-outline-variant/30"
-                    }`}
-                    strokeWidth={0}
-                  />
+                {[1,2,3,4,5].map((s) => (
+                  <Star key={s} className={`w-4 h-4 ${s <= Math.floor(product.rating!) ? "text-amber-400 fill-amber-400" : "text-outline-variant/30"}`} strokeWidth={0} />
                 ))}
               </div>
               <span className="text-sm font-semibold text-on-surface">{product.rating}</span>
               {product.reviewCount && (
-                <span className="text-xs text-on-surface-variant/50">
-                  ({product.reviewCount >= 1000
-                    ? `${(product.reviewCount / 1000).toFixed(1)}k`
-                    : product.reviewCount} reviews)
-                </span>
+                <span className="text-xs text-on-surface-variant/50">({product.reviewCount >= 1000 ? `${(product.reviewCount / 1000).toFixed(1)}k` : product.reviewCount} reviews)</span>
               )}
             </div>
           )}
 
           {/* Price */}
-          <div className="flex items-baseline gap-3 mt-4">
-            <span className="text-3xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
-              &#8377;{product.price}
-            </span>
+          <div className="flex items-baseline gap-3 mt-3">
+            <span className="text-3xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">&#8377;{product.price}</span>
             {product.mrp > product.price && (
               <>
-                <span className="text-base text-on-surface-variant/40 line-through">
-                  &#8377;{product.mrp}
-                </span>
-                <span
-                  className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: brandColor + "18", color: brandColor }}
-                >
-                  {discountPct}% off
-                </span>
+                <span className="text-base text-on-surface-variant/40 line-through">&#8377;{product.mrp}</span>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: brandColor + "18", color: brandColor }}>{discountPct}% off</span>
               </>
             )}
           </div>
 
-          {/* Why BetterHalf recommends this */}
-          <div className="mt-6 p-4 rounded-2xl bg-primary-container/6 border border-primary-container/12">
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="w-4 h-4 text-primary-container shrink-0" strokeWidth={1.5} />
-              <span className="text-xs font-semibold text-primary-container uppercase tracking-wider">
-                Why BetterHalf recommends this
-              </span>
+          {/* Pack size pills */}
+          {packOptions.length > 0 && (
+            <div className="mt-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50 mb-2">📦 Pack size</p>
+              <div className="flex gap-2">
+                {packOptions.map((p, i) => (
+                  <button
+                    key={p.label}
+                    onClick={() => setSelectedPack(i)}
+                    className={`px-5 py-2.5 rounded-xl text-sm font-semibold border transition-all cursor-pointer active:scale-95 ${
+                      selectedPack === i
+                        ? "bg-primary-container text-white border-primary-container shadow-sm"
+                        : "bg-surface-container-low text-on-surface border-outline-variant/20 hover:border-primary-container/40"
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <ul className="space-y-2">
-              {whyLines.map((line, i) => (
-                <li key={i} className="flex items-start gap-2.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary-container/60 mt-1.5 shrink-0" />
-                  <span className="text-sm text-on-surface leading-relaxed">{line}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Concern tags */}
-          <div className="flex flex-wrap gap-2 mt-4">
-            {product.concern.map((c) => (
-              <span
-                key={c}
-                className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-surface-container-low text-on-surface-variant capitalize"
-              >
-                {c}
-              </span>
-            ))}
-          </div>
-
-          {/* View on brand site */}
-          {product.url && (
-            <button
-              onClick={() => window.open(product.url, "_blank")}
-              className="mt-5 w-full flex items-center justify-center gap-1.5 py-3 rounded-xl border border-outline-variant/20 text-sm font-medium text-on-surface-variant hover:bg-surface-container-low transition-colors cursor-pointer"
-            >
-              View full details on {product.brand}
-              <ArrowLeft className="w-3.5 h-3.5 rotate-180" strokeWidth={2} />
-            </button>
           )}
-        </div>
-      </div>
 
-      {/* Sticky Add to Cart footer */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-surface-container-lowest border-t border-outline-variant/10">
-        <div className="max-w-2xl mx-auto flex items-center gap-3 px-5 py-3">
-          <div className="min-w-0">
-            <p className="text-lg font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
-              &#8377;{product.price}
-            </p>
-            {product.mrp > product.price && (
-              <p className="text-[11px] text-on-surface-variant/40 line-through">&#8377;{product.mrp}</p>
+          {/* ── Delivery bar ── */}
+          <div className="mt-4 rounded-2xl overflow-hidden border border-teal-100">
+            <div className="flex items-center gap-3 px-4 py-3" style={{ background: "linear-gradient(135deg, #E0F2F1 0%, #F0FBF9 100%)" }}>
+              <span className="text-2xl shrink-0">🚚</span>
+              <div>
+                <p className="text-xs font-bold text-teal-800">Free delivery across India</p>
+                <p className="text-[10px] text-teal-700/70 mt-0.5">Ships in 2–3 business days &nbsp;·&nbsp; Cash on delivery available</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-white/70 border-t border-teal-100/80">
+              <span className="text-sm shrink-0">📍</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                placeholder="Check delivery by pincode"
+                maxLength={6}
+                value={pincode}
+                onChange={(e) => { setPincode(e.target.value.slice(0, 6)); setDeliveryMsg(null); }}
+                className="flex-1 bg-transparent text-sm text-on-surface placeholder:text-on-surface-variant/40 outline-none"
+              />
+              <button
+                onClick={checkDelivery}
+                className="text-xs font-bold text-teal-700 cursor-pointer hover:opacity-80 transition-opacity shrink-0 bg-teal-100 hover:bg-teal-200 px-2.5 py-1 rounded-full"
+              >
+                Check
+              </button>
+            </div>
+            {deliveryMsg && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border-t border-green-100">
+                <CheckCircle className="w-3.5 h-3.5 text-green-600 shrink-0" strokeWidth={2} />
+                <p className="text-xs text-green-700 font-medium">{deliveryMsg}</p>
+              </div>
             )}
           </div>
+        </div>
+
+        {/* ── Product Details / How to Use tabs ── */}
+        {enriched && (
+          <div className="mt-6 px-5">
+            <div className="flex border-b border-outline-variant/15">
+              {(["details", "how-to-use"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex-1 py-2.5 text-sm font-semibold cursor-pointer transition-colors ${
+                    activeTab === tab
+                      ? "text-primary-container border-b-2 border-primary-container"
+                      : "text-on-surface-variant/50"
+                  }`}
+                >
+                  {tab === "details" ? "Product Details" : "How to Use"}
+                </button>
+              ))}
+            </div>
+            <div className="pt-4">
+              {activeTab === "details" ? (
+                <div>
+                  {(() => {
+                    const SKIP = new Set(["price", "lasts for"]);
+                    const EMOJI: Record<string, string> = {
+                      "suitable for age": "👤",
+                      "net qty": "📦",
+                      "flavour": "🍬",
+                      "properties": "🌱",
+                      "country of origin": "🌏",
+                      "net weight": "⚖️",
+                      "form": "💊",
+                      "shelf life": "📅",
+                    };
+                    const rows = enriched.productDetails.details.filter(
+                      (d) => !SKIP.has(d.feature.toLowerCase())
+                    );
+                    return (
+                      <div className="grid grid-cols-2 gap-2">
+                        {rows.map((d, i) => {
+                          const emoji = EMOJI[d.feature.toLowerCase()] ?? "•";
+                          const isLong = d.value.length > 35;
+                          return (
+                            <div key={i} className={`flex items-start gap-2 px-3 py-2.5 rounded-xl bg-surface-container-lowest border border-outline-variant/8 ${isLong ? "col-span-2" : ""}`}>
+                              <span className="text-sm shrink-0 mt-0.5">{emoji}</span>
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-semibold text-on-surface-variant/55 uppercase tracking-wide">{d.feature}</p>
+                                <p className="text-xs font-semibold text-on-surface mt-0.5 leading-snug">{d.value}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                  {enriched.productDetails.description.length > 0 && (
+                    <div className="mt-3 px-1 space-y-1">
+                      {enriched.productDetails.description.map((line, i) => (
+                        <p key={i} className="text-[11px] text-on-surface-variant/70 leading-relaxed">{line}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <ul className="space-y-2.5">
+                  {(() => {
+                    const raw = (enriched.howToUse || "Take as directed. Consistent daily use recommended for best results.")
+                      .split(/\.\s+/)
+                      .map((s) => s.replace(/\.$/, "").trim())
+                      .filter((s) => s.length > 10);
+                    // Remove near-duplicates: if a shorter step's words are mostly contained in a longer step, drop it
+                    const deduped = raw.reduce<string[]>((kept, s) => {
+                      const norm = (t: string) => t.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+                      const dominated = kept.some((k) => {
+                        const kn = norm(k), sn = norm(s);
+                        if (kn === sn) return true;
+                        const shorter = kn.length < sn.length ? kn : sn;
+                        const longer = kn.length < sn.length ? sn : kn;
+                        const shortWords = shorter.split(" ").filter((w) => w.length > 3);
+                        const matches = shortWords.filter((w) => longer.includes(w));
+                        return shortWords.length > 0 && matches.length / shortWords.length > 0.7;
+                      });
+                      if (!dominated) kept.push(s);
+                      return kept;
+                    }, []);
+                    const emojiFor = (step: string) => {
+                      const s = step.toLowerCase();
+                      if (/gummy|gummies|capsule|tablet|pill|supplement/.test(s)) return "💊";
+                      if (/lunch|dinner|breakfast|meal|dessert|after/.test(s)) return "🍽️";
+                      if (/morning|night|evening|bedtime|sleep/.test(s)) return "🌙";
+                      if (/water|liquid|drink|juice/.test(s)) return "💧";
+                      if (/week|month|result|expect|continu/.test(s)) return "📅";
+                      if (/note|important|avoid|caution/.test(s)) return "⚠️";
+                      if (/recommend|suggest|tip|best/.test(s)) return "✨";
+                      if (/time|daily|day|regular/.test(s)) return "🕐";
+                      return "✅";
+                    };
+                    return deduped.map((step, i) => (
+                      <li key={i} className="flex items-start gap-3 p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/8">
+                        <span className="text-lg leading-none shrink-0 mt-0.5">{emojiFor(step)}</span>
+                        <span className="text-sm text-on-surface leading-relaxed">{step}</span>
+                      </li>
+                    ));
+                  })()}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Safe & Effective badges grid ── */}
+        {enriched?.badges && enriched.badges.length > 0 && (
+          <div className="mt-6 px-5">
+            <h2 className="text-lg font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] mb-3">🛡️ Safe &amp; Effective</h2>
+            <div className="grid grid-cols-3 gap-3">
+              {enriched.badges.map((badge, i) => (
+                <div key={i} className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-surface-container-lowest border border-outline-variant/8 text-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={badge.icon} alt={badge.label} className="w-10 h-10 object-contain" />
+                  <span className="text-[11px] font-medium text-on-surface-variant leading-tight">{badge.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Key ingredients ── */}
+        {enriched?.ingredients && enriched.ingredients.length > 0 && (
+          <div className="mt-8 bg-surface-container-lowest py-6">
+            <h2 className="text-lg font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] px-5 mb-4">
+              🌿 Key Ingredients
+            </h2>
+            <div className="px-5 space-y-3">
+              {enriched.ingredients.map((ing, i) => {
+                const bgColors = ["bg-green-50","bg-amber-50","bg-blue-50","bg-purple-50","bg-rose-50"];
+                const bg = bgColors[i % bgColors.length];
+                return (
+                <div key={i} className="rounded-2xl bg-surface border border-outline-variant/10 overflow-hidden">
+                  <button onClick={() => setExpandedIngredient(expandedIngredient === i ? null : i)} className="w-full flex items-center gap-4 p-4 cursor-pointer text-left">
+                    <div className={`shrink-0 w-14 h-14 rounded-2xl ${bg} flex items-center justify-center`}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={ing.icon} alt={ing.name} className="w-10 h-10 object-contain" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-on-surface">{ing.name}</p>
+                      <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">{ing.shortDesc}</p>
+                    </div>
+                    {expandedIngredient === i
+                      ? <ChevronUp className="w-4 h-4 text-on-surface-variant/50 shrink-0" />
+                      : <ChevronDown className="w-4 h-4 text-on-surface-variant/50 shrink-0" />
+                    }
+                  </button>
+                  {expandedIngredient === i && ing.longDesc && (
+                    <div className="px-4 pb-4 pt-0">
+                      <div className="h-px bg-outline-variant/10 mb-3" />
+                      <p className="text-sm text-on-surface-variant leading-relaxed">{ing.longDesc}</p>
+                    </div>
+                  )}
+                </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── What to expect (timeline) ── */}
+        {enriched?.timeline && enriched.timeline.length > 0 && (
+          <div className="mt-8 bg-surface-container-lowest py-6">
+            <h2 className="text-lg font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] px-5 mb-5">📅 What to expect</h2>
+            <div className="px-5 space-y-0">
+              {enriched.timeline.map((step, i) => (
+                <div key={i} className="flex gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center shrink-0 z-10">
+                      <span className="text-xs font-bold text-white">{i + 1}</span>
+                    </div>
+                    {i < enriched.timeline.length - 1 && <div className="w-0.5 flex-1 bg-primary-container/20 my-1" />}
+                  </div>
+                  <div className={`flex-1 ${i < enriched.timeline.length - 1 ? "pb-6" : "pb-0"}`}>
+                    <span className="inline-block text-[11px] font-bold text-primary-container bg-primary-container/10 px-2.5 py-1 rounded-full mb-1.5">{step.period}</span>
+                    <p className="text-sm font-semibold text-on-surface">{step.title.replace(/After \d+ months?\s*[-–]\s*/i, "")}</p>
+                    <p className="text-sm text-on-surface-variant mt-1 leading-relaxed">{step.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+
+        {/* ── Why BetterHalf recommends this ── */}
+        {hasProfile ? (
+          /* Protocol user — dark AI card */
+          <div className="mt-8 mx-5 rounded-2xl overflow-hidden" style={{ background: "linear-gradient(145deg, #00352E 0%, #004D40 60%, #00564A 100%)" }}>
+            <div className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white/10">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" strokeWidth={1.5} />
+                </div>
+                <span className="text-[10px] font-extrabold text-white/50 uppercase tracking-widest">BetterHalf AI</span>
+                <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-300/10 px-2 py-0.5 rounded-full">
+                  <CheckCircle className="w-3 h-3" strokeWidth={2.5} />
+                  Matched to your {CONCERN_DISPLAY[product.concern?.[0]?.toLowerCase() ?? ""] ?? "Health"} protocol
+                </span>
+              </div>
+              <p className="text-[11px] font-bold text-amber-300/90 uppercase tracking-wider mb-3">Why we picked this for you</p>
+              <ul className="space-y-2.5">
+                {whyLines.map((line, i) => (
+                  <li key={i} className="flex items-start gap-2.5">
+                    <span className="text-amber-300/50 mt-1 text-[10px] shrink-0">◆</span>
+                    <span className="text-sm text-white/90 leading-relaxed">{line}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="px-4 py-2.5 border-t border-white/8 bg-black/10 flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3 text-white/30" strokeWidth={1.5} />
+              <span className="text-[10px] text-white/30">Personalised using your health profile</span>
+            </div>
+          </div>
+        ) : (
+          /* No profile — quiz nudge */
+          <div className="mt-8 mx-5 rounded-2xl overflow-hidden border border-teal-100/80" style={{ background: "linear-gradient(135deg, #E0F2F1 0%, #F0FBF9 100%)" }}>
+            <div className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-teal-600/10">
+                  <Sparkles className="w-3.5 h-3.5 text-teal-600" strokeWidth={1.5} />
+                </div>
+                <span className="text-[10px] font-extrabold text-teal-600/70 uppercase tracking-widest">BetterHalf AI</span>
+              </div>
+              <p className="text-sm font-extrabold text-on-surface mb-1 font-[family-name:var(--font-manrope)]">Not sure if this is right for you?</p>
+              <p className="text-xs text-on-surface-variant leading-relaxed mb-4">Take our free 2-min health assessment and get a protocol built specifically for your concern and stage.</p>
+              <Link
+                href="/onboarding"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer"
+                style={{ background: "linear-gradient(135deg, #004D40 0%, #00897B 100%)" }}
+              >
+                <Sparkles className="w-3.5 h-3.5" strokeWidth={1.5} />
+                Take the free quiz
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* ── Reviews ── */}
+        {enriched?.reviews && enriched.reviews.length > 0 && (
+          <div className="mt-8 bg-surface-container-lowest py-6">
+            <h2 className="text-lg font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] px-5 mb-4">⭐ What customers say</h2>
+            <div className="px-5 space-y-3">
+              {enriched.reviews.map((review, i) => (
+                <div key={i} className="p-4 bg-surface rounded-2xl border border-outline-variant/8">
+                  <div className="flex items-center gap-1 mb-2">
+                    {[1,2,3,4,5].map((s) => (
+                      <Star key={s} className={`w-3.5 h-3.5 ${s <= review.rating ? "text-amber-400 fill-amber-400" : "text-outline-variant/20"}`} strokeWidth={0} />
+                    ))}
+                  </div>
+                  <p className="text-sm font-semibold text-on-surface mb-1">{review.title}</p>
+                  <p className="text-sm text-on-surface-variant leading-relaxed">&ldquo;{review.body}&rdquo;</p>
+                  <p className="text-[11px] text-on-surface-variant/40 mt-2">{review.author}{review.verified && " · Verified"}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Things to note ── */}
+        {enriched?.disclaimers && enriched.disclaimers.length > 0 && (
+          <div className="mt-8 px-5">
+            <h2 className="text-base font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] mb-3">⚠️ Things to note</h2>
+            <div className="space-y-3">
+              {enriched.disclaimers.map((d, i) => (
+                <div key={i} className="flex gap-3 p-4 rounded-2xl bg-surface-container-low border border-outline-variant/8">
+                  {d.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={d.image} alt={d.title} className="w-10 h-10 object-contain shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 text-on-surface-variant/40 shrink-0 mt-0.5" strokeWidth={1.5} />
+                  )}
+                  <div>
+                    <p className="text-sm font-semibold text-on-surface">{d.title}</p>
+                    <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">{d.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── FAQs ── */}
+        {enriched?.faqs && enriched.faqs.length > 0 && (
+          <div className="mt-8 px-5">
+            <h2 className="text-lg font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] mb-4">💬 Got Questions?</h2>
+            <div className="space-y-2">
+              {enriched.faqs.map((faq, i) => (
+                <div key={i} className="rounded-2xl border border-outline-variant/10 overflow-hidden bg-surface-container-lowest">
+                  <button onClick={() => setExpandedFaq(expandedFaq === i ? null : i)} className="w-full flex items-start justify-between gap-3 px-4 py-4 cursor-pointer text-left">
+                    <span className="text-sm font-semibold text-on-surface leading-snug">{faq.question}</span>
+                    {expandedFaq === i
+                      ? <ChevronUp className="w-4 h-4 text-on-surface-variant/50 shrink-0 mt-0.5" />
+                      : <ChevronDown className="w-4 h-4 text-on-surface-variant/50 shrink-0 mt-0.5" />
+                    }
+                  </button>
+                  {expandedFaq === i && (
+                    <div className="px-4 pb-4">
+                      <div className="h-px bg-outline-variant/10 mb-3" />
+                      <p className="text-sm text-on-surface-variant leading-relaxed">{faq.answer}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Additional information ── */}
+        {enriched?.additionalInfo && enriched.additionalInfo.length > 0 && (
+          <div className="mt-8 px-5">
+            <h2 className="text-base font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] mb-3">📋 Additional Information</h2>
+            <div className="rounded-2xl border border-outline-variant/10 overflow-hidden bg-surface-container-lowest divide-y divide-outline-variant/8">
+              {enriched.additionalInfo.map((row, i) => (
+                <div key={i} className="flex items-baseline gap-3 px-4 py-3">
+                  <span className="text-[11px] font-semibold text-on-surface-variant/55 uppercase tracking-wide shrink-0 w-28 leading-relaxed">{row.title}</span>
+                  <span className="text-xs text-on-surface leading-relaxed flex-1">{row.content}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+
+      </div>
+
+      {/* ── Sticky Footer: Add to Cart + Buy Now ── */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-surface-container-lowest border-t border-outline-variant/10">
+        {/* Trust strip */}
+        <div className="max-w-2xl mx-auto flex items-center justify-center gap-3 pt-2 pb-0 px-4">
+          <span className="flex items-center gap-1 text-[10px] font-medium text-on-surface-variant/50">
+            <CheckCircle className="w-3 h-3 text-green-500 shrink-0" strokeWidth={2.5} />
+            Authentic product
+          </span>
+          <span className="text-outline-variant/30 text-[10px]">·</span>
+          <span className="text-[10px] font-medium text-on-surface-variant/50">Free delivery</span>
+          <span className="text-outline-variant/30 text-[10px]">·</span>
+          <span className="text-[10px] font-medium text-on-surface-variant/50">Cash on delivery</span>
+        </div>
+        <div className="max-w-2xl mx-auto flex items-center gap-2.5 px-4 py-3">
+          <div className="min-w-0 shrink-0">
+            <p className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">&#8377;{product.price}</p>
+            {product.mrp > product.price && (
+              <p className="text-[10px] text-on-surface-variant/40 line-through">&#8377;{product.mrp}</p>
+            )}
+          </div>
+          {/* Add to Cart — outlined */}
           <button
             onClick={handleAddToCart}
             disabled={cartState !== "idle"}
-            className={`flex-1 flex items-center justify-center gap-2 min-h-[48px] rounded-2xl text-sm font-bold transition-all duration-200 cursor-pointer active:scale-[0.98] disabled:opacity-70 ${
-              cartState === "done"
-                ? "bg-green-500 text-white"
-                : cartState === "error"
-                ? "bg-red-500/90 text-white"
-                : "bg-primary-container text-white hover:bg-primary"
+            className={`flex-1 flex items-center justify-center gap-1.5 min-h-[48px] rounded-2xl text-sm font-bold border-2 transition-all duration-200 cursor-pointer active:scale-[0.98] disabled:opacity-70 ${
+              cartState === "done" ? "border-green-500 text-green-600 bg-green-50"
+              : cartState === "error" ? "border-red-400 text-red-500 bg-red-50"
+              : "border-primary-container text-primary-container bg-transparent hover:bg-primary-container/8"
             }`}
           >
             {cartState === "loading" && <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />}
             {cartState === "done" && <CheckCircle className="w-4 h-4" strokeWidth={2} />}
             {cartState === "error" && <AlertCircle className="w-4 h-4" strokeWidth={2} />}
             {cartState === "idle" && <ShoppingCart className="w-4 h-4" strokeWidth={2} />}
-            {cartState === "loading" ? "Adding…"
-              : cartState === "done" ? "Added to cart!"
-              : cartState === "error" ? "Not available"
-              : "Add to Cart"}
+            <span>{cartState === "loading" ? "Adding…" : cartState === "done" ? "Added!" : cartState === "error" ? "Error" : "Add to Cart"}</span>
+          </button>
+          {/* Buy Now — solid */}
+          <button
+            onClick={handleAddToCart}
+            disabled={cartState !== "idle"}
+            className={`flex-1 flex items-center justify-center gap-1.5 min-h-[48px] rounded-2xl text-sm font-bold transition-all duration-200 cursor-pointer active:scale-[0.98] disabled:opacity-70 ${
+              cartState === "done" ? "bg-green-500 text-white"
+              : cartState === "error" ? "bg-red-500 text-white"
+              : "bg-primary-container text-white hover:bg-primary shadow-sm"
+            }`}
+          >
+            {cartState === "loading" && <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />}
+            {cartState === "done" && <CheckCircle className="w-4 h-4" strokeWidth={2} />}
+            {cartState === "error" && <AlertCircle className="w-4 h-4" strokeWidth={2} />}
+            <span>{cartState === "loading" ? "Processing…" : cartState === "done" ? "Done!" : cartState === "error" ? "Unavailable" : "Buy Now"}</span>
           </button>
         </div>
       </div>
+
+      {/* ── Hamburger nav drawer ── */}
+      {navOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-[2px]"
+            onClick={() => setNavOpen(false)}
+          />
+          {/* Drawer */}
+          <div className="fixed top-0 left-0 bottom-0 z-[61] w-[280px] max-w-[85vw] flex flex-col shadow-2xl animate-slide-in-left" style={{ background: "linear-gradient(180deg, #00352E 0%, #004D40 100%)" }}>
+            {/* Drawer header — matches main header layout exactly */}
+            <div className="flex items-center gap-2 h-14 px-4 border-b border-white/8">
+              <button
+                onClick={() => setNavOpen(false)}
+                className="flex items-center justify-center w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 transition-colors cursor-pointer shrink-0"
+                aria-label="Close menu"
+              >
+                <Menu className="w-4 h-4 text-white" strokeWidth={1.5} />
+              </button>
+              <span className="text-sm font-extrabold text-white tracking-wide font-[family-name:var(--font-manrope)]">BetterHalf</span>
+            </div>
+
+            {/* Nav links */}
+            <nav className="flex-1 px-3 py-5 space-y-1">
+              {[
+                { href: "/protocol", icon: Home, label: "Home" },
+                { href: "/explore", icon: Search, label: "Shop" },
+                { href: "/experts", icon: Stethoscope, label: "Experts" },
+                { href: "/insights", icon: BarChart3, label: "Insights" },
+              ].map(({ href, icon: Icon, label }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setNavOpen(false)}
+                  className="flex items-center gap-3.5 px-4 py-3.5 rounded-2xl text-white/80 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                >
+                  <Icon className="w-5 h-5 shrink-0" strokeWidth={1.5} />
+                  <span className="text-sm font-semibold">{label}</span>
+                </Link>
+              ))}
+
+              <div className="flex items-center gap-3.5 px-4 py-3.5 rounded-2xl text-white/25 cursor-default select-none">
+                <Sparkles className="w-5 h-5 shrink-0" strokeWidth={1.5} />
+                <span className="text-sm font-semibold">Ask AI</span>
+                <span className="ml-auto text-[9px] font-bold text-white/25 uppercase tracking-widest">Soon</span>
+              </div>
+            </nav>
+
+            {/* Footer */}
+            <div className="px-5 pb-8 pt-3 border-t border-white/8">
+              <button
+                onClick={() => { setNavOpen(false); window.dispatchEvent(new Event("bh-profile-sidebar-open")); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/8 hover:bg-white/15 transition-colors cursor-pointer"
+              >
+                <User className="w-4 h-4 text-white/60 shrink-0" strokeWidth={1.5} />
+                <span className="text-sm font-semibold text-white/70">My profiles</span>
+              </button>
+              <p className="text-[10px] text-white/20 uppercase tracking-widest text-center mt-4">Powered by Mosaic Wellness</p>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Profile sidebar — listens for bh-profile-sidebar-open event */}
+      <ProfileSidebar />
     </div>
   );
 }
@@ -461,6 +1013,7 @@ export default function ProductPage({
   const fromTreatment = searchParams.get("from") === "treatment";
   const product = getProductBySlug(slug);
   const newProduct = !product ? ALL_PRODUCTS.find((p) => p.id === slug) : undefined;
+  const enriched = getEnrichedPDP(slug);
 
   const [selectedVariant, setSelectedVariant] = useState(0);
   const [selectedPack, setSelectedPack] = useState(0);
@@ -478,8 +1031,8 @@ export default function ProductPage({
 
   if (!product && !newProduct) return null;
 
-  /* ── Lightweight PDP for new catalog products ── */
-  if (newProduct) return <NewProductPDP product={newProduct} onBack={() => router.back()} />;
+  /* ── Lightweight / Enriched PDP for new catalog products ── */
+  if (newProduct) return <NewProductPDP product={newProduct} enriched={enriched} onBack={() => router.back()} />;
 
   /* product is guaranteed non-null from here — new catalog was handled above */
   if (!product) return null;

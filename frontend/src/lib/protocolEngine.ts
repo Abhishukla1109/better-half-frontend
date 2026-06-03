@@ -31,7 +31,10 @@ export type Product = {
 
 export type MatchedProduct = Product & { matchScore: number };
 
-export const ALL_PRODUCTS: Product[] = [...CATALOG_PRODUCTS, ...LJ_PRODUCTS];
+const _raw: Product[] = [...CATALOG_PRODUCTS, ...LJ_PRODUCTS];
+export const ALL_PRODUCTS: Product[] = _raw.filter(
+  (p, i, arr) => arr.findIndex((x) => x.id === p.id) === i,
+);
 
 // ── SEGMENT RESOLVER ──
 export function resolveSegment(
