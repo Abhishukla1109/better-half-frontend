@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { use } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -41,7 +41,7 @@ import { getProductBySlug } from "@/data/products";
 import { getProductImage } from "@/data/images";
 import { useCart } from "@/context/CartContext";
 import { resolveVariantId } from "@/lib/shopify/variant-resolver";
-import { ALL_PRODUCTS } from "@/lib/protocolEngine";
+import { ALL_PRODUCTS, resolveSegment } from "@/lib/protocolEngine";
 import type { Product } from "@/lib/protocolEngine";
 import { getEnrichedPDP } from "@/data/enrichedProducts";
 import type { EnrichedPDP } from "@/data/enrichedProducts";
@@ -271,6 +271,42 @@ function NewProductPDP({
   const { activeMember } = useActiveProfile();
   const hasProfile = activeMember !== null;
 
+  const matchScore = useMemo(() => {
+    if (!activeMember) return null;
+    const profile = activeMember.profile;
+    const gender = activeMember.type === "female" ? "female" : "male";
+
+    // Map onboarding labels ("Hair / beard") → product concern values (["hair","beard"])
+    const CONCERN_MAP: Record<string, string[]> = {
+      "Hair / beard": ["hair", "beard"],
+      "Skin / acne": ["skin"],
+      "Energy / gut": ["energy"],
+      "Weight": ["weight"],
+      "Hormones": ["hormones"],
+      "Sleep / mind": ["sleep"],
+    };
+    const rawConcerns = (profile.concerns as string | undefined) ?? profile.concern ?? "";
+    const concernValues = rawConcerns.split(",").map((s) => s.trim()).filter(Boolean)
+      .flatMap((c) => CONCERN_MAP[c] ?? [c.toLowerCase()]);
+
+    const concernMatch = product.concern.some((c) => concernValues.includes(c));
+    if (!concernMatch) return null;
+    const genderOk = product.gender.includes(gender) || product.gender.includes("all");
+    if (!genderOk) return null;
+
+    let score = product.baseScore;
+    const userSegments = resolveSegment(gender, profile.age ?? "", profile.shoppingFor, profile.kidsAge);
+    const segmentOverlap = product.segment.some((s) => userSegments.includes(s));
+    if (segmentOverlap) score += 5; else score -= 10;
+
+    // Check follow-up answers stored under any key (hair_concern_type, etc.)
+    const followUpStr = Object.values(profile).filter(Boolean).join(" ").toLowerCase();
+    if (followUpStr && product.followUp.some((f) => followUpStr.includes(f.toLowerCase()))) score += 20;
+
+    score = Math.min(score, 99);
+    return score >= 80 ? score : null;
+  }, [activeMember, product]);
+
   const images = enriched?.images?.length ? enriched.images : product.image ? [product.image] : [];
   const initialIndex = 0;
 
@@ -467,7 +503,7 @@ function NewProductPDP({
             const concern = product.concern?.[0];
             const concernLabel = CONCERN_DISPLAY[concern?.toLowerCase() ?? ""];
             if (concernLabel) chips.push({ emoji: "🎯", text: concernLabel });
-            if (!chips.length) return null;
+            if (!chips.length && matchScore === null) return null;
             return (
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {chips.map((c, i) => (
@@ -475,6 +511,11 @@ function NewProductPDP({
                     {c.emoji} {c.text}
                   </span>
                 ))}
+                {matchScore !== null && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">
+                    ✦ {matchScore}% match
+                  </span>
+                )}
               </div>
             );
           })()}
@@ -562,6 +603,58 @@ function NewProductPDP({
             )}
           </div>
         </div>
+
+        {/* ── BetterHalf AI card ── */}
+        {hasProfile ? (
+          <div className="mt-4 mx-5 rounded-2xl overflow-hidden" style={{ background: "linear-gradient(145deg, #00352E 0%, #004D40 60%, #00564A 100%)" }}>
+            <div className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white/10">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" strokeWidth={1.5} />
+                </div>
+                <span className="text-[10px] font-extrabold text-white/50 uppercase tracking-widest">BetterHalf AI</span>
+                <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-300/10 px-2 py-0.5 rounded-full">
+                  <CheckCircle className="w-3 h-3" strokeWidth={2.5} />
+                  Matched to your {CONCERN_DISPLAY[product.concern?.[0]?.toLowerCase() ?? ""] ?? "Health"} protocol
+                </span>
+              </div>
+              <p className="text-[11px] font-bold text-amber-300/90 uppercase tracking-wider mb-3">Why we picked this for you</p>
+              <ul className="space-y-2.5">
+                {whyLines.map((line, i) => (
+                  <li key={i} className="flex items-start gap-2.5">
+                    <span className="text-amber-300/50 mt-1 text-[10px] shrink-0">◆</span>
+                    <span className="text-sm text-white/90 leading-relaxed">{line}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="px-4 py-2.5 border-t border-white/8 bg-black/10 flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3 text-white/30" strokeWidth={1.5} />
+              <span className="text-[10px] text-white/30">Personalised using your health profile</span>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-4 mx-5 rounded-2xl overflow-hidden border border-teal-100/80" style={{ background: "linear-gradient(135deg, #E0F2F1 0%, #F0FBF9 100%)" }}>
+            <div className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-teal-600/10">
+                  <Sparkles className="w-3.5 h-3.5 text-teal-600" strokeWidth={1.5} />
+                </div>
+                <span className="text-[10px] font-extrabold text-teal-600/70 uppercase tracking-widest">BetterHalf AI</span>
+              </div>
+              <p className="text-sm font-extrabold text-on-surface mb-1 font-[family-name:var(--font-manrope)]">Not sure if this is right for you?</p>
+              <p className="text-xs text-on-surface-variant leading-relaxed mb-4">Take our free 2-min health assessment and get a protocol built specifically for your concern and stage.</p>
+              <Link
+                href="/onboarding"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer"
+                style={{ background: "linear-gradient(135deg, #004D40 0%, #00897B 100%)" }}
+              >
+                <Sparkles className="w-3.5 h-3.5" strokeWidth={1.5} />
+                Take the free quiz
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* ── Product Details / How to Use tabs ── */}
         {enriched && (
@@ -743,7 +836,14 @@ function NewProductPDP({
                   <div className={`flex-1 ${i < enriched.timeline.length - 1 ? "pb-6" : "pb-0"}`}>
                     <span className="inline-block text-[11px] font-bold text-primary-container bg-primary-container/10 px-2.5 py-1 rounded-full mb-1.5">{step.period}</span>
                     <p className="text-sm font-semibold text-on-surface">{step.title.replace(/After \d+ months?\s*[-–]\s*/i, "")}</p>
-                    <p className="text-sm text-on-surface-variant mt-1 leading-relaxed">{step.description}</p>
+                    <p className="text-sm text-on-surface-variant mt-1 leading-relaxed">{
+                      // Keep first 2 complete sentences — don't cut mid-sentence
+                      (() => {
+                        const sentences = step.description.match(/[^.!?]*(?:[.!?]+|$)/g)
+                          ?.map(s => s.trim()).filter(Boolean) ?? [];
+                        return sentences.slice(0, 2).join(' ').trim() || step.description;
+                      })()
+                    }</p>
                   </div>
                 </div>
               ))}
@@ -751,60 +851,6 @@ function NewProductPDP({
           </div>
         )}
 
-
-        {/* ── Why BetterHalf recommends this ── */}
-        {hasProfile ? (
-          /* Protocol user — dark AI card */
-          <div className="mt-8 mx-5 rounded-2xl overflow-hidden" style={{ background: "linear-gradient(145deg, #00352E 0%, #004D40 60%, #00564A 100%)" }}>
-            <div className="p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white/10">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300" strokeWidth={1.5} />
-                </div>
-                <span className="text-[10px] font-extrabold text-white/50 uppercase tracking-widest">BetterHalf AI</span>
-                <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-300/10 px-2 py-0.5 rounded-full">
-                  <CheckCircle className="w-3 h-3" strokeWidth={2.5} />
-                  Matched to your {CONCERN_DISPLAY[product.concern?.[0]?.toLowerCase() ?? ""] ?? "Health"} protocol
-                </span>
-              </div>
-              <p className="text-[11px] font-bold text-amber-300/90 uppercase tracking-wider mb-3">Why we picked this for you</p>
-              <ul className="space-y-2.5">
-                {whyLines.map((line, i) => (
-                  <li key={i} className="flex items-start gap-2.5">
-                    <span className="text-amber-300/50 mt-1 text-[10px] shrink-0">◆</span>
-                    <span className="text-sm text-white/90 leading-relaxed">{line}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="px-4 py-2.5 border-t border-white/8 bg-black/10 flex items-center gap-1.5">
-              <Sparkles className="w-3 h-3 text-white/30" strokeWidth={1.5} />
-              <span className="text-[10px] text-white/30">Personalised using your health profile</span>
-            </div>
-          </div>
-        ) : (
-          /* No profile — quiz nudge */
-          <div className="mt-8 mx-5 rounded-2xl overflow-hidden border border-teal-100/80" style={{ background: "linear-gradient(135deg, #E0F2F1 0%, #F0FBF9 100%)" }}>
-            <div className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-teal-600/10">
-                  <Sparkles className="w-3.5 h-3.5 text-teal-600" strokeWidth={1.5} />
-                </div>
-                <span className="text-[10px] font-extrabold text-teal-600/70 uppercase tracking-widest">BetterHalf AI</span>
-              </div>
-              <p className="text-sm font-extrabold text-on-surface mb-1 font-[family-name:var(--font-manrope)]">Not sure if this is right for you?</p>
-              <p className="text-xs text-on-surface-variant leading-relaxed mb-4">Take our free 2-min health assessment and get a protocol built specifically for your concern and stage.</p>
-              <Link
-                href="/onboarding"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer"
-                style={{ background: "linear-gradient(135deg, #004D40 0%, #00897B 100%)" }}
-              >
-                <Sparkles className="w-3.5 h-3.5" strokeWidth={1.5} />
-                Take the free quiz
-              </Link>
-            </div>
-          </div>
-        )}
 
         {/* ── Reviews ── */}
         {enriched?.reviews && enriched.reviews.length > 0 && (
