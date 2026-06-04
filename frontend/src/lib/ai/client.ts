@@ -7,13 +7,15 @@
 import { generateMockProtocol, buildWarmMessage } from "./mock-generator";
 import { buildPrompt } from "./prompt-builder";
 import { calculateProfileDepth } from "./profile-depth";
+import { fetchCatalogProducts } from "@/lib/shopify/fetchCatalogProducts";
 import type { UserProfile, GeneratedProtocol } from "./types";
 
 async function generateWithClaude(
   profile: UserProfile,
   apiKey: string,
+  products: Awaited<ReturnType<typeof fetchCatalogProducts>>,
 ): Promise<GeneratedProtocol> {
-  const { system, user } = buildPrompt(profile);
+  const { system, user } = buildPrompt(profile, products);
 
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -79,15 +81,16 @@ export async function generateProtocol(
   profile: UserProfile,
 ): Promise<GeneratedProtocol> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
+  const products = await fetchCatalogProducts();
 
   if (!apiKey) {
-    return generateMockProtocol(profile);
+    return generateMockProtocol(profile, products);
   }
 
   try {
-    return await generateWithClaude(profile, apiKey);
+    return await generateWithClaude(profile, apiKey, products);
   } catch (error) {
     console.error("[AI] Claude generation failed, falling back to mock:", error);
-    return generateMockProtocol(profile);
+    return generateMockProtocol(profile, products);
   }
 }

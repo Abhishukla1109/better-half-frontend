@@ -20,7 +20,7 @@ import { calculateProfileDepth } from "@/lib/ai/profile-depth";
 import { selectNextQuestion, countFollowUpAnswers } from "@/lib/ai/question-bank";
 import { useCart } from "@/context/CartContext";
 import { resolveVariantId } from "@/lib/shopify/variant-resolver";
-import { ALL_PRODUCTS } from "@/lib/protocolEngine";
+import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import { supabase } from "@/lib/supabase/client";
 
 /* ── Emoji per question key (for the AI question popup) ──── */
@@ -519,6 +519,7 @@ function ProtocolGate({ onUnlock }: { onUnlock: () => void }) {
 /* ── Main page ─────────────────────────────────────────────── */
 export default function ProtocolPage() {
   const router = useRouter();
+  const { products: catalogProducts } = useCatalogProducts();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [protocol, setProtocol] = useState<GeneratedProtocol | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -892,7 +893,7 @@ export default function ProtocolPage() {
       const indices: number[] = [];
       for (let i = 0; i < supplements.length; i++) {
         if (assigned.has(i)) continue;
-        const productConcerns = ALL_PRODUCTS.find((p) => p.id === supplements[i].id)?.concern ?? [];
+        const productConcerns = catalogProducts.find((p) => p.id === supplements[i].id)?.concern ?? [];
         if (productConcerns.some((c) => concernValues.includes(c))) {
           indices.push(i);
           assigned.add(i);
@@ -908,7 +909,7 @@ export default function ProtocolPage() {
       else groups.push({ label: "Your Picks", emoji: "✦", indices: unassigned });
     }
     return groups;
-  }, [protocol, concernList]);
+  }, [protocol, concernList, catalogProducts]);
 
   // Group supplements by user concern — only when 2+ concerns
   const groupedSupplements = useMemo(() => {
@@ -924,7 +925,7 @@ export default function ProtocolPage() {
     for (const group of groups) {
       for (const s of pool) {
         if (assigned.has(s.id)) continue;
-        const productConcerns = ALL_PRODUCTS.find((p) => p.id === s.id)?.concern ?? [];
+        const productConcerns = catalogProducts.find((p) => p.id === s.id)?.concern ?? [];
         if (productConcerns.some((c) => group.concernValues.includes(c))) {
           group.supplements.push(s);
           assigned.add(s.id);
@@ -936,7 +937,7 @@ export default function ProtocolPage() {
       if (!assigned.has(s.id)) groups[0].supplements.push(s);
     }
     return groups.filter((g) => g.supplements.length > 0);
-  }, [protocol, concernList]);
+  }, [protocol, concernList, catalogProducts]);
 
   const profileSubtitle = useMemo(() => buildProfileSubtitle(profile), [profile]);
 

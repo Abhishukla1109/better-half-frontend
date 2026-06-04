@@ -47,6 +47,15 @@ function firstNonEmpty(...vals) {
   return "";
 }
 
+// Keep first N complete sentences — never cuts mid-sentence
+function trimToSentences(str, max = 2) {
+  const text = clean(str);
+  const sentences = text.match(/[^.!?]*(?:[.!?]+|$)/g)
+    ?.map(s => s.trim()).filter(Boolean) ?? [];
+  if (sentences.length <= max) return text;
+  return sentences.slice(0, max).join(" ").trim();
+}
+
 // ── Brand detection ──────────────────────────────────────────────────────────
 function detectBrand(raw) {
   if (overrideBrand) return overrideBrand;
@@ -170,7 +179,7 @@ function extractTimeline(s) {
     .map((st) => ({
       period: clean(st.effectName),
       title: clean(st.title),
-      description: clean(st.description),
+      description: trimToSentences(st.description, 2),
       image: clean(st.image),
     }));
 }

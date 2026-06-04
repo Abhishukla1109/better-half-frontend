@@ -41,7 +41,8 @@ import { getProductBySlug } from "@/data/products";
 import { getProductImage } from "@/data/images";
 import { useCart } from "@/context/CartContext";
 import { resolveVariantId } from "@/lib/shopify/variant-resolver";
-import { ALL_PRODUCTS, resolveSegment } from "@/lib/protocolEngine";
+import { resolveSegment } from "@/lib/protocolEngine";
+import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import type { Product } from "@/lib/protocolEngine";
 import { getEnrichedPDP } from "@/data/enrichedProducts";
 import type { EnrichedPDP } from "@/data/enrichedProducts";
@@ -1074,7 +1075,8 @@ export default function ProductPage({
   const searchParams = useSearchParams();
   const fromTreatment = searchParams.get("from") === "treatment";
   const product = getProductBySlug(slug);
-  const newProduct = !product ? ALL_PRODUCTS.find((p) => p.id === slug) : undefined;
+  const { products: catalogProducts, loading: catalogLoading } = useCatalogProducts();
+  const newProduct = !product ? catalogProducts.find((p) => p.id === slug) : undefined;
   const enriched = getEnrichedPDP(slug);
 
   const [selectedVariant, setSelectedVariant] = useState(0);
@@ -1086,10 +1088,10 @@ export default function ProductPage({
   const { addItem } = useCart();
 
   useEffect(() => {
-    if (!product && !newProduct) {
+    if (!product && !catalogLoading && !newProduct) {
       router.replace("/explore");
     }
-  }, [product, newProduct, router]);
+  }, [product, newProduct, catalogLoading, router]);
 
   if (!product && !newProduct) return null;
 

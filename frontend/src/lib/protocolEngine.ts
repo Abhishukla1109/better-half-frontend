@@ -1,6 +1,3 @@
-import { CATALOG_PRODUCTS } from "@/lib/ai/catalog";
-import { LJ_PRODUCTS } from "@/lib/ai/lj-products";
-
 export type UserSegment = {
   gender: string;
   age: string;
@@ -30,11 +27,6 @@ export type Product = {
 };
 
 export type MatchedProduct = Product & { matchScore: number };
-
-const _raw: Product[] = [...CATALOG_PRODUCTS, ...LJ_PRODUCTS];
-export const ALL_PRODUCTS: Product[] = _raw.filter(
-  (p, i, arr) => arr.findIndex((x) => x.id === p.id) === i,
-);
 
 // ── SEGMENT RESOLVER ──
 export function resolveSegment(
@@ -69,7 +61,7 @@ export function resolveSegment(
 }
 
 // ── MAIN MATCHING FUNCTION ──
-export function calculateProtocolMatch(user: UserSegment): MatchedProduct[] {
+export function calculateProtocolMatch(user: UserSegment, products: Product[]): MatchedProduct[] {
   const userSegments = resolveSegment(
     user.gender,
     user.age,
@@ -77,7 +69,7 @@ export function calculateProtocolMatch(user: UserSegment): MatchedProduct[] {
     user.kidsAge,
   );
 
-  return ALL_PRODUCTS.map((product) => {
+  return products.map((product) => {
     let score = product.baseScore;
 
     // Little Joys is exclusively a kids brand — never surface in adult protocol

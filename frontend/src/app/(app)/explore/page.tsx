@@ -4,8 +4,10 @@ import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Sparkles, ExternalLink, ArrowRight, ShoppingBag, Loader2, Check, AlertCircle, X, ChevronDown } from "lucide-react";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
-import { ALL_PRODUCTS, resolveSegment } from "@/lib/protocolEngine";
+import { resolveSegment } from "@/lib/protocolEngine";
 import type { Product, MatchedProduct } from "@/lib/protocolEngine";
+import { useCatalogProducts } from "@/hooks/useCatalogProducts";
+import ProtocolLoader from "@/components/ui/ProtocolLoader";
 import { useCart } from "@/context/CartContext";
 import { resolveVariantId } from "@/lib/shopify/variant-resolver";
 
@@ -98,6 +100,7 @@ function concernLabel(raw: string): string {
 function scoreProducts(
   concernValues: string[],
   profile: StoredProfile,
+  allProducts: Product[],
 ): MatchedProduct[] {
   const gender = (profile.sex ?? "male").toLowerCase();
   const age = profile.age ?? "25-34";
@@ -114,7 +117,7 @@ function scoreProducts(
   if (p.gut_symptom) parts.push(p.gut_symptom.replace(/_/g, " "));
   const followUpStr = parts.join(" ").toLowerCase();
 
-  return ALL_PRODUCTS.flatMap((product) => {
+  return allProducts.flatMap((product) => {
     const concernMatch = product.concern.some((c) => concernValues.includes(c));
     if (!concernMatch) return [];
     const genderMatch = product.gender.includes(gender) || product.gender.includes("all");
@@ -328,6 +331,7 @@ function ExplorePageContent() {
   const [showConcernSheet, setShowConcernSheet] = useState(false);
 
   const { activeMember } = useActiveProfile();
+  const { products, loading: productsLoading } = useCatalogProducts();
   const isKid = activeMember?.type === "child";
 
   const activeBrand: string | null =
@@ -379,7 +383,7 @@ function ExplorePageContent() {
     if (isKid) {
       const childAge = activeMember?.childAge ?? "6-12";
       const seg = childAge === "2-5" ? "kids-2-5" : childAge === "6-12" ? "kids-6-12" : "kids-13-plus";
-      const lj = ALL_PRODUCTS
+      const lj = products
         .filter((p) => p.brand === "Little Joys" && p.segment.includes(seg))
         .sort((a, b) => b.baseScore - a.baseScore);
 
@@ -410,26 +414,26 @@ function ExplorePageContent() {
     }
 
     if (activeCategory === "bestsellers") {
-      const pool = activeBrand ? ALL_PRODUCTS.filter((p) => p.brand === activeBrand) : ALL_PRODUCTS;
+      const pool = activeBrand ? products.filter((p) => p.brand === activeBrand) : products;
       return pool.slice().sort((a, b) => b.baseScore - a.baseScore).slice(0, 24);
     }
     if (activeCategory === "all") {
-      const pool = activeBrand ? ALL_PRODUCTS.filter((p) => p.brand === activeBrand) : ALL_PRODUCTS;
+      const pool = activeBrand ? products.filter((p) => p.brand === activeBrand) : products;
       return pool.slice().sort((a, b) => b.baseScore - a.baseScore);
     }
     if (activeCategory === "for-you") {
       if (!profile || forYouConcernValues.length === 0) return [];
-      const scored = scoreProducts(forYouConcernValues, profile);
+      const scored = scoreProducts(forYouConcernValues, profile, products);
       return activeBrand ? scored.filter((p) => p.brand === activeBrand) : scored;
     }
 
     const cat = CATEGORIES.find((c) => c.key === activeCategory);
     if (!cat) return [];
-    const pool = activeBrand ? ALL_PRODUCTS.filter((p) => p.brand === activeBrand) : ALL_PRODUCTS;
+    const pool = activeBrand ? products.filter((p) => p.brand === activeBrand) : products;
     return pool
       .filter((p) => p.concern.some((c) => cat.concernValues.includes(c)))
       .sort((a, b) => b.baseScore - a.baseScore);
-  }, [activeCategory, profile, forYouConcernValues, activeBrand, isKid, activeMember]);
+  }, [activeCategory, profile, forYouConcernValues, activeBrand, isKid, activeMember, products]);
 
   const visibleCategories = useMemo<CategoryDef[]>(() => {
     return CATEGORIES.filter((c) => {
@@ -465,14 +469,14 @@ function ExplorePageContent() {
     // If navigated from protocol with explicit picks in URL — use those
     if (picksParam) {
       const ids = picksParam.split(",").filter(Boolean);
-      return ids.map((id) => ALL_PRODUCTS.find((p) => p.id === id)).filter(Boolean) as Product[];
+      return ids.map((id) => products.find((p) => p.id === id)).filter(Boolean) as Product[];
     }
     // Otherwise derive top 3 from profile — so sidebar nav shows same structure
     if (!profile || forYouConcernValues.length === 0) return [];
-    const scored = scoreProducts(forYouConcernValues, profile);
+    const scored = scoreProducts(forYouConcernValues, profile, products);
     const pool = activeBrand ? scored.filter((p) => p.brand === activeBrand) : scored;
     return pool.slice(0, 3);
-  }, [picksParam, picksVisible, profile, forYouConcernValues, activeBrand, isKid]);
+  }, [picksParam, picksVisible, profile, forYouConcernValues, activeBrand, isKid, products]);
 
   const pinnedPickIds = useMemo(() => new Set(pinnedPicks.map((p) => p.id)), [pinnedPicks]);
   const forYouNonPinned = useMemo(
@@ -571,6 +575,10 @@ function ExplorePageContent() {
 
       {/* ── Scrollable content ── */}
       <div className="flex-1 overflow-y-auto overflow-x-clip">
+
+        {productsLoading && <ProtocolLoader />}
+
+        {!productsLoading && <>
 
         {/* Onboarding nudge */}
         {profileLoaded && !profile && (
@@ -687,12 +695,6 @@ function ExplorePageContent() {
           })()
         )}
 
-        {!showNoProfile && displayedProducts.length === 0 && !profileLoaded && (
-          <div className="flex items-center justify-center py-16">
-            <div className="w-6 h-6 rounded-full border-2 border-primary-container/30 border-t-primary-container animate-spin" />
-          </div>
-        )}
-
         {!showNoProfile && displayedProducts.length > 0 && (
           <div className="mx-4 mb-6 px-3 py-2.5 rounded-xl bg-surface-container/60 border border-outline-variant/10">
             <p className="text-[10px] text-on-surface-variant/45 text-center leading-relaxed">
@@ -700,6 +702,8 @@ function ExplorePageContent() {
             </p>
           </div>
         )}
+
+        </>}
       </div>
 
       {/* ── By Category bottom sheet ── */}

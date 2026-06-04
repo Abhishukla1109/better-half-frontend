@@ -4,7 +4,7 @@ import { useMemo, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShoppingBag, ArrowLeft, X } from "lucide-react";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
-import { LJ_PRODUCTS } from "@/lib/ai/lj-products";
+import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import type { Product } from "@/lib/protocolEngine";
 
 /* ── Category visual styles ── */
@@ -44,7 +44,7 @@ const CONCERN_FOLLOWUP: Record<string, string[]> = {
   nutrition: ["nutrition","protein","vitamins"],
 };
 
-function getKidsRecs(childAge: string, concern: string, nudgeAnswers: Record<string, string> = {}) {
+function getKidsRecs(childAge: string, concern: string, ljProducts: Product[], nudgeAnswers: Record<string, string> = {}) {
   const seg =
     childAge === "2-5"  ? "kids-2-5"    :
     childAge === "6-12" ? "kids-6-12"   : "kids-13-plus";
@@ -65,7 +65,7 @@ function getKidsRecs(childAge: string, concern: string, nudgeAnswers: Record<str
     return bonus;
   }
 
-  let primary = LJ_PRODUCTS.filter(p => {
+  let primary = ljProducts.filter(p => {
     if (!p.segment.includes(seg)) return false;
     if (directConcern) return p.concern.includes(concern);
     if (followUps.length === 0)   return p.concern.includes("energy");
@@ -75,7 +75,7 @@ function getKidsRecs(childAge: string, concern: string, nudgeAnswers: Record<str
   // Pad to 3 with highest-scored same-segment products when catalog is thin
   if (primary.length < 3) {
     const primaryIds = new Set(primary.map(p => p.id));
-    const filler = LJ_PRODUCTS
+    const filler = ljProducts
       .filter(p => p.segment.includes(seg) && !primaryIds.has(p.id))
       .sort((a, b) => (b.baseScore + nudgeBonus(b)) - (a.baseScore + nudgeBonus(a)))
       .slice(0, 3 - primary.length);
@@ -83,7 +83,7 @@ function getKidsRecs(childAge: string, concern: string, nudgeAnswers: Record<str
   }
 
   const primaryIds = new Set(primary.map(p => p.id));
-  const rest = LJ_PRODUCTS
+  const rest = ljProducts
     .filter(p => p.segment.includes(seg) && !primaryIds.has(p.id))
     .sort((a, b) => (b.baseScore + nudgeBonus(b)) - (a.baseScore + nudgeBonus(a)));
 
@@ -248,6 +248,8 @@ function pickNextNudge(memberId: string, childAge: string, visits: number) {
 export default function KidsHomePage() {
   const router = useRouter();
   const { activeMember, activeProfile, updateMemberProfile } = useActiveProfile();
+  const { products } = useCatalogProducts();
+  const ljProducts = products.filter(p => p.brand === "Little Joys");
 
   const childAge    = activeMember?.childAge ?? "6-12";
   const childName   = activeMember?.name;
@@ -339,7 +341,7 @@ export default function KidsHomePage() {
     window.location.reload();
   };
 
-  const { primary, rest } = useMemo(() => getKidsRecs(childAge, concern, nudgeAnswers), [childAge, concern, nudgeAnswers]);
+  const { primary, rest } = useMemo(() => getKidsRecs(childAge, concern, ljProducts, nudgeAnswers), [childAge, concern, ljProducts, nudgeAnswers]);
   const habits = useMemo(() => getHabits(concern, childAge), [concern, childAge]);
 
   const tips = EDU_TIPS[childAge] ?? EDU_TIPS["6-12"];

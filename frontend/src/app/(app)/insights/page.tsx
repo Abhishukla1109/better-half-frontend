@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { Flame, CheckCircle2, XCircle, ChevronLeft, ChevronRight, ChevronDown, ShoppingBag, X } from "lucide-react";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
-import { calculateProtocolMatch, ALL_PRODUCTS } from "@/lib/protocolEngine";
+import { calculateProtocolMatch } from "@/lib/protocolEngine";
+import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import type { MatchedProduct } from "@/lib/protocolEngine";
 import { calculateProfileDepth } from "@/lib/ai/profile-depth";
 import { supabase } from "@/lib/supabase/client";
@@ -435,6 +436,7 @@ async function syncHealthLogsFromSupabase(
 /* ── Page ── */
 export default function InsightsPage() {
   const { activeMember } = useActiveProfile();
+  const { products: catalogProducts } = useCatalogProducts();
 
   const [checkins, setCheckins]         = useState<Checkins>({});
   const [visitCount, setVisitCount]     = useState(0);
@@ -513,9 +515,7 @@ export default function InsightsPage() {
       const rawConcern: string  = profile.concern ?? "";
       const rawConcerns: string[] = Array.isArray(profile.concerns) ? profile.concerns : [];
       setUserConcerns(rawConcerns.length > 0 ? rawConcerns : rawConcern ? [rawConcern] : []);
-      const concern = CONCERN_MAP[rawConcern] || "energy";
-      const matched = calculateProtocolMatch({ gender, age: profile.age ?? "25-34", diet: profile.diet ?? "non-veg", concern });
-      setSupplements(matched);
+      // supplements re-calculated in catalogProducts effect below
     } catch {}
     setProfileLoaded(true);
 
@@ -529,6 +529,19 @@ export default function InsightsPage() {
       setSecondaryHistory,
     );
   }, []);
+
+  useEffect(() => {
+    if (!catalogProducts.length) return;
+    try {
+      const profile = JSON.parse(localStorage.getItem("bh_profile") ?? "null");
+      if (!profile) return;
+      const gender: string = profile.sex ?? "male";
+      const rawConcern: string = profile.concern ?? "";
+      const concern = CONCERN_MAP[rawConcern] || "energy";
+      const matched = calculateProtocolMatch({ gender, age: profile.age ?? "25-34", diet: profile.diet ?? "non-veg", concern }, catalogProducts);
+      setSupplements(matched);
+    } catch {}
+  }, [catalogProducts]);
 
   const handleCheckin = (val: boolean) => {
     const updated = { ...checkins, [today]: val };
@@ -565,10 +578,10 @@ export default function InsightsPage() {
     if (!supplements.length) return [];
     const stackIds = new Set(supplements.map(s => s.id));
     const concerns = supplements.flatMap(s => s.concern);
-    const genderOk = (p: typeof ALL_PRODUCTS[number]) =>
+    const genderOk = (p: typeof catalogProducts[number]) =>
       p.gender.includes(userGender) || p.gender.includes("all");
 
-    const sameConcern = ALL_PRODUCTS
+    const sameConcern = catalogProducts
       .filter(p => !stackIds.has(p.id) && p.concern.some(c => concerns.includes(c)) && genderOk(p) && p.brand !== "Little Joys")
       .sort((a, b) => b.baseScore - a.baseScore)
       .slice(0, 4);
@@ -577,13 +590,13 @@ export default function InsightsPage() {
 
     // Pad with top-rated from any concern for the same gender
     const sameConcernIds = new Set(sameConcern.map(p => p.id));
-    const cross = ALL_PRODUCTS
+    const cross = catalogProducts
       .filter(p => !stackIds.has(p.id) && !sameConcernIds.has(p.id) && genderOk(p) && p.brand !== "Little Joys")
       .sort((a, b) => b.baseScore - a.baseScore)
       .slice(0, 4 - sameConcern.length);
 
     return [...sameConcern, ...cross];
-  }, [supplements, userGender]);
+  }, [supplements, userGender, catalogProducts]);
 
   // Per-concern scores
   const concernScores = useMemo(() =>

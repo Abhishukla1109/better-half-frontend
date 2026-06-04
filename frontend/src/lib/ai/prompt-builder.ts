@@ -4,9 +4,10 @@
    ────────────────────────────────────────────────────────────── */
 
 import { calculateProtocolMatch } from "@/lib/protocolEngine";
+import type { Product } from "@/lib/protocolEngine";
 import type { UserProfile } from "./types";
 
-export function buildPrompt(profile: UserProfile): { system: string; user: string } {
+export function buildPrompt(profile: UserProfile, products: Product[]): { system: string; user: string } {
   // Parse all selected concerns
   const rawConcerns = profile.concerns as string | undefined;
   const allConcerns: string[] = rawConcerns
@@ -26,7 +27,7 @@ export function buildPrompt(profile: UserProfile): { system: string; user: strin
       age: profile.age || "25-34",
       diet: profile.diet || "non-veg",
       concern: isBearder ? "beard" : (concern.toLowerCase().split(" / ")[0] || "energy"),
-    });
+    }, products);
     for (const p of matched) {
       if (!seenIds.has(p.id)) {
         seenIds.add(p.id);

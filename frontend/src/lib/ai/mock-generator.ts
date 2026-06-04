@@ -4,8 +4,8 @@
    Uses calculateProtocolMatch for real product recommendations.
    ══════════════════════════════════════════════════════════════ */
 
-import { calculateProtocolMatch, resolveSegment, ALL_PRODUCTS } from "@/lib/protocolEngine";
-import type { UserSegment, MatchedProduct } from "@/lib/protocolEngine";
+import { calculateProtocolMatch, resolveSegment } from "@/lib/protocolEngine";
+import type { UserSegment, MatchedProduct, Product } from "@/lib/protocolEngine";
 import { calculateProfileDepth } from "./profile-depth";
 import { getProductShopifyUrl } from "./product-handles";
 import type {
@@ -588,6 +588,7 @@ function productTypeBucket(name: string): string | null {
 
 function enrichWithAlternatives(
   supplements: ProtocolSupplement[],
+  products: Product[],
   categoryOf: (id: string) => string | undefined,
 ): ProtocolSupplement[] {
   const pickedIds = new Set(supplements.map((s) => s.id));
@@ -602,7 +603,7 @@ function enrichWithAlternatives(
     const mainBucket = productTypeBucket(s.name);
 
     // Pass 1: same category + same product type + not a device conflict + not already used
-    let altProduct = ALL_PRODUCTS.find(
+    let altProduct = products.find(
       (p) =>
         p.category === cat &&
         !pickedIds.has(p.id) &&
@@ -614,7 +615,7 @@ function enrichWithAlternatives(
 
     // Pass 2: same category, relax type bucket — but still respect device type
     if (!altProduct) {
-      altProduct = ALL_PRODUCTS.find(
+      altProduct = products.find(
         (p) =>
           p.category === cat &&
           !pickedIds.has(p.id) &&
@@ -662,6 +663,7 @@ function resolveConcern(rawConcern: string, profile: UserProfile): string {
 function buildSupplements(
   profile: UserProfile,
   narrative: ConcernNarrative,
+  products: Product[],
 ): ProtocolSupplement[] {
   const concern = resolveConcern(profile.concern ?? "", profile);
   const segments = resolveSegment(
@@ -679,7 +681,7 @@ function buildSupplements(
     followUp: buildFollowUpString(profile),
   };
 
-  const matched = calculateProtocolMatch(userSegment);
+  const matched = calculateProtocolMatch(userSegment, products);
 
   if (matched.length === 0) {
     // Fallback if no products matched (shouldn't happen with real catalog)
@@ -717,7 +719,7 @@ function buildSupplements(
     };
   });
 
-  return enrichWithAlternatives(supplements, (id) => categoryById.get(id));
+  return enrichWithAlternatives(supplements, products, (id) => categoryById.get(id));
 }
 
 /* ── Follow-up questions ────────────────────────────────────── */
@@ -773,6 +775,7 @@ function buildMultiConcernSupplements(
   profile: UserProfile,
   allConcerns: string[],
   primaryNarrative: ConcernNarrative,
+  products: Product[],
 ): ProtocolSupplement[] {
   const seen = new Set<string>();
   const result: ProtocolSupplement[] = [];
@@ -789,7 +792,7 @@ function buildMultiConcernSupplements(
       diet: profile.diet || "non-veg",
       concern: resolveConcern(rawConcern, profile),
       followUp,
-    }),
+    }, products),
   }));
 
   function addProduct(product: MatchedProduct, narrative: ConcernNarrative, rawConcern: string): boolean {
@@ -828,8 +831,8 @@ function buildMultiConcernSupplements(
     }
   }
 
-  return enrichWithAlternatives(result, (id) => {
-    const p = ALL_PRODUCTS.find((x) => x.id === id);
+  return enrichWithAlternatives(result, products, (id) => {
+    const p = products.find((x) => x.id === id);
     return p?.category;
   });
 }
@@ -958,7 +961,7 @@ export function buildWarmMessage(profile: UserProfile, allConcerns: string[]): s
 }
 
 /* ── Main export ────────────────────────────────────────────── */
-export function generateMockProtocol(profile: UserProfile): GeneratedProtocol {
+export function generateMockProtocol(profile: UserProfile, products: Product[]): GeneratedProtocol {
   const allConcerns = parseConcerns(profile);
   const primaryConcern = allConcerns[0] || DEFAULT_CONCERN;
   const narrative = CONCERN_NARRATIVES[primaryConcern] ?? CONCERN_NARRATIVES[DEFAULT_CONCERN];
@@ -972,8 +975,8 @@ export function generateMockProtocol(profile: UserProfile): GeneratedProtocol {
   const explanation = narrative.explanation(profile);
 
   const supplements = isMulti
-    ? buildMultiConcernSupplements(profile, allConcerns, narrative)
-    : buildSupplements(profile, narrative);
+    ? buildMultiConcernSupplements(profile, allConcerns, narrative, products)
+    : buildSupplements(profile, narrative, products);
 
   const dailyRoutine = isMulti ? buildMultiConcernRoutine(allConcerns) : narrative.routine;
 
