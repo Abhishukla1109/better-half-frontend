@@ -54,6 +54,25 @@ import minoxidil5Procapil60ml from "@/catalog/enriched/minoxidil-5-procapil-60ml
 import p1xMinoxifin1xNourishHairGummies from "@/catalog/enriched/1x-minoxifin-1x-nourish-hair-gummies.json";
 import creatinePowder from "@/catalog/enriched/creatine-powder.json";
 import hairHealthGummies from "@/catalog/enriched/hair-health-gummies.json";
+import hairGrowthSerumRollOn from "@/catalog/enriched/hair-growth-serum-roll-on.json";
+import 20UreaRollOn50ml from "@/catalog/enriched/20-urea-roll-on-50ml.json";
+import bodySunscreenLotionWithSpf50 from "@/catalog/enriched/body-sunscreen-lotion-with-spf-50.json";
+import salicylicCeramideBodywash from "@/catalog/enriched/salicylic-ceramide-bodywash.json";
+import hairGrowthPackRosemaryRollOnXp2 from "@/catalog/enriched/hair-growth-pack-rosemary-roll-on-xp-2.json";
+import folliAdvancedPlusHairGrowthSerum from "@/catalog/enriched/folli-advanced-plus-hair-growth-serum.json";
+import 1ZptoAntiDandruffShampoo from "@/catalog/enriched/1-zpto-anti-dandruff-shampoo.json";
+import sunCareDuoHeadToToe from "@/catalog/enriched/sun-care-duo-head-to-toe.json";
+import 20UreaLotionXp from "@/catalog/enriched/20-urea-lotion-xp.json";
+import antiStretchMarkRollOn from "@/catalog/enriched/anti-stretch-mark-roll-on.json";
+import 1SalicylicAcidBodyWash from "@/catalog/enriched/1-salicylic-acid-body-wash.json";
+import tripleMilkDeepHydratingBodywash from "@/catalog/enriched/triple-milk-deep-hydrating-bodywash.json";
+import 30UreaFootRollOn from "@/catalog/enriched/30-urea-foot-roll-on.json";
+import 4AhaBhaUnderarmRollOn from "@/catalog/enriched/4-aha-bha-underarm-roll-on.json";
+import 5AhaBhaBodywash from "@/catalog/enriched/5-aha-bha-bodywash.json";
+import 10MagnesiumLotion300ml from "@/catalog/enriched/10-magnesium-lotion-300ml.json";
+import underarmPigmentationKitNoFragrance from "@/catalog/enriched/underarm-pigmentation-kit-no-fragrance.json";
+import advancedHairGrowthSerum from "@/catalog/enriched/advanced-hair-growth-serum.json";
+import 1KetoconazoleDandruffShampoo250ml from "@/catalog/enriched/1-ketoconazole-dandruff-shampoo-250ml.json";
 
 export type EnrichedIngredient = {
   name: string;
@@ -173,6 +192,25 @@ const ENRICHED: Record<string, EnrichedPDP> = {
   "minoxidil-5-procapil-60ml": minoxidil5Procapil60ml as EnrichedPDP,
   "creatine-powder": creatinePowder as EnrichedPDP,
   "hair-health-gummies": hairHealthGummies as EnrichedPDP,
+  "hair-growth-serum-roll-on": hairGrowthSerumRollOn as EnrichedPDP,
+  "20-urea-roll-on-50ml": 20UreaRollOn50ml as EnrichedPDP,
+  "body-sunscreen-lotion-with-spf-50": bodySunscreenLotionWithSpf50 as EnrichedPDP,
+  "salicylic-ceramide-bodywash": salicylicCeramideBodywash as EnrichedPDP,
+  "hair-growth-pack-rosemary-roll-on-xp-2": hairGrowthPackRosemaryRollOnXp2 as EnrichedPDP,
+  "folli-advanced-plus-hair-growth-serum": folliAdvancedPlusHairGrowthSerum as EnrichedPDP,
+  "1-zpto-anti-dandruff-shampoo": 1ZptoAntiDandruffShampoo as EnrichedPDP,
+  "sun-care-duo-head-to-toe": sunCareDuoHeadToToe as EnrichedPDP,
+  "20-urea-lotion-xp": 20UreaLotionXp as EnrichedPDP,
+  "anti-stretch-mark-roll-on": antiStretchMarkRollOn as EnrichedPDP,
+  "1-salicylic-acid-body-wash": 1SalicylicAcidBodyWash as EnrichedPDP,
+  "triple-milk-deep-hydrating-bodywash": tripleMilkDeepHydratingBodywash as EnrichedPDP,
+  "30-urea-foot-roll-on": 30UreaFootRollOn as EnrichedPDP,
+  "4-aha-bha-underarm-roll-on": 4AhaBhaUnderarmRollOn as EnrichedPDP,
+  "5-aha-bha-bodywash": 5AhaBhaBodywash as EnrichedPDP,
+  "10-magnesium-lotion-300ml": 10MagnesiumLotion300ml as EnrichedPDP,
+  "underarm-pigmentation-kit-no-fragrance": underarmPigmentationKitNoFragrance as EnrichedPDP,
+  "advanced-hair-growth-serum": advancedHairGrowthSerum as EnrichedPDP,
+  "1-ketoconazole-dandruff-shampoo-250ml": 1KetoconazoleDandruffShampoo250ml as EnrichedPDP,
 };
 
 export function getEnrichedPDP(slug: string): EnrichedPDP | null {

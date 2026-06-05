@@ -308,8 +308,8 @@ function transformBW(urlKey, data) {
   const concern = CONCERN_MAP[rawCat] ?? "energy";
 
   // Price
-  const price = pi.discountedPrice ?? pi.discounted_price ?? pi.actualPrice ?? 0;
-  const mrp   = pi.actualPrice ?? pi.price ?? price;
+  const price = pi.discountedPrice || pi.discounted_price || pi.actualPrice || pi.price || 0;
+  const mrp   = pi.actualPrice || pi.price || price;
 
   return {
     enriched: {
