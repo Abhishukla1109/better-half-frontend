@@ -1,29 +1,48 @@
-// Fetches all products from Shopify with BH metafields and returns them
-// in the same shape as catalog.ts Product[] — so protocolEngine works unchanged.
+// Fetches all active products from Shopify Admin API.
+// Using Admin API (not Storefront) so all active products are returned
+// regardless of which sales channel they're published to.
 // Server-side only — called from /api/catalog route.
 
-import { shopifyFetch } from "./client";
 import type { Product } from "@/lib/protocolEngine";
+
+const SHOP = (process.env.NEXT_PUBLIC_SHOPIFY_STORE_URL ?? "").replace(/\/$/, "").replace("https://", "");
+const CLIENT_ID = process.env.SHOPIFY_ADMIN_CLIENT_ID ?? "";
+const CLIENT_SECRET = process.env.SHOPIFY_ADMIN_CLIENT_SECRET ?? "";
+const ADMIN_API = `https://${SHOP}/admin/api/2024-01/graphql.json`;
+
+async function getAdminToken(): Promise<string> {
+  const res = await fetch(`https://${SHOP}/admin/oauth/access_token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET, grant_type: "client_credentials" }),
+  });
+  const data = await res.json();
+  return data.access_token;
+}
+
+async function adminGql<T>(token: string, query: string, variables?: Record<string, unknown>): Promise<T> {
+  const res = await fetch(ADMIN_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": token },
+    body: JSON.stringify({ query, variables }),
+  });
+  const json = await res.json();
+  if (json.errors?.length) throw new Error(json.errors[0].message);
+  return json.data as T;
+}
 
 const CATALOG_QUERY = `
   query GetCatalogProducts($first: Int!, $after: String) {
-    products(first: $first, after: $after) {
+    products(first: $first, after: $after, query: "status:active") {
       nodes {
         handle
         title
         vendor
         featuredImage { url }
-        priceRange { minVariantPrice { amount } }
-        compareAtPriceRange { minVariantPrice { amount } }
-        metafields(identifiers: [
-          { namespace: "custom", key: "bh_concern" }
-          { namespace: "custom", key: "bh_gender" }
-          { namespace: "custom", key: "bh_segment" }
-          { namespace: "custom", key: "bh_score" }
-          { namespace: "custom", key: "bh_follow_up" }
-        ]) {
-          key
-          value
+        priceRangeV2 { minVariantPrice { amount } }
+        compareAtPriceRange { maxVariantCompareAtPrice { amount } }
+        metafields(first: 10) {
+          nodes { namespace key value }
         }
       }
       pageInfo { hasNextPage endCursor }
@@ -31,27 +50,25 @@ const CATALOG_QUERY = `
   }
 `;
 
-type MetafieldEntry = { key: string; value: string } | null;
-
-type RawProduct = {
+type AdminProduct = {
   handle: string;
   title: string;
   vendor: string;
   featuredImage: { url: string } | null;
-  priceRange: { minVariantPrice: { amount: string } };
-  compareAtPriceRange: { minVariantPrice: { amount: string } };
-  metafields: MetafieldEntry[];
+  priceRangeV2: { minVariantPrice: { amount: string } };
+  compareAtPriceRange: { maxVariantCompareAtPrice: { amount: string } | null } | null;
+  metafields: { nodes: Array<{ namespace: string; key: string; value: string }> };
 };
 
 type CatalogPage = {
   products: {
-    nodes: RawProduct[];
+    nodes: AdminProduct[];
     pageInfo: { hasNextPage: boolean; endCursor: string };
   };
 };
 
-function getMeta(fields: MetafieldEntry[], key: string): string {
-  return fields?.find((m) => m?.key === key)?.value ?? "";
+function getMeta(nodes: Array<{ namespace: string; key: string; value: string }>, key: string): string {
+  return nodes.find((m) => m.namespace === "custom" && m.key === key)?.value ?? "";
 }
 
 function splitCSV(val: string): string[] {
@@ -65,27 +82,25 @@ function normalizeBrand(vendor: string): "Man Matters" | "Be Bodywise" | "Little
 }
 
 export async function fetchCatalogProducts(): Promise<Product[]> {
+  const token = await getAdminToken();
   const results: Product[] = [];
   let cursor: string | null = null;
 
   do {
-    const page: CatalogPage = await shopifyFetch<CatalogPage>(CATALOG_QUERY, {
-      first: 50,
-      after: cursor,
-    });
-
+    const page: CatalogPage = await adminGql<CatalogPage>(token, CATALOG_QUERY, { first: 250, after: cursor });
     for (const p of page.products.nodes) {
-      const concern  = splitCSV(getMeta(p.metafields, "bh_concern"));
-      const gender   = splitCSV(getMeta(p.metafields, "bh_gender"));
-      const segment  = splitCSV(getMeta(p.metafields, "bh_segment"));
-      const followUp = splitCSV(getMeta(p.metafields, "bh_follow_up"));
-      const scoreStr = getMeta(p.metafields, "bh_score");
+      const nodes = p.metafields.nodes;
+      const concern  = splitCSV(getMeta(nodes, "bh_concern"));
+      const gender   = splitCSV(getMeta(nodes, "bh_gender"));
+      const segment  = splitCSV(getMeta(nodes, "bh_segment"));
+      const followUp = splitCSV(getMeta(nodes, "bh_follow_up"));
+      const scoreStr = getMeta(nodes, "bh_score");
       const baseScore = scoreStr ? parseInt(scoreStr, 10) : 0;
 
       if (!concern.length || !gender.length || !baseScore) continue;
 
-      const price     = Math.round(parseFloat(p.priceRange.minVariantPrice.amount));
-      const compareAt = Math.round(parseFloat(p.compareAtPriceRange.minVariantPrice.amount));
+      const price     = Math.round(parseFloat(p.priceRangeV2.minVariantPrice.amount));
+      const compareAt = Math.round(parseFloat(p.compareAtPriceRange?.maxVariantCompareAtPrice?.amount ?? "0"));
 
       results.push({
         id:       p.handle,
@@ -100,13 +115,10 @@ export async function fetchCatalogProducts(): Promise<Product[]> {
         category: concern[0] ?? "",
         baseScore,
         image:    p.featuredImage?.url,
-        url:      `https://betterhalf-4.myshopify.com/products/${p.handle}`,
+        url:      `https://${SHOP}/products/${p.handle}`,
       });
     }
-
-    cursor = page.products.pageInfo.hasNextPage
-      ? page.products.pageInfo.endCursor
-      : null;
+    cursor = page.products.pageInfo.hasNextPage ? page.products.pageInfo.endCursor : null;
   } while (cursor);
 
   return results;

@@ -1,0 +1,153 @@
+{
+  "slug": "scalp-massager-1n",
+  "shopifyHandle": "scalp-massager-1n",
+  "sourceId": "17036119",
+  "brand": "Man Matters",
+  "name": "Scalp Massager (1N)",
+  "subtitle": "A Head Massager for Men for Hair Growth & Health",
+  "metaDescription": "Improve scalp circulation and reduce stress with a flexible scalp massager. Enhances serum absorption and supports healthy hair growth.",
+  "rating": {
+    "average": 3.5,
+    "count": 87
+  },
+  "price": 299,
+  "mrp": 499,
+  "images": [
+    "https://i.mscwlns.co/mosaic-wellness/image/upload/v1643263446/Man%20Matters/Scalp%20Massager/Product%20images/Scalp-Massager-with-ingredients_600X600.png?tr=w-800",
+    "https://i.mscwlns.co/mosaic-wellness/image/upload/v1643263502/Man%20Matters/Scalp%20Massager/view%20all/Why-Scalp-Massager.jpg?tr=w-800",
+    "https://i.mscwlns.co/mosaic-wellness/image/upload/v1643263502/Man%20Matters/Scalp%20Massager/view%20all/Using-this-massager.jpg?tr=w-800",
+    "https://i.mscwlns.co/mosaic-wellness/image/upload/v1643263502/Man%20Matters/Scalp%20Massager/view%20all/How-does-it-do-_-Doctor_s-note.jpg?tr=w-800",
+    "https://i.mscwlns.co/mosaic-wellness/image/upload/v1643263502/Man%20Matters/Scalp%20Massager/view%20all/is-this-product-right-for-me.jpg?tr=w-800",
+    "https://i.mscwlns.co/mosaic-wellness/image/upload/v1643263502/Man%20Matters/Scalp%20Massager/view%20all/How-to-use-_-When-to-use.jpg?tr=w-800",
+    "https://i.mscwlns.co/mosaic-wellness/image/upload/v1643263502/Man%20Matters/Scalp%20Massager/view%20all/Why-Customers-Love-Us.jpg?tr=w-800",
+    "https://i.mscwlns.co/mosaic-wellness/image/upload/v1643263446/Man%20Matters/Scalp%20Massager/Product%20images/Scalp-Massager_1200X1600.jpg?tr=w-800"
+  ],
+  "ingredients": [
+    {
+      "name": "Medical Grade Silicone",
+      "icon": "https://i.mscwlns.co/mosaic-wellness/image/upload/v1643263548/Man%20Matters/Scalp%20Massager/ingredients/Medical_Grade_Silicone_Bristles.png?tr=w-800",
+      "shortDesc": "Bristles made out of Medical Grade Silicone are gentle on the scalp and deep cleanse your hair without any harm",
+      "longDesc": "Bristles made out of Medical Grade Silicone are gentle on the scalp and deep cleanse your hair without any harm. They are also resistant to bacterial buildup. Best part? These bristles are very durable!."
+    },
+    {
+      "name": "Ergonomic Design",
+      "icon": "https://i.mscwlns.co/mosaic-wellness/image/upload/v1643263548/Man%20Matters/Scalp%20Massager/ingredients/Non-slip_handle.png?tr=w-800",
+      "shortDesc": "We've made this brush with a comfortable handle so that it's easy to use and hold",
+      "longDesc": "We've made this brush with a comfortable handle so that it's easy to use and hold. The ergonomic design makes it the perfect accessory to elevate every bath."
+    }
+  ],
+  "timeline": [
+    {
+      "period": "Make hair look better in a day",
+      "title": "Make hair look better in a day",
+      "description": "Just like Rome, the changes in your hair won't show up in a day. Noticeable improvements to hair health can be noticed after consistent and daily use of this scalp massager.",
+      "image": "https://i.mscwlns.co/mosaic-wellness/image/upload/v1643263563/Man%20Matters/Scalp%20Massager/what%20it%20wont%20do/Won_t_Treat_Dandruff.png?tr=w-800"
+    }
+  ],
+  "howToUse": "If you're using this with a shampoo: Apply the shampoo. Take the massager and rub it in circular motions. If you're using a conditioner or hair mask: Apply the conditioner or hair mask and massage gently for thorough application. Storage Instructions: Once done, wash and leave it to air dry.",
+  "faqs": [
+    {
+      "question": "Can I use this scalp massager twice a day?",
+      "answer": "Yes, this scalp massager can be used anytime you have a bath."
+    },
+    {
+      "question": "Can I dry it out in the sunlight?",
+      "answer": "Yes, this scalp massager is safe to dry under the sun."
+    }
+  ],
+  "heroVideo": null,
+  "packs": [],
+  "badges": [
+    {
+      "label": "We Get You",
+      "icon": "https://i.mscwlns.co/media/misc/others/img2_G6AH0lenZ.png?tr=w-600"
+    },
+    {
+      "label": "Clinically Tested",
+      "icon": "https://i.mscwlns.co/media/misc/others/img3_Qj7xCu9Tm.png?tr=w-600"
+    },
+    {
+      "label": "Extended Care & Follow-Ups",
+      "icon": "https://i.mscwlns.co/media/misc/others/img4_1OKKwgB0L.png?tr=w-600"
+    }
+  ],
+  "reviews": [
+    {
+      "rating": 5,
+      "author": "HAREEHARAN V.",
+      "title": "Really helpful for Dandruff",
+      "body": "Valuable product",
+      "date": "2025-01-19",
+      "verified": true
+    },
+    {
+      "rating": 5,
+      "author": "Naresh C.",
+      "title": "Nice & soft",
+      "body": "Nice & soft for the scalp",
+      "date": "2025-01-06",
+      "verified": true
+    },
+    {
+      "rating": 5,
+      "author": "Aamir ..",
+      "title": "Great experience",
+      "body": "Great experience",
+      "date": "2024-11-05",
+      "verified": true
+    },
+    {
+      "rating": 5,
+      "author": "Abinash ..",
+      "title": "Reduce the hair fall",
+      "body": "It's really good",
+      "date": "2024-10-13",
+      "verified": true
+    },
+    {
+      "rating": 5,
+      "author": "Pratik c.",
+      "title": "Good product",
+      "body": "Good product",
+      "date": "2024-06-06",
+      "verified": true
+    }
+  ],
+  "disclaimers": [],
+  "worksBestWith": [],
+  "additionalInfo": [
+    {
+      "title": "Net Quantity",
+      "content": "1 N"
+    },
+    {
+      "title": "Manufactured By",
+      "content": "Lachaura Hathras, Uttar Pradesh - 204211"
+    },
+    {
+      "title": "Marketed By",
+      "content": "Mosaic Wellness Pvt. Ltd, 6th Floor, ThaneOne, DIL Complex, Majiwada, Thane West - 400610.FSSAI Lic No.: 10020022011657"
+    },
+    {
+      "title": "Country Origin",
+      "content": "India"
+    },
+    {
+      "title": "Product Dimensions",
+      "content": "6.8 x 6.8 x 4.5"
+    },
+    {
+      "title": "Best Before",
+      "content": "24 months"
+    }
+  ],
+  "productDetails": {
+    "description": [
+      "Add a mix of hair-care and luxury to your routine with Man Matters Scalp Massager",
+      "It is a perfect addition to your hair care routine",
+      "Designed to fit perfectly in your hand, this brush with Medical Grade Bristles give you maximum benefit without harming your scalp.With every use, it boosts circulation, and the massaging action gives you a nice relaxing feeling",
+      "Use it with Shampoo, Conditioner, Hair Mask!"
+    ],
+    "details": []
+  }
+}

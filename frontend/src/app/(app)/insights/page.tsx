@@ -538,7 +538,12 @@ export default function InsightsPage() {
       const gender: string = profile.sex ?? "male";
       const rawConcern: string = profile.concern ?? "";
       const concern = CONCERN_MAP[rawConcern] || "energy";
-      const matched = calculateProtocolMatch({ gender, age: profile.age ?? "25-34", diet: profile.diet ?? "non-veg", concern }, catalogProducts);
+      const followUpStr = Object.entries(profile as Record<string, unknown>)
+        .filter(([, v]) => v && typeof v === "string")
+        .map(([, v]) => (v as string).replace(/_/g, " "))
+        .join(" ")
+        .toLowerCase();
+      const matched = calculateProtocolMatch({ gender, age: profile.age ?? "25-34", diet: profile.diet ?? "non-veg", concern, followUp: followUpStr || undefined }, catalogProducts);
       setSupplements(matched);
     } catch {}
   }, [catalogProducts]);

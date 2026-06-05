@@ -494,6 +494,23 @@ function NewProductPDP({
             <p className="text-sm text-on-surface-variant mt-1 leading-relaxed">{enriched.subtitle}</p>
           )}
 
+          {/* For / With callout (Be Bodywise) */}
+          {enriched?.forWith && (
+            <div className="flex flex-wrap gap-2 mt-2.5">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-surface-container border border-outline-variant/10 text-on-surface-variant">
+                <span className="text-on-surface-variant/50 font-medium">For</span> {enriched.forWith.for}
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-surface-container border border-outline-variant/10 text-on-surface-variant">
+                <span className="text-on-surface-variant/50 font-medium">With</span> {enriched.forWith.with}
+              </span>
+              {enriched.recommendation && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">
+                  ✦ {enriched.recommendation} recommend
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Suitability chips */}
           {(() => {
             const chips: { emoji: string; text: string }[] = [];

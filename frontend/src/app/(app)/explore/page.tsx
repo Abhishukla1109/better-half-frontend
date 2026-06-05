@@ -197,7 +197,7 @@ function ProductCard({
           <img
             src={product.image}
             alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-300"
+            className="w-full h-full object-contain p-2 group-hover:scale-[1.04] transition-transform duration-300"
             loading="lazy"
           />
         ) : (
@@ -323,7 +323,14 @@ function NoProfileState() {
 function ExplorePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [activeCategory, setActiveCategory] = useState("for-you");
+  const [activeCategory, setActiveCategory] = useState(() => searchParams.get("tab") ?? "for-you");
+
+  const switchTab = useCallback((key: string) => {
+    setActiveCategory(key);
+    const p = new URLSearchParams(searchParams.toString());
+    p.set("tab", key);
+    router.replace(`?${p.toString()}`, { scroll: false });
+  }, [router, searchParams]);
   const [profile, setProfile] = useState<StoredProfile | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [picksVisible, setPicksVisible] = useState(true);
@@ -366,7 +373,7 @@ function ExplorePageContent() {
   useEffect(() => {
     const saved = localStorage.getItem("bh_protocol_picks") ?? "";
     setStoredPicks(saved);
-    if (picksParam || saved) setActiveCategory("for-you");
+    if ((picksParam || saved) && !searchParams.get("tab")) setActiveCategory("for-you");
   }, [picksParam]);
 
   const effectivePicks = picksParam || storedPicks;
@@ -504,7 +511,7 @@ function ExplorePageContent() {
   const handleChipClick = (key: string) => {
     if (key === "category-sheet") { setShowCategorySheet(true); return; }
     if (key === "concern-sheet")  { setShowConcernSheet(true);  return; }
-    setActiveCategory(key);
+    switchTab(key);
   };
 
   const isChipActive = (key: string) => {
@@ -719,7 +726,7 @@ function ExplorePageContent() {
                 {KIDS_CATEGORY_FILTERS.map((cat) => (
                   <button
                     key={cat.key}
-                    onClick={() => { setActiveCategory(cat.key); setShowCategorySheet(false); }}
+                    onClick={() => { switchTab(cat.key); setShowCategorySheet(false); }}
                     className={`relative flex flex-col items-center gap-2.5 p-4 rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${
                       activeCategory === cat.key
                         ? "border-amber-400/60 bg-amber-500/10"
@@ -736,7 +743,7 @@ function ExplorePageContent() {
                 {visibleCategories.filter((c) => c.key !== "for-you").map((cat) => (
                   <button
                     key={cat.key}
-                    onClick={() => { setActiveCategory(cat.key); setShowCategorySheet(false); }}
+                    onClick={() => { switchTab(cat.key); setShowCategorySheet(false); }}
                     className={`relative flex flex-col items-center gap-2.5 p-4 rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${
                       activeCategory === cat.key
                         ? "border-primary-container/50 bg-primary-container/10"
@@ -769,7 +776,7 @@ function ExplorePageContent() {
                 KIDS_CONCERN_FILTERS.map((concern) => (
                   <button
                     key={concern.key}
-                    onClick={() => { setActiveCategory(concern.key); setShowConcernSheet(false); }}
+                    onClick={() => { switchTab(concern.key); setShowConcernSheet(false); }}
                     className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl border-2 transition-all cursor-pointer text-left ${
                       activeCategory === concern.key
                         ? "bg-amber-500/10 border-amber-400/40"
@@ -789,7 +796,7 @@ function ExplorePageContent() {
                   .map((concern) => (
                     <button
                       key={concern.key}
-                      onClick={() => { setActiveCategory(concern.key); setShowConcernSheet(false); }}
+                      onClick={() => { switchTab(concern.key); setShowConcernSheet(false); }}
                       className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl border-2 transition-all cursor-pointer text-left ${
                         activeCategory === concern.key
                           ? "bg-primary-container/10 border-primary-container/35"
