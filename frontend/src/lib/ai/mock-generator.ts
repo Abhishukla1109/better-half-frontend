@@ -27,7 +27,7 @@ const CONCERN_MAP: Record<string, string> = {
 };
 
 /* ── Follow-up string builder ───────────────────────────────── */
-function buildFollowUpString(profile: UserProfile): string | undefined {
+export function buildFollowUpString(profile: UserProfile): string | undefined {
   const p = profile as Record<string, string | undefined>;
   const parts: string[] = [];
 

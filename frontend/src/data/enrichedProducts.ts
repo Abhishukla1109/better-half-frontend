@@ -55,24 +55,84 @@ import p1xMinoxifin1xNourishHairGummies from "@/catalog/enriched/1x-minoxifin-1x
 import creatinePowder from "@/catalog/enriched/creatine-powder.json";
 import hairHealthGummies from "@/catalog/enriched/hair-health-gummies.json";
 import hairGrowthSerumRollOn from "@/catalog/enriched/hair-growth-serum-roll-on.json";
-import 20UreaRollOn50ml from "@/catalog/enriched/20-urea-roll-on-50ml.json";
+import bw20UreaRollOn50ml from "@/catalog/enriched/20-urea-roll-on-50ml.json";
 import bodySunscreenLotionWithSpf50 from "@/catalog/enriched/body-sunscreen-lotion-with-spf-50.json";
 import salicylicCeramideBodywash from "@/catalog/enriched/salicylic-ceramide-bodywash.json";
 import hairGrowthPackRosemaryRollOnXp2 from "@/catalog/enriched/hair-growth-pack-rosemary-roll-on-xp-2.json";
 import folliAdvancedPlusHairGrowthSerum from "@/catalog/enriched/folli-advanced-plus-hair-growth-serum.json";
-import 1ZptoAntiDandruffShampoo from "@/catalog/enriched/1-zpto-anti-dandruff-shampoo.json";
+import bw1ZptoAntiDandruffShampoo from "@/catalog/enriched/1-zpto-anti-dandruff-shampoo.json";
 import sunCareDuoHeadToToe from "@/catalog/enriched/sun-care-duo-head-to-toe.json";
-import 20UreaLotionXp from "@/catalog/enriched/20-urea-lotion-xp.json";
+import bw20UreaLotionXp from "@/catalog/enriched/20-urea-lotion-xp.json";
 import antiStretchMarkRollOn from "@/catalog/enriched/anti-stretch-mark-roll-on.json";
-import 1SalicylicAcidBodyWash from "@/catalog/enriched/1-salicylic-acid-body-wash.json";
+import bw1SalicylicAcidBodyWash from "@/catalog/enriched/1-salicylic-acid-body-wash.json";
 import tripleMilkDeepHydratingBodywash from "@/catalog/enriched/triple-milk-deep-hydrating-bodywash.json";
-import 30UreaFootRollOn from "@/catalog/enriched/30-urea-foot-roll-on.json";
-import 4AhaBhaUnderarmRollOn from "@/catalog/enriched/4-aha-bha-underarm-roll-on.json";
-import 5AhaBhaBodywash from "@/catalog/enriched/5-aha-bha-bodywash.json";
-import 10MagnesiumLotion300ml from "@/catalog/enriched/10-magnesium-lotion-300ml.json";
+import bw30UreaFootRollOn from "@/catalog/enriched/30-urea-foot-roll-on.json";
+import bw4AhaBhaUnderarmRollOn from "@/catalog/enriched/4-aha-bha-underarm-roll-on.json";
+import bw5AhaBhaBodywash from "@/catalog/enriched/5-aha-bha-bodywash.json";
+import bw10MagnesiumLotion300ml from "@/catalog/enriched/10-magnesium-lotion-300ml.json";
 import underarmPigmentationKitNoFragrance from "@/catalog/enriched/underarm-pigmentation-kit-no-fragrance.json";
 import advancedHairGrowthSerum from "@/catalog/enriched/advanced-hair-growth-serum.json";
-import 1KetoconazoleDandruffShampoo250ml from "@/catalog/enriched/1-ketoconazole-dandruff-shampoo-250ml.json";
+import bw1KetoconazoleDandruffShampoo250ml from "@/catalog/enriched/1-ketoconazole-dandruff-shampoo-250ml.json";
+import magnesiumGlycinateGummies60n from "@/catalog/enriched/magnesium-glycinate-gummies-60n.json";
+import dailyHydrationKit from "@/catalog/enriched/daily-hydration-kit.json";
+import bw10AhaBodyScrub from "@/catalog/enriched/10-aha-body-scrub.json";
+import ultraLightSunscreenSpf50 from "@/catalog/enriched/ultra-light-sunscreen-spf50.json";
+import bodySunscreenSprayWithSpf50 from "@/catalog/enriched/body-sunscreen-spray-with-spf-50.json";
+import bw1SalicylicAcidBodyWash100ml from "@/catalog/enriched/1-salicylic-acid-body-wash-100ml.json";
+import bw2AhaBodyWash from "@/catalog/enriched/2-aha-body-wash.json";
+import bodyCareMiniPack from "@/catalog/enriched/body-care-mini-pack.json";
+import ureaSkinHeelRepairKit75ml from "@/catalog/enriched/urea-skin-heel-repair-kit-75ml.json";
+import sabodywashScrub from "@/catalog/enriched/sabodywash-scrub.json";
+import faceBodySunscreenKit from "@/catalog/enriched/face-body-sunscreen-kit.json";
+import hairGrowthSerumRollOn2MonthsXp from "@/catalog/enriched/hair-growth-serum-roll-on-2-months-xp.json";
+import advancedUnderarmPigmentationKit from "@/catalog/enriched/advanced-underarm-pigmentation-kit.json";
+import bw1PeptideCeramideMoisturizer from "@/catalog/enriched/1-peptide-ceramide-moisturizer.json";
+import antiDandruffSerum from "@/catalog/enriched/anti-dandruff-serum.json";
+import deepMoisturizingConditioner from "@/catalog/enriched/deep-moisturizing-conditioner.json";
+import bw2SalicylicAcidFaceWash from "@/catalog/enriched/2-salicylic-acid-face-wash.json";
+import calciumGummies from "@/catalog/enriched/calcium-gummies.json";
+import pigmentationRepairCream from "@/catalog/enriched/pigmentation-repair-cream.json";
+import bw5LacticAcidBodyLotion from "@/catalog/enriched/5-lactic-acid-body-lotion.json";
+import bw6AhaBhaUnderarmRollOn from "@/catalog/enriched/6-aha-bha-underarm-roll-on.json";
+import niacinamideBodyLotion from "@/catalog/enriched/niacinamide-body-lotion.json";
+import acneControlWash from "@/catalog/enriched/acne-control-wash.json";
+import bw4AhaBhaUnderarmRollOnWatermelon from "@/catalog/enriched/4-aha-bha-underarm-roll-on-watermelon.json";
+import bw4AhaBhaUnderarmRollOnNoFragrance from "@/catalog/enriched/4-aha-bha-underarm-roll-on-no-fragrance.json";
+import bw4AhaBhaBodyButter from "@/catalog/enriched/4-aha-bha-body-butter.json";
+import glycolicAcidStick from "@/catalog/enriched/glycolic-acid-stick.json";
+import scalpMassager from "@/catalog/enriched/scalp-massager.json";
+import hairFallControlShampoo from "@/catalog/enriched/hair-fall-control-shampoo.json";
+import glutathioneGummies60 from "@/catalog/enriched/glutathione-gummies-60.json";
+import bw4AhaBhaUnderarmRollonFragFree75 from "@/catalog/enriched/4-aha-bha-underarm-rollon-frag-free-75.json";
+import bw12AhaScrub from "@/catalog/enriched/12-aha-scrub.json";
+import shilajitGummies60n from "@/catalog/enriched/shilajit-gummies-60n.json";
+import bw5NiacinamideBodyWash from "@/catalog/enriched/5-niacinamide-body-wash.json";
+import bw4AhaBhaUnderarmRollOnPackThree from "@/catalog/enriched/4-aha-bha-underarm-roll-on-pack-three.json";
+import biotinHairGummies120 from "@/catalog/enriched/biotin-hair-gummies-120.json";
+import browLashSerum from "@/catalog/enriched/brow-lash-serum.json";
+import bw10UreaLotion from "@/catalog/enriched/10-urea-lotion.json";
+import hyaluronicAcidBodyWash from "@/catalog/enriched/hyaluronic-acid-body-wash.json";
+import magnesiumGummiesAndLotionKit from "@/catalog/enriched/magnesium-gummies-and-lotion-kit.json";
+import hydrocolloidAcnePimplePatch from "@/catalog/enriched/hydrocolloid-acne-pimple-patch.json";
+import biotinHairGummiesBreastfeedingMoms30nXp from "@/catalog/enriched/biotin-hair-gummies-breastfeeding-moms-30n-xp.json";
+import hairStrengtheningSerum from "@/catalog/enriched/hair-strengthening-serum.json";
+import hairMagnesiumGummiesKit30n from "@/catalog/enriched/hair-magnesium-gummies-kit-30n.json";
+import bw25BenzoylPeroxideBodywash from "@/catalog/enriched/2-5-benzoyl-peroxide-bodywash.json";
+import ahaBhaBodyPack from "@/catalog/enriched/aha-bha-body-pack.json";
+import bwMultivitaminGummies from "@/catalog/enriched/bw-multivitamin-gummies.json";
+import summerEssentialsKit from "@/catalog/enriched/summer-essentials-kit.json";
+import intenseDandruffKit from "@/catalog/enriched/intense-dandruff-kit.json";
+import collagenSkinGummies from "@/catalog/enriched/collagen-skin-gummies.json";
+import hyaluronicAcidMousse from "@/catalog/enriched/hyaluronic-acid-mousse.json";
+import iceRoller from "@/catalog/enriched/ice-roller.json";
+import calciumGummiesXp from "@/catalog/enriched/calcium-gummies-xp.json";
+import lightestMineralSunscreenSpf50 from "@/catalog/enriched/lightest-mineral-sunscreen-spf50.json";
+import bw5NiacinamideBodyWashPackOf2 from "@/catalog/enriched/5-niacinamide-body-wash-pack-of-2.json";
+import bw1ZptoAdsHg30Kit from "@/catalog/enriched/1-zpto-ads-hg30-kit.json";
+import dandruffAndHairfallKit from "@/catalog/enriched/dandruff-and-hairfall-kit.json";
+import strawberrySkinPack from "@/catalog/enriched/strawberry-skin-pack.json";
+import niacinamideBodyWash700 from "@/catalog/enriched/niacinamide-body-wash-700.json";
+import postpartumSevereHairfall1monthXp from "@/catalog/enriched/postpartum-severe-hairfall-1month-xp.json";
 
 export type EnrichedIngredient = {
   name: string;
@@ -193,24 +253,84 @@ const ENRICHED: Record<string, EnrichedPDP> = {
   "creatine-powder": creatinePowder as EnrichedPDP,
   "hair-health-gummies": hairHealthGummies as EnrichedPDP,
   "hair-growth-serum-roll-on": hairGrowthSerumRollOn as EnrichedPDP,
-  "20-urea-roll-on-50ml": 20UreaRollOn50ml as EnrichedPDP,
+  "20-urea-roll-on-50ml": bw20UreaRollOn50ml as EnrichedPDP,
   "body-sunscreen-lotion-with-spf-50": bodySunscreenLotionWithSpf50 as EnrichedPDP,
   "salicylic-ceramide-bodywash": salicylicCeramideBodywash as EnrichedPDP,
   "hair-growth-pack-rosemary-roll-on-xp-2": hairGrowthPackRosemaryRollOnXp2 as EnrichedPDP,
   "folli-advanced-plus-hair-growth-serum": folliAdvancedPlusHairGrowthSerum as EnrichedPDP,
-  "1-zpto-anti-dandruff-shampoo": 1ZptoAntiDandruffShampoo as EnrichedPDP,
+  "1-zpto-anti-dandruff-shampoo": bw1ZptoAntiDandruffShampoo as EnrichedPDP,
   "sun-care-duo-head-to-toe": sunCareDuoHeadToToe as EnrichedPDP,
-  "20-urea-lotion-xp": 20UreaLotionXp as EnrichedPDP,
+  "20-urea-lotion-xp": bw20UreaLotionXp as EnrichedPDP,
   "anti-stretch-mark-roll-on": antiStretchMarkRollOn as EnrichedPDP,
-  "1-salicylic-acid-body-wash": 1SalicylicAcidBodyWash as EnrichedPDP,
+  "1-salicylic-acid-body-wash": bw1SalicylicAcidBodyWash as EnrichedPDP,
   "triple-milk-deep-hydrating-bodywash": tripleMilkDeepHydratingBodywash as EnrichedPDP,
-  "30-urea-foot-roll-on": 30UreaFootRollOn as EnrichedPDP,
-  "4-aha-bha-underarm-roll-on": 4AhaBhaUnderarmRollOn as EnrichedPDP,
-  "5-aha-bha-bodywash": 5AhaBhaBodywash as EnrichedPDP,
-  "10-magnesium-lotion-300ml": 10MagnesiumLotion300ml as EnrichedPDP,
+  "30-urea-foot-roll-on": bw30UreaFootRollOn as EnrichedPDP,
+  "4-aha-bha-underarm-roll-on": bw4AhaBhaUnderarmRollOn as EnrichedPDP,
+  "5-aha-bha-bodywash": bw5AhaBhaBodywash as EnrichedPDP,
+  "10-magnesium-lotion-300ml": bw10MagnesiumLotion300ml as EnrichedPDP,
   "underarm-pigmentation-kit-no-fragrance": underarmPigmentationKitNoFragrance as EnrichedPDP,
   "advanced-hair-growth-serum": advancedHairGrowthSerum as EnrichedPDP,
-  "1-ketoconazole-dandruff-shampoo-250ml": 1KetoconazoleDandruffShampoo250ml as EnrichedPDP,
+  "1-ketoconazole-dandruff-shampoo-250ml": bw1KetoconazoleDandruffShampoo250ml as EnrichedPDP,
+  "magnesium-glycinate-gummies-60n": magnesiumGlycinateGummies60n as EnrichedPDP,
+  "daily-hydration-kit": dailyHydrationKit as EnrichedPDP,
+  "10-aha-body-scrub": bw10AhaBodyScrub as EnrichedPDP,
+  "ultra-light-sunscreen-spf50": ultraLightSunscreenSpf50 as EnrichedPDP,
+  "body-sunscreen-spray-with-spf-50": bodySunscreenSprayWithSpf50 as EnrichedPDP,
+  "1-salicylic-acid-body-wash-100ml": bw1SalicylicAcidBodyWash100ml as EnrichedPDP,
+  "2-aha-body-wash": bw2AhaBodyWash as EnrichedPDP,
+  "body-care-mini-pack": bodyCareMiniPack as EnrichedPDP,
+  "urea-skin-heel-repair-kit-75ml": ureaSkinHeelRepairKit75ml as EnrichedPDP,
+  "sabodywash-scrub": sabodywashScrub as EnrichedPDP,
+  "face-body-sunscreen-kit": faceBodySunscreenKit as EnrichedPDP,
+  "hair-growth-serum-roll-on-2-months-xp": hairGrowthSerumRollOn2MonthsXp as EnrichedPDP,
+  "advanced-underarm-pigmentation-kit": advancedUnderarmPigmentationKit as EnrichedPDP,
+  "1-peptide-ceramide-moisturizer": bw1PeptideCeramideMoisturizer as EnrichedPDP,
+  "anti-dandruff-serum": antiDandruffSerum as EnrichedPDP,
+  "deep-moisturizing-conditioner": deepMoisturizingConditioner as EnrichedPDP,
+  "2-salicylic-acid-face-wash": bw2SalicylicAcidFaceWash as EnrichedPDP,
+  "calcium-gummies": calciumGummies as EnrichedPDP,
+  "pigmentation-repair-cream": pigmentationRepairCream as EnrichedPDP,
+  "5-lactic-acid-body-lotion": bw5LacticAcidBodyLotion as EnrichedPDP,
+  "6-aha-bha-underarm-roll-on": bw6AhaBhaUnderarmRollOn as EnrichedPDP,
+  "niacinamide-body-lotion": niacinamideBodyLotion as EnrichedPDP,
+  "acne-control-wash": acneControlWash as EnrichedPDP,
+  "4-aha-bha-underarm-roll-on-watermelon": bw4AhaBhaUnderarmRollOnWatermelon as EnrichedPDP,
+  "4-aha-bha-underarm-roll-on-no-fragrance": bw4AhaBhaUnderarmRollOnNoFragrance as EnrichedPDP,
+  "4-aha-bha-body-butter": bw4AhaBhaBodyButter as EnrichedPDP,
+  "glycolic-acid-stick": glycolicAcidStick as EnrichedPDP,
+  "scalp-massager": scalpMassager as EnrichedPDP,
+  "hair-fall-control-shampoo": hairFallControlShampoo as EnrichedPDP,
+  "glutathione-gummies-60": glutathioneGummies60 as EnrichedPDP,
+  "4-aha-bha-underarm-rollon-frag-free-75": bw4AhaBhaUnderarmRollonFragFree75 as EnrichedPDP,
+  "12-aha-scrub": bw12AhaScrub as EnrichedPDP,
+  "shilajit-gummies-60n": shilajitGummies60n as EnrichedPDP,
+  "5-niacinamide-body-wash": bw5NiacinamideBodyWash as EnrichedPDP,
+  "4-aha-bha-underarm-roll-on-pack-three": bw4AhaBhaUnderarmRollOnPackThree as EnrichedPDP,
+  "biotin-hair-gummies-120": biotinHairGummies120 as EnrichedPDP,
+  "brow-lash-serum": browLashSerum as EnrichedPDP,
+  "10-urea-lotion": bw10UreaLotion as EnrichedPDP,
+  "hyaluronic-acid-body-wash": hyaluronicAcidBodyWash as EnrichedPDP,
+  "magnesium-gummies-and-lotion-kit": magnesiumGummiesAndLotionKit as EnrichedPDP,
+  "hydrocolloid-acne-pimple-patch": hydrocolloidAcnePimplePatch as EnrichedPDP,
+  "biotin-hair-gummies-breastfeeding-moms-30n-xp": biotinHairGummiesBreastfeedingMoms30nXp as EnrichedPDP,
+  "hair-strengthening-serum": hairStrengtheningSerum as EnrichedPDP,
+  "hair-magnesium-gummies-kit-30n": hairMagnesiumGummiesKit30n as EnrichedPDP,
+  "2-5-benzoyl-peroxide-bodywash": bw25BenzoylPeroxideBodywash as EnrichedPDP,
+  "aha-bha-body-pack": ahaBhaBodyPack as EnrichedPDP,
+  "bw-multivitamin-gummies": bwMultivitaminGummies as EnrichedPDP,
+  "summer-essentials-kit": summerEssentialsKit as EnrichedPDP,
+  "intense-dandruff-kit": intenseDandruffKit as EnrichedPDP,
+  "collagen-skin-gummies": collagenSkinGummies as EnrichedPDP,
+  "hyaluronic-acid-mousse": hyaluronicAcidMousse as EnrichedPDP,
+  "ice-roller": iceRoller as EnrichedPDP,
+  "calcium-gummies-xp": calciumGummiesXp as EnrichedPDP,
+  "lightest-mineral-sunscreen-spf50": lightestMineralSunscreenSpf50 as EnrichedPDP,
+  "5-niacinamide-body-wash-pack-of-2": bw5NiacinamideBodyWashPackOf2 as EnrichedPDP,
+  "1-zpto-ads-hg30-kit": bw1ZptoAdsHg30Kit as EnrichedPDP,
+  "dandruff-and-hairfall-kit": dandruffAndHairfallKit as EnrichedPDP,
+  "strawberry-skin-pack": strawberrySkinPack as EnrichedPDP,
+  "niacinamide-body-wash-700": niacinamideBodyWash700 as EnrichedPDP,
+  "postpartum-severe-hairfall-1month-xp": postpartumSevereHairfall1monthXp as EnrichedPDP,
 };
 
 export function getEnrichedPDP(slug: string): EnrichedPDP | null {

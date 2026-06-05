@@ -7,6 +7,7 @@ import { calculateProtocolMatch } from "@/lib/protocolEngine";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import type { MatchedProduct } from "@/lib/protocolEngine";
 import { calculateProfileDepth } from "@/lib/ai/profile-depth";
+import { buildFollowUpString } from "@/lib/ai/mock-generator";
 import { supabase } from "@/lib/supabase/client";
 
 /* ── Energy bar options ── */
@@ -538,11 +539,7 @@ export default function InsightsPage() {
       const gender: string = profile.sex ?? "male";
       const rawConcern: string = profile.concern ?? "";
       const concern = CONCERN_MAP[rawConcern] || "energy";
-      const followUpStr = Object.entries(profile as Record<string, unknown>)
-        .filter(([, v]) => v && typeof v === "string")
-        .map(([, v]) => (v as string).replace(/_/g, " "))
-        .join(" ")
-        .toLowerCase();
+      const followUpStr = buildFollowUpString(profile) ?? undefined;
       const matched = calculateProtocolMatch({ gender, age: profile.age ?? "25-34", diet: profile.diet ?? "non-veg", concern, followUp: followUpStr || undefined }, catalogProducts);
       setSupplements(matched);
     } catch {}

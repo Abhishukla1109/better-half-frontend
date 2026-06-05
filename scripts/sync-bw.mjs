@@ -184,7 +184,8 @@ async function pushMetafields(token, gid, fields) {
 
 // ── Registry helpers ───────────────────────────────────────────────────────────
 function slugToVarName(slug) {
-  return slug.replace(/-([a-z0-9])/g, (_, c) => c.toUpperCase());
+  const name = slug.replace(/-([a-z0-9])/g, (_, c) => c.toUpperCase());
+  return /^\d/.test(name) ? `bw${name.charAt(0).toUpperCase()}${name.slice(1)}` : name;
 }
 
 function registerInEnrichedProducts(slug) {
@@ -364,6 +365,8 @@ async function main() {
   const args = process.argv.slice(2);
   const urlKey = args.find(a => !a.startsWith("--"));
   const force = args.includes("--force");
+  const asIdx = args.indexOf("--as");
+  const localSlug = asIdx !== -1 ? args[asIdx + 1] : null;
 
   if (!urlKey) {
     console.error("Usage: node scripts/sync-bw.mjs <bw-url-key> [--force]");
@@ -381,13 +384,14 @@ async function main() {
   const data = apiData.data;
 
   // 2. Transform
-  const { enriched, concern, price, mrp, image, name } = transformBW(urlKey, data);
+  const effectiveSlug = localSlug ?? urlKey;
+  const { enriched, concern, price, mrp, image, name } = transformBW(effectiveSlug, data);
   console.log(`  Name: ${name}`);
   console.log(`  Concern: ${concern} | Price: ₹${price} | MRP: ₹${mrp}`);
   console.log(`  Images: ${enriched.images.length} | Ingredients: ${enriched.ingredients.length} | FAQs: ${enriched.faqs.length} | Reviews: ${enriched.reviews.length}`);
 
   // 3. Save JSON
-  const jsonPath = join(ENRICHED_DIR, `${urlKey}.json`);
+  const jsonPath = join(ENRICHED_DIR, `${effectiveSlug}.json`);
   if (existsSync(jsonPath) && !force) {
     console.log(`\n  JSON already exists (use --force to overwrite): ${urlKey}.json`);
   } else {
@@ -398,25 +402,26 @@ async function main() {
   // 4. Shopify
   console.log("\nShopify sync...");
   const token = await getToken();
+  const shopifyHandle = effectiveSlug;
 
-  let found = await getProductGid(token, urlKey);
+  let found = await getProductGid(token, shopifyHandle);
   let gid = found?.gid ?? null;
   let numericId = found?.id ?? null;
 
   if (!gid) {
-    console.log(`  Creating new product: ${urlKey}...`);
-    const created = await createProduct(token, urlKey, name, price, mrp, image);
+    console.log(`  Creating new product: ${shopifyHandle}...`);
+    const created = await createProduct(token, shopifyHandle, name, price, mrp, image);
     gid = created.gid;
     numericId = created.id;
     console.log(`  Created: ${gid}`);
   } else if (found.status === "archived") {
-    console.log(`  Un-archiving: ${urlKey}...`);
+    console.log(`  Un-archiving: ${shopifyHandle}...`);
     await unarchiveProduct(token, numericId);
     console.log(`  Un-archived`);
     await setVariantPrice(token, numericId, price, mrp);
     await addImageIfMissing(token, numericId, image);
   } else {
-    console.log(`  Found existing product: ${urlKey}`);
+    console.log(`  Found existing product: ${shopifyHandle}`);
     await setVariantPrice(token, numericId, price, mrp);
     await addImageIfMissing(token, numericId, image);
   }
@@ -436,9 +441,9 @@ async function main() {
 
   // 6. Register in enrichedProducts.ts
   console.log("\nRegistering in enrichedProducts.ts...");
-  registerInEnrichedProducts(urlKey);
+  registerInEnrichedProducts(effectiveSlug);
 
-  console.log(`\n✓ Done: ${urlKey}\n`);
+  console.log(`\n✓ Done: ${effectiveSlug}\n`);
 }
 
 main().catch(e => { console.error(e); process.exit(1); });
