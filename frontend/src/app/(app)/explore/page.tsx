@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
+import { useState, useEffect, useMemo, useCallback, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Sparkles, ExternalLink, ArrowRight, ShoppingBag, Loader2, Check, AlertCircle, X, ChevronDown, Search } from "lucide-react";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
@@ -214,7 +214,7 @@ function ProductCard({
     <div className="flex flex-col bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant/10 hover:border-primary-container/30 hover:shadow-md transition-all duration-200 group">
       {/* Image */}
       <div
-        onClick={() => router.push(`/product/${product.id}`)}
+        onClick={() => { saveExploreScroll(); router.push(`/product/${product.id}`); }}
         className="relative w-full h-[175px] sm:h-[190px] bg-surface-container-low cursor-pointer overflow-hidden"
       >
         {product.image ? (
@@ -356,6 +356,44 @@ function NoProfileState() {
   );
 }
 
+/* ── Scroll position save — called by ProductCard before navigating away ── */
+let _saveScrollPos: (() => void) | null = null;
+function saveExploreScroll() { _saveScrollPos?.(); }
+
+/* ── Swipe-down-to-dismiss hook ── */
+function useSwipeToDismiss(onDismiss: () => void) {
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const startY = useRef(0);
+  const dragging = useRef(false);
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    startY.current = e.touches[0].clientY;
+    dragging.current = true;
+    if (sheetRef.current) sheetRef.current.style.transition = "none";
+  }, []);
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!dragging.current || !sheetRef.current) return;
+    const dy = e.touches[0].clientY - startY.current;
+    if (dy > 0) sheetRef.current.style.transform = `translateY(${dy}px)`;
+  }, []);
+
+  const onTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!sheetRef.current || !dragging.current) return;
+    dragging.current = false;
+    const dy = e.changedTouches[0].clientY - startY.current;
+    sheetRef.current.style.transition = "transform 0.25s ease";
+    if (dy > 80) {
+      sheetRef.current.style.transform = `translateY(100%)`;
+      setTimeout(onDismiss, 220);
+    } else {
+      sheetRef.current.style.transform = "";
+    }
+  }, [onDismiss]);
+
+  return { sheetRef, onTouchStart, onTouchMove, onTouchEnd };
+}
+
 /* ── Explore Page ── */
 function ExplorePageContent() {
   const searchParams = useSearchParams();
@@ -369,6 +407,16 @@ function ExplorePageContent() {
     router.replace(`?${p.toString()}`, { scroll: false });
   }, [router, searchParams]);
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  // Register scroll saver so ProductCard can call it before navigating
+  useEffect(() => {
+    _saveScrollPos = () => {
+      if (scrollContainerRef.current)
+        sessionStorage.setItem("bh_explore_scroll", scrollContainerRef.current.scrollTop.toString());
+    };
+    return () => { _saveScrollPos = null; };
+  }, []);
+
   const [profile, setProfile] = useState<StoredProfile | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [picksVisible, setPicksVisible] = useState(true);
@@ -377,6 +425,11 @@ function ExplorePageContent() {
   const [showBrandSheet, setShowBrandSheet] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Swipe-to-dismiss for each bottom sheet
+  const brandSwipe    = useSwipeToDismiss(useCallback(() => setShowBrandSheet(false),   []));
+  const categorySwipe = useSwipeToDismiss(useCallback(() => setShowCategorySheet(false), []));
+  const concernSwipe  = useSwipeToDismiss(useCallback(() => setShowConcernSheet(false),  []));
 
   const { activeMember } = useActiveProfile();
   const { products, loading: productsLoading } = useCatalogProducts();
@@ -427,6 +480,18 @@ function ExplorePageContent() {
   useEffect(() => {
     if (!searchParams.get("brand") && activeBrand) setSelectedBrand(activeBrand);
   }, [activeBrand, searchParams]);
+
+  // Restore scroll position after returning from a product PDP
+  useEffect(() => {
+    if (productsLoading) return;
+    const saved = sessionStorage.getItem("bh_explore_scroll");
+    if (!saved) return;
+    sessionStorage.removeItem("bh_explore_scroll");
+    const target = parseInt(saved, 10);
+    requestAnimationFrame(() => {
+      if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = target;
+    });
+  }, [productsLoading]);
 
   const picksParam = searchParams.get("picks");
   const [storedPicks, setStoredPicks] = useState("");
@@ -689,7 +754,7 @@ function ExplorePageContent() {
       </div>
 
       {/* ── Scrollable content ── */}
-      <div className="flex-1 overflow-y-auto overflow-x-clip">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-x-clip">
 
         {productsLoading && <ProtocolLoader />}
 
@@ -825,7 +890,14 @@ function ExplorePageContent() {
       {showBrandSheet && (
         <div className="fixed inset-0 z-[55]" onClick={() => setShowBrandSheet(false)}>
           <div className="absolute inset-0 bg-black/40" />
-          <div className="absolute bottom-0 left-0 right-0 bg-surface rounded-t-3xl pt-5 pb-10 px-5" onClick={(e) => e.stopPropagation()}>
+          <div
+            ref={brandSwipe.sheetRef}
+            onTouchStart={brandSwipe.onTouchStart}
+            onTouchMove={brandSwipe.onTouchMove}
+            onTouchEnd={brandSwipe.onTouchEnd}
+            className="absolute bottom-0 left-0 right-0 bg-surface rounded-t-3xl pt-5 pb-10 px-5"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="w-10 h-1 bg-outline-variant/30 rounded-full mx-auto mb-5" />
             <p className="font-extrabold text-[16px] text-on-surface font-[family-name:var(--font-manrope)] mb-4">Shop by Brand</p>
             <div className="flex flex-col gap-3">
@@ -868,7 +940,14 @@ function ExplorePageContent() {
       {showCategorySheet && (
         <div className="fixed inset-0 z-[55]" onClick={() => setShowCategorySheet(false)}>
           <div className="absolute inset-0 bg-black/40" />
-          <div className="absolute bottom-0 left-0 right-0 bg-surface rounded-t-3xl pt-5 pb-10 px-5" onClick={(e) => e.stopPropagation()}>
+          <div
+            ref={categorySwipe.sheetRef}
+            onTouchStart={categorySwipe.onTouchStart}
+            onTouchMove={categorySwipe.onTouchMove}
+            onTouchEnd={categorySwipe.onTouchEnd}
+            className="absolute bottom-0 left-0 right-0 bg-surface rounded-t-3xl pt-5 pb-10 px-5"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="w-10 h-1 bg-outline-variant/30 rounded-full mx-auto mb-5" />
             <p className="font-extrabold text-[16px] text-on-surface font-[family-name:var(--font-manrope)] mb-4">Shop by Category</p>
 
@@ -919,7 +998,14 @@ function ExplorePageContent() {
       {showConcernSheet && (
         <div className="fixed inset-0 z-[55]" onClick={() => setShowConcernSheet(false)}>
           <div className="absolute inset-0 bg-black/40" />
-          <div className="absolute bottom-0 left-0 right-0 bg-surface rounded-t-3xl pt-5 pb-10 px-5" onClick={(e) => e.stopPropagation()}>
+          <div
+            ref={concernSwipe.sheetRef}
+            onTouchStart={concernSwipe.onTouchStart}
+            onTouchMove={concernSwipe.onTouchMove}
+            onTouchEnd={concernSwipe.onTouchEnd}
+            className="absolute bottom-0 left-0 right-0 bg-surface rounded-t-3xl pt-5 pb-10 px-5"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="w-10 h-1 bg-outline-variant/30 rounded-full mx-auto mb-5" />
             <p className="font-extrabold text-[16px] text-on-surface font-[family-name:var(--font-manrope)] mb-4">Shop by Concern</p>
             <div className="flex flex-col gap-2.5">
