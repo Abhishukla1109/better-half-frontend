@@ -20,6 +20,7 @@ type CategoryDef = {
   emoji: string;
   gradient: string;
   concernValues: string[];
+  followUpFilter?: string[];  // if set, product.followUp must match at least one term
 };
 
 const CATEGORIES: CategoryDef[] = [
@@ -27,10 +28,10 @@ const CATEGORIES: CategoryDef[] = [
   { key: "hair",       label: "Hair",       abbr: "H",  emoji: "💇",  gradient: "from-blue-500/20 to-cyan-500/20",       concernValues: ["hair"] },
   { key: "beard",      label: "Beard",      abbr: "Bd", emoji: "🧔",  gradient: "from-slate-500/20 to-stone-500/20",     concernValues: ["beard"] },
   { key: "skin",       label: "Skin",       abbr: "Sk", emoji: "✨",  gradient: "from-rose-400/20 to-pink-500/20",       concernValues: ["skin"] },
-  { key: "weight",     label: "Weight",     abbr: "W",  emoji: "⚖️",  gradient: "from-emerald-500/20 to-teal-500/20",   concernValues: ["weight"] },
+  { key: "weight",     label: "Weight",     abbr: "W",  emoji: "⚖️",  gradient: "from-emerald-500/20 to-teal-500/20",   concernValues: ["energy"], followUpFilter: ["belly fat","fat","lose","body composition","muscle","strength","protein","gain","creatine","recovery","endurance","athlete"] },
   { key: "nutrition",  label: "Nutrition",  abbr: "N",  emoji: "🌿",  gradient: "from-lime-500/20 to-green-500/20",     concernValues: ["energy"] },
   { key: "sleep",      label: "Sleep",      abbr: "Sl", emoji: "😴",  gradient: "from-indigo-500/20 to-purple-500/20",  concernValues: ["sleep"] },
-  { key: "hormones",   label: "Hormones",   abbr: "P",  emoji: "🧬",  gradient: "from-fuchsia-500/20 to-violet-500/20", concernValues: ["hormones"] },
+  { key: "hormones",   label: "Hormones",   abbr: "P",  emoji: "🧬",  gradient: "from-fuchsia-500/20 to-violet-500/20", concernValues: ["energy"], followUpFilter: ["testosterone","libido","drive","performance","cortisol"] },
 ];
 
 const CONCERN_LIST = [
@@ -41,6 +42,45 @@ const CONCERN_LIST = [
   { key: "sleep",     emoji: "😴", label: "Sleep & Stress",      desc: "Melatonin, magnesium, calm" },
   { key: "hormones",  emoji: "🧬", label: "Hormonal Health",     desc: "PCOS, testosterone, balance" },
 ];
+
+type SubConcern = {
+  key: string;
+  label: string;
+  emoji: string;
+  desc: string;
+  followUpTerms: string[];
+};
+
+const CATEGORY_SUB_CONCERNS: Record<string, SubConcern[]> = {
+  hair: [
+    { key: "hair-fall",   label: "Hair Fall",          emoji: "💇", desc: "DHT blockers, regrowth serums",      followUpTerms: ["hair fall","thinning","shedding","dht","receding","hairline","redensyl"] },
+    { key: "dandruff",    label: "Dandruff & Scalp",   emoji: "❄️", desc: "Anti-dandruff, scalp care",           followUpTerms: ["dandruff","itchy","flaky","scalp","oily scalp","zpto","ketoconazole","fungal","sebum"] },
+    { key: "hair-growth", label: "Growth & Density",   emoji: "🌱", desc: "Biotin, keratin, thicker hair",       followUpTerms: ["regrowth","biotin","density","rosemary","keratin","strengthening","circulation"] },
+    { key: "postpartum",  label: "Postpartum Hair",    emoji: "🤱", desc: "Post-pregnancy hair recovery",        followUpTerms: ["postpartum","postnatal","breastfeeding"] },
+  ],
+  skin: [
+    { key: "acne",         label: "Acne & Breakouts",    emoji: "🔴", desc: "Salicylic, niacinamide, clear skin",    followUpTerms: ["acne","pimples","breakouts","body acne","bumps","salicylic","niacinamide","benzoyl peroxide","sebum"] },
+    { key: "pigmentation", label: "Glow & Pigmentation", emoji: "✨", desc: "Glutathione, brightening serums",        followUpTerms: ["pigmentation","dark spots","brightening","glow","glutathione","tan","sun damage","dullness","dark underarms"] },
+    { key: "hydration",    label: "Hydration & Texture", emoji: "💧", desc: "Hyaluronic, ceramide, moisturizers",     followUpTerms: ["dry","rough","texture","hydration","moisturizer","hyaluronic","ceramide","urea","cracked heels"] },
+    { key: "suncare",      label: "Sun Protection",      emoji: "☀️", desc: "SPF 50+, mineral, broad spectrum",       followUpTerms: ["spf","sun damage","tan","summer","mineral","sunscreen"] },
+  ],
+  weight: [
+    { key: "fat-loss", label: "Fat Loss",          emoji: "🔥", desc: "Metabolism, body composition",     followUpTerms: ["belly fat","fat","lose","body composition","lean"] },
+    { key: "muscle",   label: "Muscle & Strength", emoji: "💪", desc: "Protein, creatine, recovery",      followUpTerms: ["muscle","strength","gain","protein","creatine","recovery","endurance","athlete"] },
+  ],
+  nutrition: [
+    { key: "energy-fatigue", label: "Energy & Fatigue", emoji: "⚡", desc: "B12, ashwagandha, stamina",      followUpTerms: ["energy","fatigue","exhaustion","afternoon crash","motivation","vitamins","multivitamin"] },
+    { key: "gut",            label: "Gut & Immunity",   emoji: "🌿", desc: "Probiotics, digestive health",   followUpTerms: ["gut","immunity","digestion","calcium","bone"] },
+  ],
+  hormones: [
+    { key: "testosterone", label: "Testosterone & Drive", emoji: "🧬", desc: "Libido, vitality, performance",  followUpTerms: ["testosterone","libido","drive","performance"] },
+    { key: "stress",       label: "Stress & Cortisol",   emoji: "🧘", desc: "Ashwagandha, cortisol balance",  followUpTerms: ["cortisol","stress","anxiety","mood","motivation"] },
+  ],
+  sleep: [
+    { key: "sleep-quality", label: "Better Sleep",  emoji: "😴", desc: "Melatonin, magnesium, rest",   followUpTerms: ["sleep","insomnia","poor sleep","rest","relaxation","glycinate","magnesium"] },
+    { key: "stress-calm",   label: "Stress & Calm", emoji: "🧘", desc: "Calm, anxiety, cortisol",      followUpTerms: ["anxiety","calm","cortisol","stress","mood"] },
+  ],
+};
 
 /* Onboarding concern label → product concern values */
 const ONBOARDING_CONCERN_MAP: Record<string, string[]> = {
@@ -400,8 +440,11 @@ function ExplorePageContent() {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState(() => searchParams.get("tab") ?? "for-you");
 
+  const [selectedSubConcern, setSelectedSubConcern] = useState<string | null>(null);
+
   const switchTab = useCallback((key: string) => {
     setActiveCategory(key);
+    setSelectedSubConcern(null);
     const p = new URLSearchParams(searchParams.toString());
     p.set("tab", key);
     router.replace(`?${p.toString()}`, { scroll: false });
@@ -450,6 +493,7 @@ function ExplorePageContent() {
 
   const switchBrand = useCallback((brand: string | null) => {
     setSelectedBrand(brand);
+    setSelectedSubConcern(null);
     const p = new URLSearchParams(searchParams.toString());
     if (brand) p.set("brand", brand); else p.delete("brand");
     router.replace(`?${p.toString()}`, { scroll: false });
@@ -565,9 +609,24 @@ function ExplorePageContent() {
       if (!cat) { result = []; }
       else {
         const pool = selectedBrand ? products.filter((p) => p.brand === selectedBrand) : products;
-        result = pool
-          .filter((p) => p.concern.some((c) => cat.concernValues.includes(c)))
-          .sort((a, b) => b.baseScore - a.baseScore);
+        let filtered = pool.filter((p) => p.concern.some((c) => cat.concernValues.includes(c)));
+        // Disambiguate weight/hormones from the shared energy concern pool
+        if (cat.followUpFilter) {
+          filtered = filtered.filter((p) =>
+            p.followUp.some((f) => cat.followUpFilter!.some((t) => f.toLowerCase().includes(t.toLowerCase())))
+          );
+        }
+        // Apply sub-concern
+        if (selectedSubConcern) {
+          const subs = CATEGORY_SUB_CONCERNS[activeCategory] ?? [];
+          const sub = subs.find((s) => s.key === selectedSubConcern);
+          if (sub) {
+            filtered = filtered.filter((p) =>
+              p.followUp.some((f) => sub.followUpTerms.some((t) => f.toLowerCase().includes(t.toLowerCase())))
+            );
+          }
+        }
+        result = filtered.sort((a, b) => b.baseScore - a.baseScore);
       }
     }
 
@@ -582,7 +641,7 @@ function ExplorePageContent() {
     }
 
     return result;
-  }, [activeCategory, profile, forYouConcernValues, selectedBrand, isKid, activeMember, products, searchQuery]);
+  }, [activeCategory, profile, forYouConcernValues, selectedBrand, isKid, activeMember, products, searchQuery, selectedSubConcern]);
 
   const visibleCategories = useMemo<CategoryDef[]>(() => {
     return CATEGORIES.filter((c) => {
@@ -660,15 +719,23 @@ function ExplorePageContent() {
 
   const isChipActive = (key: string) => {
     if (key === "category-sheet") return CATEGORY_KEYS.includes(activeCategory);
-    if (key === "concern-sheet")  return showKidsFilters ? KIDS_CONCERN_KEYS.includes(activeCategory) : false;
+    if (key === "concern-sheet") {
+      if (showKidsFilters) return KIDS_CONCERN_KEYS.includes(activeCategory);
+      return selectedSubConcern !== null || CONCERN_LIST.some((c) => c.key === activeCategory);
+    }
     return activeCategory === key;
   };
 
-  const sectionTitle =
-    activeCategory === "for-you"      ? "For You"
-    : activeCategory === "bestsellers" ? "Bestsellers"
-    : activeCategory === "all"         ? "Shop All"
-    : activeCategoryDef?.label         ?? "Products";
+  const sectionTitle = (() => {
+    if (activeCategory === "for-you") return "For You";
+    if (activeCategory === "bestsellers") return "Bestsellers";
+    if (activeCategory === "all") return "Shop All";
+    if (selectedSubConcern) {
+      const sub = (CATEGORY_SUB_CONCERNS[activeCategory] ?? []).find((s) => s.key === selectedSubConcern);
+      if (sub) return sub.label;
+    }
+    return activeCategoryDef?.label ?? "Products";
+  })();
 
   return (
     <div className="flex flex-col h-[calc(100dvh-68px-48px)] lg:h-[calc(100dvh-48px)]">
@@ -1007,7 +1074,9 @@ function ExplorePageContent() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-10 h-1 bg-outline-variant/30 rounded-full mx-auto mb-5" />
-            <p className="font-extrabold text-[16px] text-on-surface font-[family-name:var(--font-manrope)] mb-4">Shop by Concern</p>
+            <p className="font-extrabold text-[16px] text-on-surface font-[family-name:var(--font-manrope)] mb-4">
+              {(CATEGORY_SUB_CONCERNS[activeCategory]?.length ?? 0) > 0 ? "Refine by Concern" : "Shop by Concern"}
+            </p>
             <div className="flex flex-col gap-2.5">
               {showKidsFilters ? (
                 KIDS_CONCERN_FILTERS.map((concern) => (
@@ -1027,7 +1096,51 @@ function ExplorePageContent() {
                     </div>
                   </button>
                 ))
+              ) : (CATEGORY_SUB_CONCERNS[activeCategory]?.length ?? 0) > 0 ? (
+                // Sub-concerns for the active category
+                <>
+                  <p className="text-[11px] text-on-surface-variant/50 mb-3">
+                    Filtering within <span className="font-bold text-primary-container">{activeCategoryDef?.label}</span>
+                  </p>
+                  {/* "All" option */}
+                  <button
+                    onClick={() => { setSelectedSubConcern(null); setShowConcernSheet(false); }}
+                    className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl border-2 transition-all cursor-pointer text-left mb-1 ${
+                      !selectedSubConcern
+                        ? "bg-primary-container/10 border-primary-container/35"
+                        : "border-outline-variant/10 bg-surface-container-low hover:bg-surface-container"
+                    }`}
+                  >
+                    <span className="text-2xl leading-none shrink-0">✦</span>
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-[13px] font-bold ${!selectedSubConcern ? "text-primary-container" : "text-on-surface"}`}>
+                        All {activeCategoryDef?.label} products
+                      </p>
+                      <p className="text-[11px] text-on-surface-variant/50 mt-0.5">Show everything in this category</p>
+                    </div>
+                    {!selectedSubConcern && <Check className="w-4 h-4 text-primary-container shrink-0" strokeWidth={2.5} />}
+                  </button>
+                  {(CATEGORY_SUB_CONCERNS[activeCategory] ?? []).map((sub) => (
+                    <button
+                      key={sub.key}
+                      onClick={() => { setSelectedSubConcern(sub.key); setShowConcernSheet(false); }}
+                      className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl border-2 transition-all cursor-pointer text-left ${
+                        selectedSubConcern === sub.key
+                          ? "bg-primary-container/10 border-primary-container/35"
+                          : "border-outline-variant/10 bg-surface-container-low hover:bg-surface-container"
+                      }`}
+                    >
+                      <span className="text-2xl leading-none shrink-0">{sub.emoji}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-[13px] font-bold ${selectedSubConcern === sub.key ? "text-primary-container" : "text-on-surface"}`}>{sub.label}</p>
+                        <p className="text-[11px] text-on-surface-variant/50 mt-0.5">{sub.desc}</p>
+                      </div>
+                      {selectedSubConcern === sub.key && <Check className="w-4 h-4 text-primary-container shrink-0" strokeWidth={2.5} />}
+                    </button>
+                  ))}
+                </>
               ) : (
+                // No category selected or category has no sub-concerns → top-level concern selector
                 CONCERN_LIST
                   .filter((c) => !(c.key === "beard" && (profile?.sex === "female" || selectedBrand === "Be Bodywise")))
                   .map((concern) => (
