@@ -478,6 +478,15 @@ function NewProductPDP({
             {product.brand}
           </span>
 
+          {/* Little Joys: age badge */}
+          {enriched?.ageGroup && (
+            <div className="mb-2">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-700 border border-amber-400/20">
+                👶 Ages {enriched.ageGroup}
+              </span>
+            </div>
+          )}
+
           <div className="flex items-start gap-2">
             <h1 className="flex-1 text-xl font-extrabold text-on-surface leading-snug tracking-tight font-[family-name:var(--font-manrope)]">
               {displayName}
@@ -538,20 +547,34 @@ function NewProductPDP({
             );
           })()}
 
-          {/* Rating */}
-          {product.rating && (
+          {/* Little Joys: allergen warning */}
+          {enriched?.allergens && enriched.allergens.length > 0 && (
+            <div className="flex items-center gap-1.5 mt-2">
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full bg-red-50 text-red-600 border border-red-200/60">
+                ⚠️ Contains: {enriched.allergens.join(", ")}
+              </span>
+            </div>
+          )}
+
+          {/* Rating — catalog value or enriched fallback */}
+          {(() => {
+            const r = product.rating ?? enriched?.rating?.average ?? null;
+            const cnt = product.reviewCount ?? enriched?.rating?.count ?? null;
+            if (!r) return null;
+            return (
             <div className="flex items-center gap-1.5 mt-2.5">
               <div className="flex">
                 {[1,2,3,4,5].map((s) => (
-                  <Star key={s} className={`w-4 h-4 ${s <= Math.floor(product.rating!) ? "text-amber-400 fill-amber-400" : "text-outline-variant/30"}`} strokeWidth={0} />
+                  <Star key={s} className={`w-4 h-4 ${s <= Math.floor(r) ? "text-amber-400 fill-amber-400" : "text-outline-variant/30"}`} strokeWidth={0} />
                 ))}
               </div>
-              <span className="text-sm font-semibold text-on-surface">{product.rating}</span>
-              {product.reviewCount && (
-                <span className="text-xs text-on-surface-variant/50">({product.reviewCount >= 1000 ? `${(product.reviewCount / 1000).toFixed(1)}k` : product.reviewCount} reviews)</span>
+              <span className="text-sm font-semibold text-on-surface">{r.toFixed(1)}</span>
+              {cnt && (
+                <span className="text-xs text-on-surface-variant/50">({cnt >= 1000 ? `${(cnt / 1000).toFixed(1)}k` : cnt} reviews)</span>
               )}
             </div>
-          )}
+            );
+          })()}
 
           {/* Price */}
           <div className="flex items-baseline gap-3 mt-3">
@@ -622,6 +645,17 @@ function NewProductPDP({
           </div>
         </div>
 
+        {/* ── Little Joys trust strip ── */}
+        {product.brand === "Little Joys" && (
+          <div className="mt-3 mx-5 flex items-center gap-3 px-4 py-3 rounded-2xl" style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)", border: "1px solid #FCD34D40" }}>
+            <span className="text-2xl shrink-0">🔬</span>
+            <div>
+              <p className="text-[12px] font-extrabold text-amber-800">Developed by Paediatricians</p>
+              <p className="text-[10px] text-amber-700/70 mt-0.5">Every batch lab-tested · No preservatives · No refined sugar</p>
+            </div>
+          </div>
+        )}
+
         {/* ── BetterHalf AI card ── */}
         {hasProfile ? (
           <div className="mt-4 mx-5 rounded-2xl overflow-hidden" style={{ background: "linear-gradient(145deg, #00352E 0%, #004D40 60%, #00564A 100%)" }}>
@@ -670,6 +704,23 @@ function NewProductPDP({
                 <Sparkles className="w-3.5 h-3.5" strokeWidth={1.5} />
                 Take the free quiz
               </Link>
+            </div>
+          </div>
+        )}
+
+        {/* ── Little Joys: Benefits ── */}
+        {enriched?.benefits && enriched.benefits.length > 0 && (
+          <div className="mt-6 px-5">
+            <h2 className="text-lg font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] mb-3">✨ Key Benefits</h2>
+            <div className="grid grid-cols-2 gap-3">
+              {enriched.benefits.map((b, i) => (
+                <div key={i} className="flex flex-col gap-2 p-4 rounded-2xl bg-surface-container-lowest border border-outline-variant/8">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={b.icon} alt={b.title} className="w-10 h-10 object-contain" />
+                  <p className="text-[12px] font-bold text-on-surface leading-snug">{b.title}</p>
+                  <p className="text-[11px] text-on-surface-variant leading-relaxed">{b.description}</p>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -728,13 +779,72 @@ function NewProductPDP({
                       </div>
                     );
                   })()}
-                  {enriched.productDetails.description.length > 0 && (
-                    <div className="mt-3 px-1 space-y-1">
-                      {enriched.productDetails.description.map((line, i) => (
-                        <p key={i} className="text-[11px] text-on-surface-variant/70 leading-relaxed">{line}</p>
-                      ))}
-                    </div>
-                  )}
+                  {enriched.productDetails.description.length > 0 && (() => {
+                    // Merge all description lines, then parse emoji-separated bullets
+                    const fullText = enriched.productDetails.description.join(" ").trim();
+
+                    // Split on ". " or " " immediately before an emoji character
+                    const EMOJI_LEAD = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{27BF}\u{1F000}-\u{1F02F}]/u;
+                    const segments: string[] = [];
+                    let buf = "";
+                    const chars = [...fullText];
+                    for (let idx = 0; idx < chars.length; idx++) {
+                      const ch = chars[idx];
+                      if (idx > 0 && EMOJI_LEAD.test(ch) && /[\s.]/.test(chars[idx - 1])) {
+                        const trimmed = buf.replace(/[.\s]+$/, "").trim();
+                        if (trimmed) segments.push(trimmed);
+                        buf = ch;
+                      } else {
+                        buf += ch;
+                      }
+                    }
+                    const last = buf.replace(/[.\s]+$/, "").trim();
+                    if (last) segments.push(last);
+
+                    // Separate disclaimer sentences
+                    const DISCLAIMER_RE = /medical advice|physician|dietician|nutritionist|consult a/i;
+                    const bullets: { icon: string; text: string }[] = [];
+                    let disclaimer = "";
+
+                    for (const seg of segments) {
+                      if (DISCLAIMER_RE.test(seg)) { disclaimer = seg; continue; }
+                      const m = seg.match(/^([\u{1F300}-\u{1F9FF}\u{2600}-\u{27BF}\u{1F000}-\u{1F02F}][\u{FE0F}]?)\s*/u);
+                      bullets.push(m ? { icon: m[1], text: seg.slice(m[0].length).trim() } : { icon: "", text: seg });
+                    }
+
+                    const hasBullets = bullets.some(b => b.icon);
+
+                    return (
+                      <div className="mt-4">
+                        {hasBullets ? (
+                          <div className="space-y-2.5">
+                            {bullets.map((b, i) => (
+                              <div key={i} className="flex items-start gap-2.5">
+                                {b.icon ? (
+                                  <span className="text-base leading-none shrink-0 mt-0.5">{b.icon}</span>
+                                ) : (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-on-surface-variant/30 shrink-0 mt-1.5" />
+                                )}
+                                <p className="text-[12px] text-on-surface leading-relaxed">{b.text}</p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="space-y-1.5">
+                            {bullets.map((b, i) => (
+                              <p key={i} className="text-[12px] text-on-surface-variant/70 leading-relaxed">{b.text}</p>
+                            ))}
+                          </div>
+                        )}
+                        {disclaimer && (
+                          <div className="mt-3 flex gap-2.5 px-3 py-2.5 rounded-xl bg-blue-50 border border-blue-200/50">
+                            <span className="text-sm shrink-0 mt-0.5">👨‍⚕️</span>
+                            <p className="text-[11px] text-blue-800 leading-relaxed">{disclaimer}.</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               ) : (
                 <ul className="space-y-2.5">
@@ -805,30 +915,43 @@ function NewProductPDP({
             <h2 className="text-lg font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] px-5 mb-4">
               🌿 Key Ingredients
             </h2>
-            <div className="px-5 space-y-3">
+            <div className="px-5 space-y-2">
               {enriched.ingredients.map((ing, i) => {
                 const bgColors = ["bg-green-50","bg-amber-50","bg-blue-50","bg-purple-50","bg-rose-50"];
                 const bg = bgColors[i % bgColors.length];
+                const isOpen = expandedIngredient === i;
                 return (
                 <div key={i} className="rounded-2xl bg-surface border border-outline-variant/10 overflow-hidden">
-                  <button onClick={() => setExpandedIngredient(expandedIngredient === i ? null : i)} className="w-full flex items-center gap-4 p-4 cursor-pointer text-left">
-                    <div className={`shrink-0 w-14 h-14 rounded-2xl ${bg} flex items-center justify-center`}>
+                  <button
+                    onClick={() => setExpandedIngredient(isOpen ? null : i)}
+                    className="w-full flex items-center gap-3.5 px-4 py-3.5 cursor-pointer text-left"
+                  >
+                    <div className={`shrink-0 w-12 h-12 rounded-xl ${bg} flex items-center justify-center`}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={ing.icon} alt={ing.name} className="w-10 h-10 object-contain" />
+                      <img src={ing.icon} alt={ing.name} className="w-9 h-9 object-contain" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-on-surface">{ing.name}</p>
-                      <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">{ing.shortDesc}</p>
+                      <p className="text-sm font-bold text-on-surface leading-snug">{ing.name}</p>
+                      <p className="text-[10px] text-on-surface-variant/45 mt-0.5">
+                        {isOpen ? "Tap to collapse" : "Tap to learn more"}
+                      </p>
                     </div>
-                    {expandedIngredient === i
-                      ? <ChevronUp className="w-4 h-4 text-on-surface-variant/50 shrink-0" />
-                      : <ChevronDown className="w-4 h-4 text-on-surface-variant/50 shrink-0" />
+                    {isOpen
+                      ? <ChevronUp className="w-4 h-4 text-on-surface-variant/40 shrink-0" />
+                      : <ChevronDown className="w-4 h-4 text-on-surface-variant/40 shrink-0" />
                     }
                   </button>
-                  {expandedIngredient === i && ing.longDesc && (
-                    <div className="px-4 pb-4 pt-0">
+                  {isOpen && (ing.shortDesc || ing.longDesc) && (
+                    <div className="px-4 pb-4">
                       <div className="h-px bg-outline-variant/10 mb-3" />
-                      <p className="text-sm text-on-surface-variant leading-relaxed">{ing.longDesc}</p>
+                      {ing.shortDesc && (
+                        <p className="text-[13px] text-on-surface-variant leading-relaxed">
+                          {ing.shortDesc.replace(/^Our paediatricians say:\s*/i, "").replace(/^Doctors? say:\s*/i, "")}
+                        </p>
+                      )}
+                      {ing.longDesc && (
+                        <p className="text-[13px] text-on-surface-variant leading-relaxed mt-2">{ing.longDesc}</p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -936,6 +1059,19 @@ function NewProductPDP({
                   )}
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Little Joys: Medical advisory notice ── */}
+        {product.brand === "Little Joys" && (enriched?.productType === "kids" || enriched?.ageGroup) && (
+          <div className="mt-6 mx-5 flex gap-3 p-4 rounded-2xl bg-blue-50 border border-blue-200/60">
+            <span className="text-xl shrink-0 mt-0.5">👨‍⚕️</span>
+            <div>
+              <p className="text-[12px] font-bold text-blue-900">Consult before starting</p>
+              <p className="text-[11px] text-blue-800/70 mt-0.5 leading-relaxed">
+                For children with any medical condition or dietary restriction, consult a paediatrician before use.
+              </p>
             </div>
           </div>
         )}

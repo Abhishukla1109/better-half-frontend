@@ -1,0 +1,108 @@
+{
+  "slug": "mixed-berry-jam-250g",
+  "sourceId": "978",
+  "brand": "Little Joys",
+  "name": " Mixed Berry Jam",
+  "subtitle": "Made with whole juicy berries | No Refined Sugar",
+  "metaDescription": "",
+  "rating": {
+    "average": 4.3,
+    "count": 52
+  },
+  "images": [
+    "https://i.mscwlns.co/media/misc/pdp/jam-glass/hero%20imageJAM_imd7wn.jpg?tr=w-600"
+  ],
+  "heroVideo": null,
+  "ageGroup": "13–18 years",
+  "allergens": [],
+  "productType": "food",
+  "benefits": [],
+  "ingredients": [
+    {
+      "name": "Berries (Strawberry, Blueberry, Raspberry)",
+      "icon": "https://i.mscwlns.co/media/misc/pdp/fruit-jam/Strawberry%20bowl%20_ir1g3c.png?tr=w-600",
+      "shortDesc": "Mixed Berries (Strawberry, Blueberry, Raspberry): Packed with antioxidants and vitamins to support immunity and healthy skin.",
+      "longDesc": ""
+    },
+    {
+      "name": "Honey",
+      "icon": "https://i.mscwlns.co/media/misc/pdp/fruit-jam/Honey%20Bowl_b7jjoj.png?tr=w-600",
+      "shortDesc": "Natural energy booster that soothes the throat and supports overall wellness.",
+      "longDesc": ""
+    },
+    {
+      "name": "Lemon Juice",
+      "icon": "https://i.mscwlns.co/media/misc/others/Lemon%20Juice_ijdh8f.png?tr=w-600",
+      "shortDesc": "Rich in vitamin C, helps boost immunity and aids digestion.",
+      "longDesc": ""
+    }
+  ],
+  "fullIngredientsList": "Mixed Berry 50%(Strawberry, Blueberry, Raspberry) Prebiotic plant fibre (Fructooligosaccharides), Honey, Lemon Juice & Pectin\t",
+  "productDetails": {
+    "description": [
+      "🍓 Whole Mixed Berries (Strawberry, Blueberry & Raspberry) , 0% Added Sugar – : Enjoy the taste of juicy berries without any refined sugar.\n\n✅ Sweetened with FOS & Honey:Made delicious with no artificial sweeteners\n\n❌ No Preservatives, No Artificial Flavors – Just whole juicy berries, bursting with flavor and nutrition.",
+      "Our Mixed Berry jam is incredibly versatile! Try it with toast, swirl it into oats or smoothies, and enjoy it with pancakes, rotis, or crackers.\n\nFor 2–3 year olds, please check with your nutritionist before serving."
+    ],
+    "details": [
+      {
+        "feature": "Age Group",
+        "value": "13–18 years"
+      },
+      {
+        "feature": "Pack Size",
+        "value": "250g"
+      }
+    ]
+  },
+  "howToUse": "Our Mixed Berry jam is incredibly versatile! Try it with toast, swirl it into oats or smoothies, and enjoy it with pancakes, rotis, or crackers.\n\nFor 2–3 year olds, please check with your nutritionist before serving.",
+  "faqs": [],
+  "reviews": [
+    {
+      "rating": 4,
+      "author": "Reena S.",
+      "title": "A Healthier Treat for Kids",
+      "body": "My kids love this jam! It tastes fresh and fruity, and I feel good about giving it to them because it doesn’t have any added sugar",
+      "date": "28/09/25",
+      "verified": true
+    },
+    {
+      "rating": 5,
+      "author": "Kanika M",
+      "title": "Guilt-Free Indulgence",
+      "body": "Finally, a jam that doesn’t overload on sugar! It’s a perfect addition to breakfast, and the fact that it's all-natural makes it even better",
+      "date": "28/09/25",
+      "verified": true
+    }
+  ],
+  "disclaimers": [],
+  "worksBestWith": [],
+  "additionalInfo": [
+    {
+      "title": "Net Quantity",
+      "content": "250g"
+    },
+    {
+      "title": "Country of Origin",
+      "content": "India"
+    },
+    {
+      "title": "Manufactured by",
+      "content": "Kreata Food Specialities Private Limited Sy no: 539, Sanghi Nagar, Koheda (vill), Abdullapurmet Revenue (Mdl), Hyderabad, Abdullapurmet, Rangareddy, Telangana-501511"
+    },
+    {
+      "title": "Product Dimensions (in cms)",
+      "content": "14 x 9.2 x 7"
+    },
+    {
+      "title": "Marketed by",
+      "content": "Mosaic Wellness Pvt. Ltd, 6th Floor, ThaneOne, DIL Complex, Majiwada, Thane West - 400610.\nFSSAI Lic No.: 10020022011657"
+    }
+  ],
+  "forWith": {
+    "for": "Healthy Snacking",
+    "with": "Zero Refined Sugar"
+  },
+  "packs": [],
+  "badges": [],
+  "timeline": []
+}

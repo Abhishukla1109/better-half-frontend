@@ -1,0 +1,114 @@
+{
+  "slug": "strawberry-honey-mixed-berry-jam",
+  "sourceId": "990",
+  "brand": "Little Joys",
+  "name": "Strawberry Honey Jam + Mixed berry Jam Combo",
+  "subtitle": "Made with whole berries | No Refined Sugar",
+  "metaDescription": "",
+  "rating": {
+    "average": 4.3,
+    "count": 52
+  },
+  "images": [
+    "https://i.mscwlns.co/media/misc/pdp/strawberry-honey-mixed-berry-jam/Strawberry%20Honey%20Jam%20%26%20Mixed%20berry%20jam%20%281%29_j0krt9.png?tr=w-600"
+  ],
+  "heroVideo": null,
+  "ageGroup": "13–18 years",
+  "allergens": [],
+  "productType": "food",
+  "benefits": [],
+  "ingredients": [
+    {
+      "name": "Strawberries",
+      "icon": "https://i.mscwlns.co/media/misc/pdp/fruit-jam/Strawberry%20bowl%20_ir1g3c.png?tr=w-600",
+      "shortDesc": "Rich in vitamin C and antioxidants, strawberries support a healthy immune system and promote skin health. Their natural sweetness is a great source of fiber, aiding digestion and supporting kids' overall growth and development.",
+      "longDesc": ""
+    },
+    {
+      "name": "Honey",
+      "icon": "https://i.mscwlns.co/media/misc/pdp/fruit-jam/Honey%20Bowl_b7jjoj.png?tr=w-600",
+      "shortDesc": "A natural sweetener that provides a quick energy boost, honey is packed with antioxidants and has antimicrobial properties. It's also a natural cough soother and helps maintain energy levels, making it an ideal addition to kids’ diets.",
+      "longDesc": ""
+    },
+    {
+      "name": "Beetroot",
+      "icon": "https://i.mscwlns.co/media/misc/pdp/fruit-jam/Beetroot_hvghju.png?tr=w-600",
+      "shortDesc": "Loaded with essential nutrients like iron, folate, and fiber, beetroot supports healthy blood production and digestion. It’s also rich in nitrates, which help improve oxygen flow in the body, boosting stamina and energy for active kids.",
+      "longDesc": ""
+    },
+    {
+      "name": "Lemon juice",
+      "icon": "https://i.mscwlns.co/media/misc/others/Lemon%20Juice_ijdh8f.png?tr=w-600",
+      "shortDesc": "Rich in vitamin C, helps boost immunity and aids digestion.",
+      "longDesc": ""
+    }
+  ],
+  "fullIngredientsList": "Strawberry Pulp (50%), FOS (Fructooligosaccharides), Honey, Pectin (Stabilizer), Citric Acid (Acidity Regulator), Natural Colour (Beetroot), Natural Flavour (Strawberry). Mixed Berry 50%(Strawberry, Blueberry, Raspberry) Prebiotic plant fibre (Fructooligosaccharides), Lemon Juice",
+  "productDetails": {
+    "description": [
+      "🍓 Made with whole juicy berries, 0% Added Sugar–Enjoy the taste of ripe strawberries, raspberries and blueberries without any refined sugar.\n\n✅ Sweetened with FOS & Honey - We believe in keeping it delicious, with no artificial sweeteners.\n\n❌ No Preservatives, No Artificial Flavors - Just real berries, bursting with flavor and nutrition.",
+      "Our Jams can be enjoyed in multiple ways: spread on toast, added to smoothies, or used in various meals, making it versatile for everyday use."
+    ],
+    "details": [
+      {
+        "feature": "Age Group",
+        "value": "13–18 years"
+      },
+      {
+        "feature": "Pack Size",
+        "value": "Combo"
+      }
+    ]
+  },
+  "howToUse": "Our Jams can be enjoyed in multiple ways: spread on toast, added to smoothies, or used in various meals, making it versatile for everyday use.",
+  "faqs": [],
+  "reviews": [
+    {
+      "rating": 4,
+      "author": "Reena S.",
+      "title": "A Healthier Treat for Kids",
+      "body": "My kids love the strawberry and mixed berry jam! It tastes fresh and fruity, and I feel good about giving it to them because it doesn’t have any added sugar",
+      "date": "10/10/25",
+      "verified": true
+    },
+    {
+      "rating": 5,
+      "author": "Kanika M",
+      "title": "Guilt-Free Indulgence",
+      "body": "Finally, the strawberry and mixed berry jam that doesn’t overload on sugar! It’s a perfect addition to breakfast, and the fact that it's all-natural makes it even better",
+      "date": "10/13/25",
+      "verified": true
+    }
+  ],
+  "disclaimers": [],
+  "worksBestWith": [],
+  "additionalInfo": [
+    {
+      "title": "Net Quantity",
+      "content": "250g + 250g"
+    },
+    {
+      "title": "Country of Origin",
+      "content": "India"
+    },
+    {
+      "title": "Manufactured by",
+      "content": "August Assortments Pvt. Ltd., Plot - A/537, MIDC, TTC Industrial Area, Mahape, Navi Mumbai, Dist - Thane, Maharashtra, India - 400701."
+    },
+    {
+      "title": "Product Dimensions (in cms)",
+      "content": "14 x 9.2 x 7"
+    },
+    {
+      "title": "Marketed by",
+      "content": "Mosaic Wellness Pvt. Ltd, 6th Floor, ThaneOne, DIL Complex, Majiwada, Thane West - 400610.<br/>FSSAI Lic No.: 10020022011657"
+    }
+  ],
+  "forWith": {
+    "for": "Healthy Snacking",
+    "with": "Zero Refined Sugar"
+  },
+  "packs": [],
+  "badges": [],
+  "timeline": []
+}

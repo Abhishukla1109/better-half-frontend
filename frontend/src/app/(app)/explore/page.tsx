@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Sparkles, ExternalLink, ArrowRight, ShoppingBag, Loader2, Check, AlertCircle, X, ChevronDown } from "lucide-react";
+import { Sparkles, ExternalLink, ArrowRight, ShoppingBag, Loader2, Check, AlertCircle, X, ChevronDown, Search } from "lucide-react";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { resolveSegment } from "@/lib/protocolEngine";
 import type { Product, MatchedProduct } from "@/lib/protocolEngine";
@@ -10,6 +10,7 @@ import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import ProtocolLoader from "@/components/ui/ProtocolLoader";
 import { useCart } from "@/context/CartContext";
 import { resolveVariantId } from "@/lib/shopify/variant-resolver";
+import { getProductRating } from "@/data/ratingsLookup";
 
 /* ── Category definitions ── */
 type CategoryDef = {
@@ -88,6 +89,21 @@ const BRAND_STYLE: Record<string, { bg: string; text: string }> = {
   "Man Matters": { bg: "bg-primary-container/10", text: "text-primary-container" },
   "Be Bodywise": { bg: "bg-rose-500/10", text: "text-rose-500" },
   "Little Joys": { bg: "bg-amber-500/10", text: "text-amber-600" },
+};
+
+/* Concern → display chip */
+const CONCERN_CHIP: Record<string, string> = {
+  hair:      "💇 Hair Health",
+  beard:     "🧔 Beard Growth",
+  skin:      "✨ Skin & Glow",
+  weight:    "⚖️ Weight",
+  energy:    "🌿 Energy & Gut",
+  sleep:     "😴 Sleep",
+  hormones:  "🧬 Hormones",
+  immunity:  "🛡️ Immunity",
+  growth:    "🌱 Growth",
+  nutrition: "🥗 Nutrition",
+  focus:     "🧠 Brain & Focus",
 };
 
 type StoredProfile = Record<string, string | undefined>;
@@ -174,16 +190,25 @@ function ProductCard({
       ? Math.round((1 - product.price / product.mrp) * 100)
       : 0;
 
-  const reviewLabel = product.reviewCount
-    ? product.reviewCount >= 1000
-      ? `${(product.reviewCount / 1000).toFixed(1)}k`
-      : `${product.reviewCount}`
+  // Rating: use catalog value if present, else fall back to enriched lookup
+  const ratingData = product.rating
+    ? { rating: product.rating, count: product.reviewCount ?? 0 }
+    : getProductRating(product.id);
+
+  const reviewLabel = ratingData?.count
+    ? ratingData.count >= 1000
+      ? `${(ratingData.count / 1000).toFixed(1)}k`
+      : `${ratingData.count}`
     : null;
 
   const brand = BRAND_STYLE[product.brand] ?? {
     bg: "bg-surface-container",
     text: "text-on-surface-variant",
   };
+
+  // Pills: concern label + match %
+  const concernPill = CONCERN_CHIP[product.concern[0]] ?? null;
+  const matchPill = matchPct !== undefined && matchPct >= 75 ? `${matchPct}% match` : null;
 
   return (
     <div className="flex flex-col bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant/10 hover:border-primary-container/30 hover:shadow-md transition-all duration-200 group">
@@ -215,17 +240,13 @@ function ProductCard({
           </span>
         )}
 
-        {/* Match / top-pick badge */}
-        {matchPct !== undefined && matchPct >= 80 ? (
-          <div className="absolute top-2.5 right-2.5 bg-primary-container/90 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full leading-none shadow-sm tabular-nums">
-            {matchPct}% match
-          </div>
-        ) : isTopPick ? (
+        {/* Top-pick badge (match% now shown as pill below price) */}
+        {isTopPick && matchPct === undefined && (
           <div className="absolute top-2.5 right-2.5 flex items-center gap-0.5 bg-primary-container/90 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full leading-none shadow-sm">
             <Sparkles className="w-2.5 h-2.5" strokeWidth={2} />
             Top pick
           </div>
-        ) : null}
+        )}
 
         {/* External link hint on hover */}
         <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -240,12 +261,12 @@ function ProductCard({
           <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md leading-none ${brand.bg} ${brand.text}`}>
             {product.brand}
           </span>
-          {product.rating && (
+          {ratingData && (
             <div className="flex items-center gap-0.5">
-              <span className="text-[10px] leading-none text-amber-400">★</span>
-              <span className="text-[10px] font-bold text-on-surface">{product.rating}</span>
+              <span className="text-[11px] leading-none text-amber-400">★</span>
+              <span className="text-[10px] font-bold text-on-surface">{ratingData.rating.toFixed(1)}</span>
               {reviewLabel && (
-                <span className="text-[9px] text-on-surface-variant/40">({reviewLabel})</span>
+                <span className="text-[9px] text-on-surface-variant/35">({reviewLabel})</span>
               )}
             </div>
           )}
@@ -267,6 +288,22 @@ function ProductCard({
             </span>
           )}
         </div>
+
+        {/* Info pills — concern + match */}
+        {(concernPill || matchPill) && (
+          <div className="flex flex-wrap gap-1 mt-0.5">
+            {concernPill && (
+              <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-surface-container border border-outline-variant/15 text-on-surface-variant/70 leading-none">
+                {concernPill}
+              </span>
+            )}
+            {matchPill && (
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-primary-container/10 border border-primary-container/20 text-primary-container leading-none">
+                ✦ {matchPill}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Add to Cart */}
         <button
@@ -331,11 +368,15 @@ function ExplorePageContent() {
     p.set("tab", key);
     router.replace(`?${p.toString()}`, { scroll: false });
   }, [router, searchParams]);
+
   const [profile, setProfile] = useState<StoredProfile | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [picksVisible, setPicksVisible] = useState(true);
   const [showCategorySheet, setShowCategorySheet] = useState(false);
   const [showConcernSheet, setShowConcernSheet] = useState(false);
+  const [showBrandSheet, setShowBrandSheet] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { activeMember } = useActiveProfile();
   const { products, loading: productsLoading } = useCatalogProducts();
@@ -346,6 +387,20 @@ function ExplorePageContent() {
     : activeMember?.type === "female" ? "Be Bodywise"
     : activeMember ? "Man Matters"
     : null;
+
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(
+    searchParams.get("brand") ?? activeBrand,
+  );
+
+  // Kids UI triggers when profile is a child OR user explicitly browses Little Joys brand
+  const showKidsFilters = isKid || selectedBrand === "Little Joys";
+
+  const switchBrand = useCallback((brand: string | null) => {
+    setSelectedBrand(brand);
+    const p = new URLSearchParams(searchParams.toString());
+    if (brand) p.set("brand", brand); else p.delete("brand");
+    router.replace(`?${p.toString()}`, { scroll: false });
+  }, [router, searchParams]);
 
   const activeMemberName: string | null =
     activeMember?.name
@@ -368,6 +423,11 @@ function ExplorePageContent() {
     if (Object.keys(p).length > 0) setProfile(p);
   }, [activeMember]);
 
+  // Sync brand from profile only when no explicit URL brand param is set
+  useEffect(() => {
+    if (!searchParams.get("brand") && activeBrand) setSelectedBrand(activeBrand);
+  }, [activeBrand, searchParams]);
+
   const picksParam = searchParams.get("picks");
   const [storedPicks, setStoredPicks] = useState("");
   useEffect(() => {
@@ -387,70 +447,89 @@ function ExplorePageContent() {
   }, [profile]);
 
   const displayedProducts = useMemo<(Product & { matchScore?: number })[]>(() => {
+    let result: (Product & { matchScore?: number })[];
+
     if (isKid) {
       const childAge = activeMember?.childAge ?? "6-12";
-      const seg = childAge === "2-5" ? "kids-2-5" : childAge === "6-12" ? "kids-6-12" : "kids-13-plus";
+      const seg = childAge === "2-5" ? "child-2-6" : childAge === "6-12" ? "child-7-12" : "child-13-18";
       const lj = products
         .filter((p) => p.brand === "Little Joys" && p.segment.includes(seg))
         .sort((a, b) => b.baseScore - a.baseScore);
 
-      if (activeCategory === "bestsellers") return lj.slice(0, 20);
-      if (activeCategory === "all") return lj;
-      if (KIDS_CATEGORY_KEYS.includes(activeCategory)) return lj.filter((p) => p.category === activeCategory);
-      if (KIDS_CONCERN_KEYS.includes(activeCategory) && activeCategory !== "for-you") return lj.filter((p) => p.concern.includes(activeCategory));
-
-      const childConcern = (activeMember?.profile as Record<string, unknown>)?.concern as string | undefined;
-      if (!childConcern) return lj;
-      const followUps = KIDS_CONCERN_FOLLOWUP[childConcern] ?? [];
-      const directConcern = ["sleep", "skin", "hair"].includes(childConcern);
-      return [...lj].sort((a, b) => {
-        const aMatch = directConcern
-          ? a.concern.includes(childConcern)
-          : followUps.length > 0
-            ? a.followUp.some((f) => followUps.some((t) => f.toLowerCase().includes(t)))
-            : a.concern.includes("energy");
-        const bMatch = directConcern
-          ? b.concern.includes(childConcern)
-          : followUps.length > 0
-            ? b.followUp.some((f) => followUps.some((t) => f.toLowerCase().includes(t)))
-            : b.concern.includes("energy");
-        if (aMatch && !bMatch) return -1;
-        if (!aMatch && bMatch) return 1;
-        return b.baseScore - a.baseScore;
-      });
+      if (activeCategory === "bestsellers") result = lj.slice(0, 20);
+      else if (activeCategory === "all") result = lj;
+      else if (KIDS_CATEGORY_KEYS.includes(activeCategory)) result = lj.filter((p) => p.category === activeCategory);
+      else if (KIDS_CONCERN_KEYS.includes(activeCategory) && activeCategory !== "for-you") result = lj.filter((p) => p.concern.includes(activeCategory));
+      else {
+        const childConcern = (activeMember?.profile as Record<string, unknown>)?.concern as string | undefined;
+        if (!childConcern) { result = lj; }
+        else {
+          const followUps = KIDS_CONCERN_FOLLOWUP[childConcern] ?? [];
+          const directConcern = ["sleep", "skin", "hair"].includes(childConcern);
+          result = [...lj].sort((a, b) => {
+            const aMatch = directConcern
+              ? a.concern.includes(childConcern)
+              : followUps.length > 0
+                ? a.followUp.some((f) => followUps.some((t) => f.toLowerCase().includes(t)))
+                : a.concern.includes("energy");
+            const bMatch = directConcern
+              ? b.concern.includes(childConcern)
+              : followUps.length > 0
+                ? b.followUp.some((f) => followUps.some((t) => f.toLowerCase().includes(t)))
+                : b.concern.includes("energy");
+            if (aMatch && !bMatch) return -1;
+            if (!aMatch && bMatch) return 1;
+            return b.baseScore - a.baseScore;
+          });
+        }
+      }
+    } else if (activeCategory === "bestsellers") {
+      const pool = selectedBrand ? products.filter((p) => p.brand === selectedBrand) : products;
+      result = pool.slice().sort((a, b) => b.baseScore - a.baseScore).slice(0, 24);
+    } else if (activeCategory === "all") {
+      const pool = selectedBrand ? products.filter((p) => p.brand === selectedBrand) : products;
+      result = pool.slice().sort((a, b) => b.baseScore - a.baseScore);
+    } else if (activeCategory === "for-you") {
+      if (!profile || forYouConcernValues.length === 0) { result = []; }
+      else {
+        const scored = scoreProducts(forYouConcernValues, profile, products);
+        result = selectedBrand ? scored.filter((p) => p.brand === selectedBrand) : scored;
+      }
+    } else {
+      const cat = CATEGORIES.find((c) => c.key === activeCategory);
+      if (!cat) { result = []; }
+      else {
+        const pool = selectedBrand ? products.filter((p) => p.brand === selectedBrand) : products;
+        result = pool
+          .filter((p) => p.concern.some((c) => cat.concernValues.includes(c)))
+          .sort((a, b) => b.baseScore - a.baseScore);
+      }
     }
 
-    if (activeCategory === "bestsellers") {
-      const pool = activeBrand ? products.filter((p) => p.brand === activeBrand) : products;
-      return pool.slice().sort((a, b) => b.baseScore - a.baseScore).slice(0, 24);
-    }
-    if (activeCategory === "all") {
-      const pool = activeBrand ? products.filter((p) => p.brand === activeBrand) : products;
-      return pool.slice().sort((a, b) => b.baseScore - a.baseScore);
-    }
-    if (activeCategory === "for-you") {
-      if (!profile || forYouConcernValues.length === 0) return [];
-      const scored = scoreProducts(forYouConcernValues, profile, products);
-      return activeBrand ? scored.filter((p) => p.brand === activeBrand) : scored;
+    // Apply search filter (brand-scoped — only searches within currently selected brand)
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.concern.some((c) => c.toLowerCase().includes(q)) ||
+        p.followUp.some((f) => f.toLowerCase().includes(q))
+      );
     }
 
-    const cat = CATEGORIES.find((c) => c.key === activeCategory);
-    if (!cat) return [];
-    const pool = activeBrand ? products.filter((p) => p.brand === activeBrand) : products;
-    return pool
-      .filter((p) => p.concern.some((c) => cat.concernValues.includes(c)))
-      .sort((a, b) => b.baseScore - a.baseScore);
-  }, [activeCategory, profile, forYouConcernValues, activeBrand, isKid, activeMember, products]);
+    return result;
+  }, [activeCategory, profile, forYouConcernValues, selectedBrand, isKid, activeMember, products, searchQuery]);
 
   const visibleCategories = useMemo<CategoryDef[]>(() => {
     return CATEGORIES.filter((c) => {
-      if (c.key === "beard" && profile?.sex === "female") return false;
+      if (c.key === "beard") {
+        if (profile?.sex === "female" || selectedBrand === "Be Bodywise" || selectedBrand === "Little Joys") return false;
+      }
       return true;
     });
-  }, [profile?.sex]);
+  }, [profile?.sex, selectedBrand]);
 
   const forYouGrouped = useMemo<{ label: string; products: (Product & { matchScore?: number })[] }[] | null>(() => {
-    if (activeCategory !== "for-you" || !profile || activeBrand === "Little Joys") return null;
+    if (activeCategory !== "for-you" || !profile || selectedBrand === "Little Joys") return null;
     const raw = (profile.concerns as string | undefined) ?? profile.concern ?? "";
     const concernLabels = raw.split(",").map((s) => s.trim()).filter(Boolean);
     if (concernLabels.length <= 1) return null;
@@ -481,9 +560,9 @@ function ExplorePageContent() {
     // Otherwise derive top 3 from profile — so sidebar nav shows same structure
     if (!profile || forYouConcernValues.length === 0) return [];
     const scored = scoreProducts(forYouConcernValues, profile, products);
-    const pool = activeBrand ? scored.filter((p) => p.brand === activeBrand) : scored;
+    const pool = selectedBrand ? scored.filter((p) => p.brand === selectedBrand) : scored;
     return pool.slice(0, 3);
-  }, [picksParam, picksVisible, profile, forYouConcernValues, activeBrand, isKid, products]);
+  }, [picksParam, picksVisible, profile, forYouConcernValues, selectedBrand, isKid, products]);
 
   const pinnedPickIds = useMemo(() => new Set(pinnedPicks.map((p) => p.id)), [pinnedPicks]);
   const forYouNonPinned = useMemo(
@@ -493,7 +572,7 @@ function ExplorePageContent() {
 
   const isForYou = activeCategory === "for-you";
   const activeCategoryDef = CATEGORIES.find((c) => c.key === activeCategory);
-  const showNoProfile = isForYou && profileLoaded && (!profile || (forYouConcernValues.length === 0 && activeBrand !== "Little Joys"));
+  const showNoProfile = isForYou && profileLoaded && (!profile || (forYouConcernValues.length === 0 && selectedBrand !== "Little Joys"));
   const showPinnedPicks = isForYou && pinnedPicks.length > 0;
 
   const TOP_CHIPS = [
@@ -504,7 +583,7 @@ function ExplorePageContent() {
     { key: "all",            label: "Shop All",    icon: "📦" },
   ];
 
-  const CATEGORY_KEYS = isKid
+  const CATEGORY_KEYS = showKidsFilters
     ? KIDS_CATEGORY_KEYS
     : ["hair", "beard", "skin", "weight", "nutrition", "sleep", "hormones"];
 
@@ -516,7 +595,7 @@ function ExplorePageContent() {
 
   const isChipActive = (key: string) => {
     if (key === "category-sheet") return CATEGORY_KEYS.includes(activeCategory);
-    if (key === "concern-sheet")  return isKid ? KIDS_CONCERN_KEYS.includes(activeCategory) : false;
+    if (key === "concern-sheet")  return showKidsFilters ? KIDS_CONCERN_KEYS.includes(activeCategory) : false;
     return activeCategory === key;
   };
 
@@ -532,30 +611,59 @@ function ExplorePageContent() {
       {/* ── Top bar ── */}
       <div className="flex-none border-b border-outline-variant/8 bg-surface">
 
-        {/* Profile context row */}
-        <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
-          {activeMemberName ? (
-            <button
-              onClick={() => window.dispatchEvent(new Event("bh-profile-sidebar-open"))}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary-container/8 border border-primary-container/15 cursor-pointer hover:bg-primary-container/12 transition-colors"
-            >
-              <span className="text-sm leading-none">
-                {activeMember?.type === "child" ? "🧒" : activeMember?.type === "female" ? "👩" : "👤"}
-              </span>
-              <span className="text-[12px] font-semibold text-primary-container">
-                Shopping for {activeMemberName}
-              </span>
-              <ChevronDown className="w-3 h-3 text-primary-container/60" />
-            </button>
-          ) : (
-            <span className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">Shop</span>
-          )}
-          {activeBrand && (
-            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${BRAND_STYLE[activeBrand]?.bg ?? "bg-surface-container"} ${BRAND_STYLE[activeBrand]?.text ?? "text-on-surface-variant"}`}>
-              {activeBrand}
+        {/* Brand selector + search row */}
+        <div className="flex items-center justify-between px-4 pt-3.5 pb-2 gap-3">
+          {/* Brand pill — tappable */}
+          <button
+            onClick={() => setShowBrandSheet(true)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-colors cursor-pointer shrink-0 ${
+              selectedBrand
+                ? `${BRAND_STYLE[selectedBrand]?.bg ?? "bg-surface-container"} border-outline-variant/20`
+                : "bg-surface-container border-outline-variant/20 hover:bg-surface-container-high"
+            }`}
+          >
+            <span className={`text-[12px] font-bold ${BRAND_STYLE[selectedBrand ?? ""]?.text ?? "text-on-surface"}`}>
+              {selectedBrand ?? "All Brands"}
             </span>
-          )}
+            <ChevronDown className={`w-3 h-3 ${BRAND_STYLE[selectedBrand ?? ""]?.text ?? "text-on-surface-variant/60"}`} />
+          </button>
+
+          {/* Search icon */}
+          <button
+            onClick={() => { setSearchOpen(!searchOpen); if (searchOpen) setSearchQuery(""); }}
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors cursor-pointer shrink-0"
+          >
+            {searchOpen
+              ? <X className="w-4 h-4 text-on-surface-variant" strokeWidth={2} />
+              : <Search className="w-4 h-4 text-on-surface-variant" strokeWidth={2} />
+            }
+          </button>
         </div>
+
+        {/* Inline search bar — shown when search is open */}
+        {searchOpen && (
+          <div className="px-4 pb-2">
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40 pointer-events-none" />
+              <input
+                autoFocus
+                type="text"
+                placeholder={`Search in ${selectedBrand ?? "all brands"}…`}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-8 py-2 bg-surface-container border border-outline-variant/20 rounded-xl text-[13px] text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary-container/40 transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
+                >
+                  <X size={12} className="text-on-surface-variant/40" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Filter chip row */}
         <div className="flex gap-2 px-4 pb-3.5 overflow-x-auto hide-scrollbar">
@@ -713,6 +821,49 @@ function ExplorePageContent() {
         </>}
       </div>
 
+      {/* ── Shop by Brand bottom sheet ── */}
+      {showBrandSheet && (
+        <div className="fixed inset-0 z-[55]" onClick={() => setShowBrandSheet(false)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute bottom-0 left-0 right-0 bg-surface rounded-t-3xl pt-5 pb-10 px-5" onClick={(e) => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-outline-variant/30 rounded-full mx-auto mb-5" />
+            <p className="font-extrabold text-[16px] text-on-surface font-[family-name:var(--font-manrope)] mb-4">Shop by Brand</p>
+            <div className="flex flex-col gap-3">
+              {[
+                { name: "Man Matters", desc: "Men's health & grooming", emoji: "💪" },
+                { name: "Be Bodywise", desc: "Women's health & skincare", emoji: "✨" },
+                { name: "Little Joys",  desc: "Kids & moms wellness",    emoji: "🌱" },
+              ].map((brand) => (
+                <button
+                  key={brand.name}
+                  onClick={() => {
+                    switchBrand(brand.name);
+                    setShowBrandSheet(false);
+                    if (activeCategory === "for-you") switchTab("bestsellers");
+                  }}
+                  className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl border-2 transition-all cursor-pointer text-left ${
+                    selectedBrand === brand.name
+                      ? "bg-primary-container/10 border-primary-container/35"
+                      : "border-outline-variant/10 bg-surface-container-low hover:bg-surface-container"
+                  }`}
+                >
+                  <span className="text-2xl leading-none shrink-0">{brand.emoji}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className={`text-[13px] font-bold ${selectedBrand === brand.name ? "text-primary-container" : "text-on-surface"}`}>
+                      {brand.name}
+                    </p>
+                    <p className="text-[11px] text-on-surface-variant/50 mt-0.5">{brand.desc}</p>
+                  </div>
+                  {selectedBrand === brand.name && (
+                    <Check className="w-4 h-4 text-primary-container shrink-0" strokeWidth={2.5} />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── By Category bottom sheet ── */}
       {showCategorySheet && (
         <div className="fixed inset-0 z-[55]" onClick={() => setShowCategorySheet(false)}>
@@ -721,7 +872,7 @@ function ExplorePageContent() {
             <div className="w-10 h-1 bg-outline-variant/30 rounded-full mx-auto mb-5" />
             <p className="font-extrabold text-[16px] text-on-surface font-[family-name:var(--font-manrope)] mb-4">Shop by Category</p>
 
-            {isKid ? (
+            {showKidsFilters ? (
               <div className="grid grid-cols-2 gap-3">
                 {KIDS_CATEGORY_FILTERS.map((cat) => (
                   <button
@@ -772,7 +923,7 @@ function ExplorePageContent() {
             <div className="w-10 h-1 bg-outline-variant/30 rounded-full mx-auto mb-5" />
             <p className="font-extrabold text-[16px] text-on-surface font-[family-name:var(--font-manrope)] mb-4">Shop by Concern</p>
             <div className="flex flex-col gap-2.5">
-              {isKid ? (
+              {showKidsFilters ? (
                 KIDS_CONCERN_FILTERS.map((concern) => (
                   <button
                     key={concern.key}
@@ -792,7 +943,7 @@ function ExplorePageContent() {
                 ))
               ) : (
                 CONCERN_LIST
-                  .filter((c) => !(c.key === "beard" && profile?.sex === "female"))
+                  .filter((c) => !(c.key === "beard" && (profile?.sex === "female" || selectedBrand === "Be Bodywise")))
                   .map((concern) => (
                     <button
                       key={concern.key}

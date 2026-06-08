@@ -133,6 +133,53 @@ import dandruffAndHairfallKit from "@/catalog/enriched/dandruff-and-hairfall-kit
 import strawberrySkinPack from "@/catalog/enriched/strawberry-skin-pack.json";
 import niacinamideBodyWash700 from "@/catalog/enriched/niacinamide-body-wash-700.json";
 import postpartumSevereHairfall1monthXp from "@/catalog/enriched/postpartum-severe-hairfall-1month-xp.json";
+import nutrimixNutritionPowder from "@/catalog/enriched/nutrimix-nutrition-powder.json";
+import nutrimixNutritionPowderVanilla from "@/catalog/enriched/nutrimix-nutrition-powder-vanilla.json";
+import nutrimixNutritionPowderStrawberry from "@/catalog/enriched/nutrimix-nutrition-powder-strawberry.json";
+import nutrimixNutritionPowderBelgianChocolate from "@/catalog/enriched/nutrimix-nutrition-powder-belgian-chocolate.json";
+import nutrimixNutritionPowder7 from "@/catalog/enriched/nutrimix-nutrition-powder-7.json";
+import unsweetenedNutrimixNutritionPowder7 from "@/catalog/enriched/unsweetened-nutrimix-nutrition-powder-7.json";
+import proteinmix from "@/catalog/enriched/proteinmix.json";
+import proteinmixStrawberry from "@/catalog/enriched/proteinmix-strawberry.json";
+import activemixNutritionPowder from "@/catalog/enriched/activemix-nutrition-powder.json";
+import electrolyte from "@/catalog/enriched/electrolyte.json";
+import calciumGummiesStrawberry from "@/catalog/enriched/calcium-gummies-strawberry.json";
+import calciumGummiesStrawberry7 from "@/catalog/enriched/calcium-gummies-strawberry-7.json";
+import calciumGummiesStrawberry13 from "@/catalog/enriched/calcium-gummies-strawberry-13.json";
+import brainBoosterGummies from "@/catalog/enriched/brain-booster-gummies.json";
+import brainDevelopmentKit7ChocolateXp from "@/catalog/enriched/brain-development-kit-7-chocolate-xp.json";
+import magnesiumGummies302 from "@/catalog/enriched/magnesium-gummies-30-2.json";
+import immunityKit1318 from "@/catalog/enriched/immunity-kit-13-18.json";
+import mamamixNutritionPowder from "@/catalog/enriched/mamamix-nutrition-powder.json";
+import mamamixNutritionPowderVanilla from "@/catalog/enriched/mamamix-nutrition-powder-vanilla.json";
+import mvgMomGummiesXp from "@/catalog/enriched/mvg-mom-gummies-xp.json";
+import calciumGummiesMoms from "@/catalog/enriched/calcium-gummies-moms.json";
+import hairHealthGummiesMoms from "@/catalog/enriched/hair-health-gummies-moms.json";
+import magnesiumGummiesMother from "@/catalog/enriched/magnesium-gummies-mother.json";
+import calciumMgMomsKit from "@/catalog/enriched/calcium-mg-moms-kit.json";
+import calciumGummiesMomsKids from "@/catalog/enriched/calcium-gummies-moms-kids.json";
+import kidsToothpaste from "@/catalog/enriched/kids-toothpaste.json";
+import multivitaminToothpaste from "@/catalog/enriched/multivitamin-toothpaste.json";
+import aloeShampooNew from "@/catalog/enriched/aloe-shampoo-new.json";
+import lipBalmForKidsNonTinted from "@/catalog/enriched/lip-balm-for-kids-non-tinted.json";
+import peppaBodyLotionForKids from "@/catalog/enriched/peppa-body-lotion-for-kids.json";
+import mosquitoPatches from "@/catalog/enriched/mosquito-patches.json";
+import chocolateSpread from "@/catalog/enriched/chocolate-spread.json";
+import peanutButterChocolate from "@/catalog/enriched/peanut-butter-chocolate.json";
+import tomatoSauceNogaricOnion320g from "@/catalog/enriched/tomato-sauce-nogaric-onion-320g.json";
+import sauceSqueezyBottle from "@/catalog/enriched/sauce-squeezy-bottle.json";
+import jamGlass from "@/catalog/enriched/jam-glass.json";
+import mixedBerryJam250g from "@/catalog/enriched/mixed-berry-jam-250g.json";
+import milletChocoCrunchStarMoon from "@/catalog/enriched/millet-choco-crunch-star-moon.json";
+import milletChocoFills from "@/catalog/enriched/millet-choco-fills.json";
+import cheesyChipsPackOf4 from "@/catalog/enriched/cheesy-chips-pack-of-4.json";
+import masalaMilletNoodlesPack4 from "@/catalog/enriched/masala-millet-noodles-pack-4.json";
+import mixedNutSpread250g from "@/catalog/enriched/mixed-nut-spread-250g.json";
+import proteinOats from "@/catalog/enriched/protein-oats.json";
+import snackTimeKit from "@/catalog/enriched/snack-time-kit.json";
+import strawberryHoneyMixedBerryJam from "@/catalog/enriched/strawberry-honey-mixed-berry-jam.json";
+import ljMultivitaminGummies from "@/catalog/enriched/lj-multivitamin-gummies.json";
+import multivitaminGummies1318 from "@/catalog/enriched/multivitamin-gummies-13-18.json";
 
 export type EnrichedIngredient = {
   name: string;
@@ -190,6 +237,16 @@ export type EnrichedPDP = {
   forWith?: { for: string; with: string };
   /** Percentage of users who recommend this product, e.g. "97%" */
   recommendation?: string;
+  /** Little Joys: age suitability string, e.g. "2–6 years" */
+  ageGroup?: string;
+  /** Little Joys: allergen list */
+  allergens?: string[];
+  /** Little Joys: product type — kids | mom | food | care */
+  productType?: string;
+  /** Little Joys: key benefits with icons */
+  benefits?: Array<{ title: string; description: string; icon: string }>;
+  /** Little Joys: full ingredients as a plain text list */
+  fullIngredientsList?: string;
 };
 
 const ENRICHED: Record<string, EnrichedPDP> = {
@@ -331,6 +388,53 @@ const ENRICHED: Record<string, EnrichedPDP> = {
   "strawberry-skin-pack": strawberrySkinPack as EnrichedPDP,
   "niacinamide-body-wash-700": niacinamideBodyWash700 as EnrichedPDP,
   "postpartum-severe-hairfall-1month-xp": postpartumSevereHairfall1monthXp as EnrichedPDP,
+  "nutrimix-nutrition-powder": nutrimixNutritionPowder as EnrichedPDP,
+  "nutrimix-nutrition-powder-vanilla": nutrimixNutritionPowderVanilla as EnrichedPDP,
+  "nutrimix-nutrition-powder-strawberry": nutrimixNutritionPowderStrawberry as EnrichedPDP,
+  "nutrimix-nutrition-powder-belgian-chocolate": nutrimixNutritionPowderBelgianChocolate as EnrichedPDP,
+  "nutrimix-nutrition-powder-7": nutrimixNutritionPowder7 as EnrichedPDP,
+  "unsweetened-nutrimix-nutrition-powder-7": unsweetenedNutrimixNutritionPowder7 as EnrichedPDP,
+  "proteinmix": proteinmix as EnrichedPDP,
+  "proteinmix-strawberry": proteinmixStrawberry as EnrichedPDP,
+  "activemix-nutrition-powder": activemixNutritionPowder as EnrichedPDP,
+  "electrolyte": electrolyte as EnrichedPDP,
+  "calcium-gummies-strawberry": calciumGummiesStrawberry as EnrichedPDP,
+  "calcium-gummies-strawberry-7": calciumGummiesStrawberry7 as EnrichedPDP,
+  "calcium-gummies-strawberry-13": calciumGummiesStrawberry13 as EnrichedPDP,
+  "brain-booster-gummies": brainBoosterGummies as EnrichedPDP,
+  "brain-development-kit-7-chocolate-xp": brainDevelopmentKit7ChocolateXp as EnrichedPDP,
+  "magnesium-gummies-30-2": magnesiumGummies302 as EnrichedPDP,
+  "immunity-kit-13-18": immunityKit1318 as EnrichedPDP,
+  "mamamix-nutrition-powder": mamamixNutritionPowder as EnrichedPDP,
+  "mamamix-nutrition-powder-vanilla": mamamixNutritionPowderVanilla as EnrichedPDP,
+  "mvg-mom-gummies-xp": mvgMomGummiesXp as EnrichedPDP,
+  "calcium-gummies-moms": calciumGummiesMoms as EnrichedPDP,
+  "hair-health-gummies-moms": hairHealthGummiesMoms as EnrichedPDP,
+  "magnesium-gummies-mother": magnesiumGummiesMother as EnrichedPDP,
+  "calcium-mg-moms-kit": calciumMgMomsKit as EnrichedPDP,
+  "calcium-gummies-moms-kids": calciumGummiesMomsKids as EnrichedPDP,
+  "kids-toothpaste": kidsToothpaste as EnrichedPDP,
+  "multivitamin-toothpaste": multivitaminToothpaste as EnrichedPDP,
+  "aloe-shampoo-new": aloeShampooNew as EnrichedPDP,
+  "lip-balm-for-kids-non-tinted": lipBalmForKidsNonTinted as EnrichedPDP,
+  "peppa-body-lotion-for-kids": peppaBodyLotionForKids as EnrichedPDP,
+  "mosquito-patches": mosquitoPatches as EnrichedPDP,
+  "chocolate-spread": chocolateSpread as EnrichedPDP,
+  "peanut-butter-chocolate": peanutButterChocolate as EnrichedPDP,
+  "tomato-sauce-nogaric-onion-320g": tomatoSauceNogaricOnion320g as EnrichedPDP,
+  "sauce-squeezy-bottle": sauceSqueezyBottle as EnrichedPDP,
+  "jam-glass": jamGlass as EnrichedPDP,
+  "mixed-berry-jam-250g": mixedBerryJam250g as EnrichedPDP,
+  "millet-choco-crunch-star-moon": milletChocoCrunchStarMoon as EnrichedPDP,
+  "millet-choco-fills": milletChocoFills as EnrichedPDP,
+  "cheesy-chips-pack-of-4": cheesyChipsPackOf4 as EnrichedPDP,
+  "masala-millet-noodles-pack-4": masalaMilletNoodlesPack4 as EnrichedPDP,
+  "mixed-nut-spread-250g": mixedNutSpread250g as EnrichedPDP,
+  "protein-oats": proteinOats as EnrichedPDP,
+  "snack-time-kit": snackTimeKit as EnrichedPDP,
+  "strawberry-honey-mixed-berry-jam": strawberryHoneyMixedBerryJam as EnrichedPDP,
+  "lj-multivitamin-gummies": ljMultivitaminGummies as EnrichedPDP,
+  "multivitamin-gummies-13-18": multivitaminGummies1318 as EnrichedPDP,
 };
 
 export function getEnrichedPDP(slug: string): EnrichedPDP | null {

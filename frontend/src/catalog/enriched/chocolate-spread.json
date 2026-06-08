@@ -1,0 +1,131 @@
+{
+  "slug": "chocolate-spread",
+  "sourceId": "458",
+  "brand": "Little Joys",
+  "name": "Chocolate Hazelnut Spread (300g)",
+  "subtitle": "Sweetened with jaggery | NO Palm Oil",
+  "metaDescription": "",
+  "rating": {
+    "average": 4.3,
+    "count": 280
+  },
+  "images": [
+    "https://i.mscwlns.co/media/misc/others/Chocolate%20Hazelnut%20Spread%20%28300g%29_c2dcg7.jpg?tr=w-600"
+  ],
+  "heroVideo": null,
+  "ageGroup": "13–18 years",
+  "allergens": [],
+  "productType": "food",
+  "benefits": [],
+  "ingredients": [
+    {
+      "name": "Jaggery",
+      "icon": "https://i.mscwlns.co/media/misc/others/hf_20260526_063635_109448fc-e3d2-4582-b9c2-96920c997d4f%20%281%29_7hy25m.jpg?tr=w-600",
+      "shortDesc": "Our paediatricians say: Jaggery (or Gud as called in Hindi) is one of the best natural sweeteners. It helps in regulation of body temperature and detoxifies the body. It also prevents constipation and improves digestion.",
+      "longDesc": ""
+    },
+    {
+      "name": "Milk Solids",
+      "icon": "https://i.mscwlns.co/media/misc/others/hf_20260526_063653_717012fa-da85-44d2-a5fe-0b2b58bfc9a5_kbfz04.jpg?tr=w-600",
+      "shortDesc": "Our paediatricians say: Milk Solids provide essential proteins and calcium that support bone development and overall growth in children.",
+      "longDesc": ""
+    },
+    {
+      "name": "Hazelnut",
+      "icon": "https://i.mscwlns.co/media/misc/others/hf_20260526_063729_327c01ca-58e4-44bf-b053-666a9339f5ed%20%281%29%20%281%29_5hfpai.jpg?tr=w-600",
+      "shortDesc": "Our paediatricians say: Hazelnut paste is rich in healthy fats, vitamins, and minerals, supporting brain development and immune function in kids.",
+      "longDesc": ""
+    },
+    {
+      "name": "Cocoa Powder",
+      "icon": "https://i.mscwlns.co/media/misc/others/hf_20260526_063619_e29f32dc-0bf1-48d8-8f75-92b0377d0999%20%281%29_cxjj80.jpg?tr=w-600",
+      "shortDesc": "Our paediatricians say: Cocoa Powder is rich in antioxidants and minerals like iron and magnesium, supporting energy and wellbeing in active kids.",
+      "longDesc": ""
+    }
+  ],
+  "fullIngredientsList": "Jaggery, Milk Solids, Groundnut Oil, Hazelnut, Cocoa Powder, Dates Powder, Emulsifier (Sunflower Lecithin)",
+  "productDetails": {
+    "description": [
+      "🌰 Switch from sugary chocolate spreads to our rich hazelnut and cocoa spread for kids!\n\n🚫 It contains no white or refined sugar of any kind and is sweetened only with jaggery!\n\n🍫 No Artificial Flavours, Colours or Preservatives | No Palm Oil",
+      "Spread on bread, rotis, or anything you like!\nUse as a dip for strawberries, soup sticks and more.\n\nYou may consult/talk to your nutritionist before serving."
+    ],
+    "details": [
+      {
+        "feature": "Age Group",
+        "value": "13–18 years"
+      },
+      {
+        "feature": "Pack Size",
+        "value": "300g"
+      }
+    ]
+  },
+  "howToUse": "Spread on bread, rotis, or anything you like!\nUse as a dip for strawberries, soup sticks and more.\n\nYou may consult/talk to your nutritionist before serving.",
+  "faqs": [
+    {
+      "question": "What age range is the Little Joys Chocolate Spread suitable for?",
+      "answer": "It is suitable for children 4–6 years. You may consult/talk to your nutritionist before serving."
+    },
+    {
+      "question": "Why is the spread naturally sweetened?",
+      "answer": "Jaggery is rich in micronutrients such as magnesium, potassium, iron and zinc. They go through minimal processing before used in our product, whereas normal white sugar is far more refined."
+    }
+  ],
+  "reviews": [
+    {
+      "rating": 4,
+      "author": "Revati Pathak ",
+      "title": "A Healthier Treat for Kids",
+      "body": "My kids love the taste, and I feel good knowing it’s made with natural ingredients",
+      "date": "29/6/25",
+      "verified": true
+    },
+    {
+      "rating": 4,
+      "author": "Shubhangi M",
+      "title": "Guilt-Free Indulgence",
+      "body": "Finally, a chocolate spread that satisfies my children’s sweet tooth without any unhealthy additives",
+      "date": "30/6/25",
+      "verified": true
+    },
+    {
+      "rating": 5,
+      "author": "Yosha P",
+      "title": "Perfect for Picky Eaters",
+      "body": "It’s hard to get my kids to eat healthily, but this spread has made it so much easier!",
+      "date": "02/7/25",
+      "verified": true
+    }
+  ],
+  "disclaimers": [],
+  "worksBestWith": [],
+  "additionalInfo": [
+    {
+      "title": "Net Quantity",
+      "content": "300g"
+    },
+    {
+      "title": "Country of Origin",
+      "content": "India"
+    },
+    {
+      "title": "Manufactured by",
+      "content": "Kreata Food Specialities Private Limited, Sy no: 539, Sanghi Nagar, Koheda (Vill), Abdullapurmet Revenue (Mdl), Hyderabad, Abdullapurmet, Rangareddy, Telangana – 501511"
+    },
+    {
+      "title": "Product Dimensions (in cms)",
+      "content": "14 x 9.2 x 7"
+    },
+    {
+      "title": "Marketed by",
+      "content": "Mosaic Wellness Pvt. Ltd, 6th Floor, ThaneOne, DIL Complex, Majiwada, Thane West - 400610.<br/>FSSAI Lic No.: 10020022011657"
+    }
+  ],
+  "forWith": {
+    "for": "Healthy Snacking",
+    "with": "Zero Refined Sugar"
+  },
+  "packs": [],
+  "badges": [],
+  "timeline": []
+}
