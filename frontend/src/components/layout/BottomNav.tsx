@@ -2,9 +2,17 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, Search, Sparkles, Stethoscope, BarChart3, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
+
+const TABS: { key: string; label: string; emoji: string; href: string; isCenter?: boolean }[] = [
+  { key: "home",     label: "Home",     emoji: "🏠", href: "/protocol"  },
+  { key: "shop",     label: "Shop",     emoji: "🛒", href: "/explore"   },
+  { key: "ask",      label: "Ask",      emoji: "✨", href: "/protocol", isCenter: true },
+  { key: "experts",  label: "Experts",  emoji: "🩺", href: "/experts"   },
+  { key: "insights", label: "Insights", emoji: "📊", href: "/insights"  },
+];
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -12,13 +20,8 @@ export default function BottomNav() {
   const { activeMember } = useActiveProfile();
   const isKid = activeMember?.type === "child";
 
-  const tabs = [
-    { href: isKid ? "/kids" : "/protocol", icon: Home, label: "Home" },
-    { href: "/explore", icon: Search, label: "Shop" },
-    { href: "/protocol", icon: Sparkles, label: "Ask", isCenter: true },
-    { href: "/experts", icon: Stethoscope, label: "Experts" },
-    { href: "/insights", icon: BarChart3, label: "Insights" },
-  ];
+  const homeHref = isKid ? "/kids" : "/protocol";
+  const resolvedTabs = TABS.map((t) => t.key === "home" ? { ...t, href: homeHref } : t);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -37,42 +40,38 @@ export default function BottomNav() {
         className="lg:hidden fixed bottom-0 left-0 right-0 h-[68px] bg-surface-container-lowest border-t border-outline-variant/10 flex items-center justify-around px-2 z-50"
         aria-label="Main navigation"
       >
-        {tabs.map((tab) => {
-          const isActive = tab.isCenter ? false : pathname.startsWith(tab.href);
-          const Icon = tab.icon;
+        {resolvedTabs.map((tab) => {
+          const href = tab.href;
+          const isActive = tab.isCenter ? false : pathname.startsWith(href);
 
           if (tab.isCenter) {
             return (
               <div
-                key="ask"
-                className="flex flex-col items-center justify-center gap-0.5 w-16 h-14 cursor-default select-none opacity-40"
+                key={tab.key}
+                className="flex flex-col items-center justify-center gap-0.5 w-16 h-14 cursor-default select-none opacity-35"
               >
-                <div className="flex items-center justify-center w-11 h-11 rounded-full bg-primary-container">
-                  <Icon className="w-5 h-5 text-on-primary-container" strokeWidth={1.5} />
-                </div>
-                <span className="text-[9px] font-bold text-on-surface-variant/50 uppercase tracking-wide leading-none">Soon</span>
+                <span className="text-[26px] leading-none">{tab.emoji}</span>
+                <span className="text-[9px] font-bold text-on-surface-variant/50 uppercase tracking-wide leading-none mt-0.5">Soon</span>
               </div>
             );
           }
 
           return (
             <Link
-              key={tab.href + tab.label}
-              href={tab.href}
-              className={`flex flex-col items-center justify-center gap-0.5 w-16 h-14 rounded-xl transition-colors duration-200 ${
-                isActive
-                  ? "text-primary"
-                  : "text-on-surface-variant hover:text-primary/70"
-              }`}
+              key={tab.key}
+              href={href}
+              className="flex flex-col items-center justify-center gap-0.5 w-16 h-14"
             >
-              <Icon
-                className="w-[22px] h-[22px]"
-                strokeWidth={isActive ? 2 : 1.5}
-                fill={isActive ? "currentColor" : "none"}
-              />
-              <span className="text-[11px] font-semibold leading-none">
+              <span
+                className={`text-[28px] leading-none transition-all duration-200 ${isActive ? "opacity-100 scale-110" : "opacity-50"}`}
+              >
+                {tab.emoji}
+              </span>
+              <span className={`text-[10px] font-bold leading-none transition-colors duration-200 ${isActive ? "text-primary" : "text-on-surface-variant/45"}`}>
                 {tab.label}
               </span>
+              {/* Active indicator dot */}
+              <span className={`w-1 h-1 rounded-full bg-primary transition-opacity duration-200 ${isActive ? "opacity-100" : "opacity-0"}`} />
             </Link>
           );
         })}
@@ -93,17 +92,17 @@ export default function BottomNav() {
 
         {/* Nav items */}
         <div className="flex flex-col gap-1 flex-1">
-          {tabs.map((tab) => {
-            const isActive = tab.isCenter ? false : pathname.startsWith(tab.href);
-            const Icon = tab.icon;
+          {TABS.map((tab) => {
+            const href = tab.key === "home" ? homeHref : tab.href;
+            const isActive = tab.isCenter ? false : pathname.startsWith(href);
 
             if (tab.isCenter) {
               return (
                 <div
-                  key="ask-desktop"
+                  key={tab.key}
                   className="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant/35 cursor-default select-none"
                 >
-                  <Icon className="w-[20px] h-[20px]" strokeWidth={1.5} fill="none" />
+                  <span className="text-[20px] leading-none opacity-40">{tab.emoji}</span>
                   <span className="text-sm font-semibold">{tab.label}</span>
                   <span className="ml-auto text-[9px] font-bold text-on-surface-variant/30 uppercase tracking-wider">Soon</span>
                 </div>
@@ -112,20 +111,18 @@ export default function BottomNav() {
 
             return (
               <Link
-                key={tab.href + tab.label}
-                href={tab.href}
+                key={tab.key}
+                href={href}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-200 ${
-                  isActive
-                    ? "bg-primary-fixed/20 text-primary"
-                    : "text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
+                  isActive ? "bg-primary-fixed/15" : "hover:bg-surface-container-low"
                 }`}
               >
-                <Icon
-                  className="w-[20px] h-[20px]"
-                  strokeWidth={isActive ? 2 : 1.5}
-                  fill={isActive ? "currentColor" : "none"}
-                />
-                <span className="text-sm font-semibold">{tab.label}</span>
+                <span className={`text-[20px] leading-none transition-opacity duration-200 ${isActive ? "opacity-100" : "opacity-55"}`}>
+                  {tab.emoji}
+                </span>
+                <span className={`text-sm font-semibold transition-colors duration-200 ${isActive ? "text-primary" : "text-on-surface-variant"}`}>
+                  {tab.label}
+                </span>
               </Link>
             );
           })}

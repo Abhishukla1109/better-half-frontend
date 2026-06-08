@@ -1138,9 +1138,54 @@ export default function ProtocolPage() {
 
       {/* ── Protocol Cart Sheet ── */}
       {showProtocolCart && protocol && (() => {
-        const allPrimaryIds = protocol.supplements.map((s) => s.id);
-        const allPrimaryAdded = allPrimaryIds.every((id) => addedIds.has(id));
-        const anyAdded = addedIds.size > 0;
+        const allPickedIds = new Set(protocol.supplements.map((s) => s.id));
+        const cartCount = addedIds.size;
+        const allPrimaryAdded = [...allPickedIds].every((id) => addedIds.has(id));
+
+        // Inline product card for horizontal rows
+        const ProductCard = ({ id, brand, name, price, mrp, image, style }: {
+          id: string; brand: string; name: string; price: number; mrp: number; image?: string; style?: "primary" | "secondary";
+        }) => {
+          const isAdded = addedIds.has(id);
+          const isLoading = addingId === id;
+          return (
+            <div className="flex-none w-40 snap-start rounded-2xl border border-outline-variant/12 bg-surface-container-lowest overflow-hidden">
+              <div className="w-full h-28 bg-surface-container overflow-hidden">
+                {image
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <img src={image} alt={name} className="w-full h-full object-cover" loading="lazy" />
+                  : <div className="w-full h-full flex items-center justify-center text-3xl leading-none">{getSupplementEmoji(name)}</div>
+                }
+              </div>
+              <div className="p-2.5">
+                <p className="text-[8px] font-bold text-on-surface-variant/40 uppercase tracking-wider mb-0.5">{brand}</p>
+                <p className="text-[11px] font-bold text-on-surface leading-snug line-clamp-2 mb-1.5 min-h-[30px]">{name}</p>
+                <div className="flex items-baseline gap-1 mb-2">
+                  <span className="text-[12px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">₹{price}</span>
+                  {mrp > price && <span className="text-[9px] text-on-surface-variant/35 line-through">₹{mrp}</span>}
+                </div>
+                <button
+                  onClick={() => handleAddToCart(id)}
+                  disabled={isAdded || !!isLoading}
+                  className={`w-full py-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer disabled:cursor-default active:scale-[0.98] ${
+                    isAdded
+                      ? "bg-green-500/12 text-green-700"
+                      : style === "secondary"
+                        ? "bg-surface-container border border-outline-variant/20 text-on-surface-variant hover:bg-surface-container-high"
+                        : "bg-primary-container text-white hover:bg-primary"
+                  }`}
+                >
+                  {isLoading
+                    ? <Loader2 className="w-3 h-3 animate-spin" strokeWidth={2.5} />
+                    : isAdded
+                      ? <><Check className="w-3 h-3" strokeWidth={2.5} /><span>Added</span></>
+                      : <><ShoppingBag className="w-3 h-3" strokeWidth={2} /><span>Add</span></>
+                  }
+                </button>
+              </div>
+            </div>
+          );
+        };
 
         return (
           <div
@@ -1152,7 +1197,7 @@ export default function ProtocolPage() {
 
             {/* Floating card */}
             <div
-              className="relative bg-surface rounded-3xl shadow-2xl w-full max-w-md max-h-[88dvh] flex flex-col animate-fade-in-up"
+              className="relative bg-surface rounded-3xl shadow-2xl w-full max-w-md max-h-[90dvh] flex flex-col animate-fade-in-up"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
@@ -1164,10 +1209,10 @@ export default function ProtocolPage() {
                       <span className="text-[10px] font-bold text-primary-container uppercase tracking-wider">Your Protocol</span>
                     </div>
                     <h2 className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
-                      Protocol Pack
+                      Shop Your Protocol
                     </h2>
                     <p className="text-[11px] text-on-surface-variant/50 mt-0.5">
-                      {protocol.supplements.length} supplement{protocol.supplements.length !== 1 ? "s" : ""} · tap any product to see full details
+                      {protocol.supplements.length} pick{protocol.supplements.length !== 1 ? "s" : ""} · scroll each row to explore
                     </p>
                   </div>
                   <button
@@ -1179,166 +1224,120 @@ export default function ProtocolPage() {
                 </div>
               </div>
 
-              {/* Product list */}
-              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
-                {protocolCartGroups.map((group) => (
-                  <div key={group.label}>
-                    {protocolCartGroups.length > 1 && (
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-[13px] leading-none">{group.emoji}</span>
-                        <span className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-wider">{group.label}</span>
-                        <div className="flex-1 h-px bg-outline-variant/15" />
+              {/* Marketplace rows — vertically scrollable */}
+              <div className="flex-1 overflow-y-auto">
+                {protocolCartGroups.map((group) => {
+                  const picks = group.indices.map((i) => protocol.supplements[i]);
+                  const brand = picks[0]?.brand ?? "Man Matters";
+
+                  // Collect concern values that cover this group's picks
+                  const groupConcernValues = new Set<string>();
+                  for (const s of picks) {
+                    const cp = catalogProducts.find((p) => p.id === s.id);
+                    if (cp) cp.concern.forEach((c) => groupConcernValues.add(c));
+                  }
+
+                  // Alternatives: same brand + overlapping concerns + not in protocol picks
+                  const alternatives = catalogProducts
+                    .filter((p) =>
+                      p.brand === brand &&
+                      !allPickedIds.has(p.id) &&
+                      p.concern.some((c) => groupConcernValues.has(c))
+                    )
+                    .sort((a, b) => b.baseScore - a.baseScore)
+                    .slice(0, 8);
+
+                  const altIds = new Set(alternatives.map((p) => p.id));
+
+                  // Bestsellers: same brand + not picks + not alternatives, sorted by score
+                  const bestsellers = catalogProducts
+                    .filter((p) =>
+                      p.brand === brand &&
+                      !allPickedIds.has(p.id) &&
+                      !altIds.has(p.id)
+                    )
+                    .sort((a, b) => b.baseScore - a.baseScore)
+                    .slice(0, 8);
+
+                  return (
+                    <div key={group.label} className="pt-5 pb-2">
+                      {/* Concern header — only when multiple groups */}
+                      {protocolCartGroups.length > 1 && (
+                        <div className="flex items-center gap-2 px-5 mb-4">
+                          <span className="text-sm leading-none">{group.emoji}</span>
+                          <span className="text-[10px] font-bold text-on-surface-variant/55 uppercase tracking-wider">{group.label}</span>
+                          <div className="flex-1 h-px bg-outline-variant/15" />
+                        </div>
+                      )}
+
+                      {/* Row 1 — Your Top Picks */}
+                      <p className="text-[10px] font-bold text-on-surface-variant/45 uppercase tracking-wider px-5 mb-2.5">Your Top Picks</p>
+                      <div className="flex gap-3 overflow-x-auto px-5 pb-1 hide-scrollbar snap-x snap-mandatory">
+                        {picks.map((s) => (
+                          <ProductCard key={s.id} id={s.id} brand={s.brand} name={s.name} price={s.price} mrp={s.mrp} image={s.image} style="primary" />
+                        ))}
                       </div>
-                    )}
-                    <div className="space-y-4">
-                      {group.indices.map((i) => {
-                        const s = protocol.supplements[i];
-                        const alt = s.alternative;
-                        const desc = (s as { description?: string }).description;
-                        const primaryAdded = addedIds.has(s.id);
-                        const primaryLoading = addingId === s.id;
-                        const altAdded = alt ? addedIds.has(alt.id) : false;
-                        const altLoading = alt ? addingId === alt.id : false;
 
-                        return (
-                          <div key={s.id}>
-                            {/* ── Primary product card ── */}
-                            <div className="rounded-2xl border border-outline-variant/12 bg-surface-container-lowest overflow-hidden shadow-sm">
-                              {/* Product info */}
-                              <div className="p-4 pb-3 flex gap-3.5">
-                                <div className="w-[72px] h-[72px] rounded-xl overflow-hidden bg-surface-container shrink-0">
-                                  {s.image
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    ? <img src={s.image} alt={s.name} className="w-full h-full object-cover" loading="lazy" />
-                                    : <div className="w-full h-full flex items-center justify-center text-2xl leading-none">{getSupplementEmoji(s.name)}</div>
-                                  }
-                                </div>
-                                <div className="flex-1 min-w-0 pt-0.5">
-                                  <p className="text-[9px] font-bold text-on-surface-variant/40 uppercase tracking-wider leading-none mb-1">{s.brand}</p>
-                                  <p className="text-[13px] font-bold text-on-surface leading-snug">{s.name}</p>
-                                  <div className="flex items-baseline gap-1.5 mt-1">
-                                    <span className="text-[15px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">₹{s.price}</span>
-                                    {s.mrp > s.price && (
-                                      <span className="text-[10px] text-on-surface-variant/35 line-through">₹{s.mrp}</span>
-                                    )}
-                                  </div>
-                                  {desc && (
-                                    <p className="text-[11px] text-on-surface-variant/55 leading-relaxed mt-1.5 line-clamp-2">
-                                      {desc.replace(/<[^>]+>/g, "").trim()}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Primary Add button */}
-                              <div className="px-4 pb-4">
-                                <button
-                                  onClick={() => handleAddToCart(s.id)}
-                                  disabled={primaryAdded || primaryLoading}
-                                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-bold transition-all cursor-pointer disabled:cursor-default active:scale-[0.98] ${
-                                    primaryAdded
-                                      ? "bg-green-500/12 text-green-700"
-                                      : "bg-primary-container text-white hover:bg-primary"
-                                  }`}
-                                >
-                                  {primaryLoading ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2.5} />
-                                    : primaryAdded ? <Check className="w-4 h-4" strokeWidth={2.5} />
-                                    : <ShoppingBag className="w-4 h-4" strokeWidth={2} />}
-                                  {primaryLoading ? "Adding…" : primaryAdded ? "Added to cart" : "Add to Cart"}
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* ── Alternative card ── */}
-                            {alt && (
-                              <div className="mt-2 rounded-2xl border border-dashed border-outline-variant/30 bg-surface-container/20 overflow-hidden">
-                                {/* Badge */}
-                                <div className="px-4 pt-3 pb-1 flex items-center gap-1.5">
-                                  <span className="text-[9px] font-extrabold text-on-surface-variant/40 uppercase tracking-widest">Alternative pick</span>
-                                </div>
-                                {/* Alternative product info */}
-                                <div className="px-4 pb-3 flex gap-3">
-                                  <div className="w-[56px] h-[56px] rounded-xl overflow-hidden bg-surface-container shrink-0">
-                                    {alt.image
-                                      // eslint-disable-next-line @next/next/no-img-element
-                                      ? <img src={alt.image} alt={alt.name} className="w-full h-full object-cover" loading="lazy" />
-                                      : <div className="w-full h-full flex items-center justify-center text-xl leading-none">{getSupplementEmoji(alt.name)}</div>
-                                    }
-                                  </div>
-                                  <div className="flex-1 min-w-0 pt-0.5">
-                                    <p className="text-[9px] font-bold text-on-surface-variant/40 uppercase tracking-wider leading-none mb-1">{alt.brand}</p>
-                                    <p className="text-[12px] font-bold text-on-surface leading-snug">{alt.name}</p>
-                                    <div className="flex items-baseline gap-1.5 mt-0.5">
-                                      <span className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">₹{alt.price}</span>
-                                      {alt.mrp > alt.price && (
-                                        <span className="text-[10px] text-on-surface-variant/35 line-through">₹{alt.mrp}</span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                                {/* Alt Add button */}
-                                <div className="px-4 pb-3">
-                                  <button
-                                    onClick={() => handleAddToCart(alt.id)}
-                                    disabled={altAdded || altLoading}
-                                    className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[12px] font-bold transition-all cursor-pointer disabled:cursor-default active:scale-[0.98] ${
-                                      altAdded
-                                        ? "bg-green-500/12 text-green-700"
-                                        : "bg-surface-container border border-outline-variant/20 text-on-surface-variant hover:bg-surface-container-high"
-                                    }`}
-                                  >
-                                    {altLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2.5} />
-                                      : altAdded ? <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
-                                      : <ShoppingBag className="w-3.5 h-3.5" strokeWidth={2} />}
-                                    {altLoading ? "Adding…" : altAdded ? "Added to cart" : "Add Alternative"}
-                                  </button>
-                                </div>
-                              </div>
-                            )}
+                      {/* Row 2 — Alternatives for this concern */}
+                      {alternatives.length > 0 && (
+                        <>
+                          <p className="text-[10px] font-bold text-on-surface-variant/45 uppercase tracking-wider px-5 mt-4 mb-2.5">
+                            Also works for {group.label}
+                          </p>
+                          <div className="flex gap-3 overflow-x-auto px-5 pb-1 hide-scrollbar snap-x snap-mandatory">
+                            {alternatives.map((p) => (
+                              <ProductCard key={p.id} id={p.id} brand={p.brand} name={p.name} price={p.price} mrp={p.mrp} image={p.image} style="secondary" />
+                            ))}
                           </div>
-                        );
-                      })}
+                        </>
+                      )}
+
+                      {/* Row 3 — Bestsellers on this brand */}
+                      {bestsellers.length > 0 && (
+                        <>
+                          <p className="text-[10px] font-bold text-on-surface-variant/45 uppercase tracking-wider px-5 mt-4 mb-2.5">
+                            Popular on {brand}
+                          </p>
+                          <div className="flex gap-3 overflow-x-auto px-5 pb-1 hide-scrollbar snap-x snap-mandatory">
+                            {bestsellers.map((p) => (
+                              <ProductCard key={p.id} id={p.id} brand={p.brand} name={p.name} price={p.price} mrp={p.mrp} image={p.image} style="secondary" />
+                            ))}
+                          </div>
+                        </>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
+                <div className="h-3" />
               </div>
 
-              {/* Footer */}
-              <div className="px-5 pt-3 pb-5 border-t border-outline-variant/10 shrink-0 space-y-2">
-                {/* Add all primaries — hidden once all are added */}
+              {/* Sticky footer — always visible */}
+              <div className="shrink-0 px-5 pt-3 pb-5 border-t border-outline-variant/10 space-y-2">
+                {/* Add all picks — shown until all added */}
                 {!allPrimaryAdded && (
                   <button
                     onClick={handleAddAllPrimaries}
                     disabled={addingAll}
-                    className="w-full py-3 rounded-2xl bg-primary-container text-white text-sm font-bold hover:bg-primary transition-colors cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
+                    className="w-full py-2.5 rounded-xl border border-outline-variant/20 text-on-surface-variant text-[12px] font-bold hover:bg-surface-container transition-colors cursor-pointer disabled:opacity-60 flex items-center justify-center gap-1.5"
                   >
                     {addingAll
-                      ? <><Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> Adding all…</>
-                      : <><ShoppingBag className="w-4 h-4" strokeWidth={2} /> Add all to cart</>}
+                      ? <><Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2} />Adding all picks…</>
+                      : <><ShoppingBag className="w-3.5 h-3.5" strokeWidth={2} />Add all {protocol.supplements.length} picks</>
+                    }
                   </button>
                 )}
-                {/* View cart — shown once at least one item added */}
-                {anyAdded && (
-                  <button
-                    onClick={() => { setShowProtocolCart(false); openCart(); }}
-                    className={`w-full py-3 rounded-2xl text-sm font-bold transition-colors cursor-pointer flex items-center justify-center gap-2 ${
-                      allPrimaryAdded
-                        ? "bg-primary-container text-white hover:bg-primary"
-                        : "border border-outline-variant/20 text-on-surface-variant hover:bg-surface-container"
-                    }`}
-                  >
-                    <ShoppingBag className="w-4 h-4" strokeWidth={2} />
-                    View Cart
-                  </button>
-                )}
-                {!anyAdded && allPrimaryAdded === false && (
-                  <button
-                    onClick={() => setShowProtocolCart(false)}
-                    className="w-full py-2.5 text-[12px] font-semibold text-on-surface-variant/50 hover:text-on-surface-variant transition-colors cursor-pointer"
-                  >
-                    Close
-                  </button>
-                )}
+                {/* Go to Cart — always shown, primary CTA */}
+                <button
+                  onClick={() => { setShowProtocolCart(false); openCart(); }}
+                  className={`w-full py-3.5 rounded-2xl text-sm font-bold transition-colors cursor-pointer flex items-center justify-center gap-2 ${
+                    cartCount > 0
+                      ? "bg-primary-container text-white hover:bg-primary"
+                      : "bg-surface-container-high text-on-surface-variant/60"
+                  }`}
+                >
+                  <ShoppingBag className="w-4 h-4" strokeWidth={2} />
+                  {cartCount > 0 ? `Go to Cart · ${cartCount} item${cartCount !== 1 ? "s" : ""}` : "Go to Cart →"}
+                </button>
                 <p className="text-[10px] text-on-surface-variant/40 text-center">
                   Free delivery · Doctor-approved · Made for Indian bodies
                 </p>

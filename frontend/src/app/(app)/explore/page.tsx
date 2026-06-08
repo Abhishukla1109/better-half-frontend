@@ -562,6 +562,13 @@ function ExplorePageContent() {
     if ((picksParam || saved) && !searchParams.get("tab")) setActiveCategory("for-you");
   }, [picksParam]);
 
+  // Header search icon dispatches this event when already on /explore
+  useEffect(() => {
+    const open = () => setSearchOpen(true);
+    window.addEventListener("bh-explore-search-open", open);
+    return () => window.removeEventListener("bh-explore-search-open", open);
+  }, []);
+
   const effectivePicks = picksParam || storedPicks;
 
   const forYouConcernValues = useMemo<string[]>(() => {
@@ -827,16 +834,15 @@ function ExplorePageContent() {
             <ChevronDown className={`w-3 h-3 ${BRAND_STYLE[selectedBrand ?? ""]?.text ?? "text-on-surface-variant/60"}`} />
           </button>
 
-          {/* Search icon */}
-          <button
-            onClick={() => { setSearchOpen(!searchOpen); if (searchOpen) setSearchQuery(""); }}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors cursor-pointer shrink-0"
-          >
-            {searchOpen
-              ? <X className="w-4 h-4 text-on-surface-variant" strokeWidth={2} />
-              : <Search className="w-4 h-4 text-on-surface-variant" strokeWidth={2} />
-            }
-          </button>
+          {/* Search is in the global header — close button shown when search is open */}
+          {searchOpen && (
+            <button
+              onClick={() => { setSearchOpen(false); setSearchQuery(""); }}
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors cursor-pointer shrink-0"
+            >
+              <X className="w-4 h-4 text-on-surface-variant" strokeWidth={2} />
+            </button>
+          )}
         </div>
 
         {/* Inline search bar — shown when search is open */}
