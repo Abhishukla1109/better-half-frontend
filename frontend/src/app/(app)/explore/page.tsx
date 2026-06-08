@@ -121,6 +121,14 @@ const KIDS_CONCERN_FOLLOWUP: Record<string, string[]> = {
   nutrition: ["nutrition", "protein", "vitamins"],
 };
 
+const LJ_MOM_CONCERNS = [
+  { key: "nutrition",   label: "Nutrition & Energy", emoji: "🌿", desc: "Mamamix, postnatal vitamins" },
+  { key: "immunity",    label: "Immunity",            emoji: "🛡️", desc: "Vitamins, immune support" },
+  { key: "bone-growth", label: "Bone & Calcium",      emoji: "🦴", desc: "Calcium, joint health" },
+  { key: "hair",        label: "Hair Health",         emoji: "💇", desc: "Biotin, postpartum hair" },
+  { key: "sleep",       label: "Better Sleep",        emoji: "😴", desc: "Magnesium, calm" },
+];
+
 const KIDS_CATEGORY_KEYS = KIDS_CATEGORY_FILTERS.map((c) => c.key);
 const KIDS_CONCERN_KEYS  = KIDS_CONCERN_FILTERS.map((c) => c.key);
 
@@ -441,6 +449,7 @@ function ExplorePageContent() {
   const [activeCategory, setActiveCategory] = useState(() => searchParams.get("tab") ?? "for-you");
 
   const [selectedSubConcern, setSelectedSubConcern] = useState<string | null>(null);
+  const [ljMode, setLjMode] = useState<"kids" | "mom">("kids");
 
   const switchTab = useCallback((key: string) => {
     setActiveCategory(key);
@@ -496,8 +505,16 @@ function ExplorePageContent() {
     setSelectedSubConcern(null);
     const p = new URLSearchParams(searchParams.toString());
     if (brand) p.set("brand", brand); else p.delete("brand");
+    if (brand === "Little Joys") {
+      setLjMode("kids");
+      setActiveCategory("lj-kids");
+      p.set("tab", "lj-kids");
+    } else if (activeCategory === "lj-kids" || activeCategory === "lj-mom") {
+      setActiveCategory("bestsellers");
+      p.set("tab", "bestsellers");
+    }
     router.replace(`?${p.toString()}`, { scroll: false });
-  }, [router, searchParams]);
+  }, [router, searchParams, activeCategory]);
 
   const activeMemberName: string | null =
     activeMember?.name
@@ -558,38 +575,70 @@ function ExplorePageContent() {
   const displayedProducts = useMemo<(Product & { matchScore?: number })[]>(() => {
     let result: (Product & { matchScore?: number })[];
 
-    if (isKid) {
-      const childAge = activeMember?.childAge ?? "6-12";
-      const seg = childAge === "2-5" ? "child-2-6" : childAge === "6-12" ? "child-7-12" : "child-13-18";
-      const lj = products
-        .filter((p) => p.brand === "Little Joys" && p.segment.includes(seg))
+    if (showKidsFilters) {
+      const ljAll = products.filter((p) => p.brand === "Little Joys");
+      const ljMomPool = ljAll
+        .filter((p) => p.segment.some((s) => s.startsWith("female")))
         .sort((a, b) => b.baseScore - a.baseScore);
 
-      if (activeCategory === "bestsellers") result = lj.slice(0, 20);
-      else if (activeCategory === "all") result = lj;
-      else if (KIDS_CATEGORY_KEYS.includes(activeCategory)) result = lj.filter((p) => p.category === activeCategory);
-      else if (KIDS_CONCERN_KEYS.includes(activeCategory) && activeCategory !== "for-you") result = lj.filter((p) => p.concern.includes(activeCategory));
-      else {
-        const childConcern = (activeMember?.profile as Record<string, unknown>)?.concern as string | undefined;
-        if (!childConcern) { result = lj; }
-        else {
-          const followUps = KIDS_CONCERN_FOLLOWUP[childConcern] ?? [];
-          const directConcern = ["sleep", "skin", "hair"].includes(childConcern);
-          result = [...lj].sort((a, b) => {
-            const aMatch = directConcern
-              ? a.concern.includes(childConcern)
-              : followUps.length > 0
-                ? a.followUp.some((f) => followUps.some((t) => f.toLowerCase().includes(t)))
-                : a.concern.includes("energy");
-            const bMatch = directConcern
-              ? b.concern.includes(childConcern)
-              : followUps.length > 0
-                ? b.followUp.some((f) => followUps.some((t) => f.toLowerCase().includes(t)))
-                : b.concern.includes("energy");
-            if (aMatch && !bMatch) return -1;
-            if (!aMatch && bMatch) return 1;
-            return b.baseScore - a.baseScore;
-          });
+      // Kids pool: if child profile active, filter by child age; else show all child segments
+      const kidsPool = (() => {
+        if (isKid) {
+          const childAge = activeMember?.childAge ?? "6-12";
+          const seg = childAge === "2-5" ? "child-2-6" : childAge === "6-12" ? "child-7-12" : "child-13-18";
+          return ljAll.filter((p) => p.segment.includes(seg)).sort((a, b) => b.baseScore - a.baseScore);
+        }
+        return ljAll.filter((p) => p.segment.some((s) => s.startsWith("child"))).sort((a, b) => b.baseScore - a.baseScore);
+      })();
+
+      if (ljMode === "mom") {
+        if (KIDS_CONCERN_KEYS.includes(activeCategory) || activeCategory === "hair" || LJ_MOM_CONCERNS.some(c => c.key === activeCategory)) {
+          result = ljMomPool.filter((p) => p.concern.includes(activeCategory));
+        } else if (activeCategory === "bestsellers") {
+          result = ljMomPool.slice(0, 20);
+        } else if (activeCategory === "all") {
+          result = ljAll.sort((a, b) => b.baseScore - a.baseScore);
+        } else {
+          result = ljMomPool;
+        }
+      } else {
+        // Kids mode
+        if (activeCategory === "bestsellers") {
+          result = kidsPool.slice(0, 20);
+        } else if (activeCategory === "all") {
+          result = ljAll.sort((a, b) => b.baseScore - a.baseScore);
+        } else if (KIDS_CATEGORY_KEYS.includes(activeCategory)) {
+          result = kidsPool.filter((p) => p.category === activeCategory);
+        } else if (KIDS_CONCERN_KEYS.includes(activeCategory) && activeCategory !== "lj-kids") {
+          result = kidsPool.filter((p) => p.concern.includes(activeCategory));
+        } else {
+          // Default "lj-kids" tab — smart concern-based sort if child profile exists
+          if (isKid) {
+            const childConcern = (activeMember?.profile as Record<string, unknown>)?.concern as string | undefined;
+            if (!childConcern) {
+              result = kidsPool;
+            } else {
+              const followUps = KIDS_CONCERN_FOLLOWUP[childConcern] ?? [];
+              const directConcern = ["sleep", "skin", "hair"].includes(childConcern);
+              result = [...kidsPool].sort((a, b) => {
+                const aMatch = directConcern
+                  ? a.concern.includes(childConcern)
+                  : followUps.length > 0
+                    ? a.followUp.some((f) => followUps.some((t) => f.toLowerCase().includes(t)))
+                    : a.concern.includes("energy");
+                const bMatch = directConcern
+                  ? b.concern.includes(childConcern)
+                  : followUps.length > 0
+                    ? b.followUp.some((f) => followUps.some((t) => f.toLowerCase().includes(t)))
+                    : b.concern.includes("energy");
+                if (aMatch && !bMatch) return -1;
+                if (!aMatch && bMatch) return 1;
+                return b.baseScore - a.baseScore;
+              });
+            }
+          } else {
+            result = kidsPool;
+          }
         }
       }
     } else if (activeCategory === "bestsellers") {
@@ -641,7 +690,7 @@ function ExplorePageContent() {
     }
 
     return result;
-  }, [activeCategory, profile, forYouConcernValues, selectedBrand, isKid, activeMember, products, searchQuery, selectedSubConcern]);
+  }, [activeCategory, profile, forYouConcernValues, selectedBrand, isKid, activeMember, products, searchQuery, selectedSubConcern, showKidsFilters, ljMode]);
 
   const visibleCategories = useMemo<CategoryDef[]>(() => {
     return CATEGORIES.filter((c) => {
@@ -675,7 +724,7 @@ function ExplorePageContent() {
   }, [activeCategory, profile, displayedProducts, activeBrand]);
 
   const pinnedPicks = useMemo<Product[]>(() => {
-    if (!picksVisible || isKid) return [];
+    if (!picksVisible || showKidsFilters) return [];
     // If navigated from protocol with explicit picks in URL — use those
     if (picksParam) {
       const ids = picksParam.split(",").filter(Boolean);
@@ -686,7 +735,7 @@ function ExplorePageContent() {
     const scored = scoreProducts(forYouConcernValues, profile, products);
     const pool = selectedBrand ? scored.filter((p) => p.brand === selectedBrand) : scored;
     return pool.slice(0, 3);
-  }, [picksParam, picksVisible, profile, forYouConcernValues, selectedBrand, isKid, products]);
+  }, [picksParam, picksVisible, profile, forYouConcernValues, selectedBrand, showKidsFilters, products]);
 
   const pinnedPickIds = useMemo(() => new Set(pinnedPicks.map((p) => p.id)), [pinnedPicks]);
   const forYouNonPinned = useMemo(
@@ -696,13 +745,20 @@ function ExplorePageContent() {
 
   const isForYou = activeCategory === "for-you";
   const activeCategoryDef = CATEGORIES.find((c) => c.key === activeCategory);
-  const showNoProfile = isForYou && profileLoaded && (!profile || (forYouConcernValues.length === 0 && selectedBrand !== "Little Joys"));
+  const showNoProfile = isForYou && profileLoaded && (!profile || (forYouConcernValues.length === 0 && !showKidsFilters));
   const showPinnedPicks = isForYou && pinnedPicks.length > 0;
 
-  const TOP_CHIPS = [
+  const TOP_CHIPS = showKidsFilters ? [
+    { key: "lj-kids", label: "For Kids", icon: "👶" },
+    { key: "lj-mom",  label: "For Mom",  icon: "🤱" },
+    { key: "bestsellers",    label: "Bestsellers", icon: "🏆" },
+    ...(ljMode === "kids" ? [{ key: "category-sheet", label: "By Category", icon: "🗂️", isSheet: true }] : []),
+    { key: "concern-sheet",  label: "By Concern",  icon: "🎯", isSheet: true },
+    { key: "all",            label: "Shop All",    icon: "📦" },
+  ] : [
     { key: "for-you",        label: "For You",     icon: "✦"  },
     { key: "bestsellers",    label: "Bestsellers", icon: "🏆" },
-    { key: "category-sheet", label: "By Category", icon: "🗂", isSheet: true },
+    { key: "category-sheet", label: "By Category", icon: "🗂️", isSheet: true },
     { key: "concern-sheet",  label: "By Concern",  icon: "🎯", isSheet: true },
     { key: "all",            label: "Shop All",    icon: "📦" },
   ];
@@ -714,25 +770,36 @@ function ExplorePageContent() {
   const handleChipClick = (key: string) => {
     if (key === "category-sheet") { setShowCategorySheet(true); return; }
     if (key === "concern-sheet")  { setShowConcernSheet(true);  return; }
+    if (key === "lj-kids") { setLjMode("kids"); switchTab("lj-kids"); return; }
+    if (key === "lj-mom")  { setLjMode("mom");  switchTab("lj-mom");  return; }
     switchTab(key);
   };
 
   const isChipActive = (key: string) => {
+    if (key === "lj-kids") return activeCategory === "lj-kids" || (showKidsFilters && ljMode === "kids" && activeCategory !== "lj-mom");
+    if (key === "lj-mom")  return activeCategory === "lj-mom"  || (showKidsFilters && ljMode === "mom"  && activeCategory !== "lj-kids");
     if (key === "category-sheet") return CATEGORY_KEYS.includes(activeCategory);
     if (key === "concern-sheet") {
-      if (showKidsFilters) return KIDS_CONCERN_KEYS.includes(activeCategory);
+      if (showKidsFilters) return KIDS_CONCERN_KEYS.includes(activeCategory) || activeCategory === "hair" || LJ_MOM_CONCERNS.some(c => c.key === activeCategory && activeCategory !== "lj-kids" && activeCategory !== "lj-mom");
       return selectedSubConcern !== null || CONCERN_LIST.some((c) => c.key === activeCategory);
     }
     return activeCategory === key;
   };
 
   const sectionTitle = (() => {
+    if (activeCategory === "lj-kids") return "For Kids";
+    if (activeCategory === "lj-mom")  return "For Mom";
     if (activeCategory === "for-you") return "For You";
     if (activeCategory === "bestsellers") return "Bestsellers";
     if (activeCategory === "all") return "Shop All";
     if (selectedSubConcern) {
       const sub = (CATEGORY_SUB_CONCERNS[activeCategory] ?? []).find((s) => s.key === selectedSubConcern);
       if (sub) return sub.label;
+    }
+    if (showKidsFilters) {
+      const concern = KIDS_CONCERN_FILTERS.find(c => c.key === activeCategory)
+        ?? LJ_MOM_CONCERNS.find(c => c.key === activeCategory);
+      if (concern) return concern.label;
     }
     return activeCategoryDef?.label ?? "Products";
   })();
@@ -1075,27 +1142,49 @@ function ExplorePageContent() {
           >
             <div className="w-10 h-1 bg-outline-variant/30 rounded-full mx-auto mb-5" />
             <p className="font-extrabold text-[16px] text-on-surface font-[family-name:var(--font-manrope)] mb-4">
-              {(CATEGORY_SUB_CONCERNS[activeCategory]?.length ?? 0) > 0 ? "Refine by Concern" : "Shop by Concern"}
+              {showKidsFilters
+                ? (ljMode === "mom" ? "Shop by Concern" : "Shop by Concern")
+                : (CATEGORY_SUB_CONCERNS[activeCategory]?.length ?? 0) > 0 ? "Refine by Concern" : "Shop by Concern"}
             </p>
             <div className="flex flex-col gap-2.5">
               {showKidsFilters ? (
-                KIDS_CONCERN_FILTERS.map((concern) => (
-                  <button
-                    key={concern.key}
-                    onClick={() => { switchTab(concern.key); setShowConcernSheet(false); }}
-                    className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl border-2 transition-all cursor-pointer text-left ${
-                      activeCategory === concern.key
-                        ? "bg-amber-500/10 border-amber-400/40"
-                        : "border-outline-variant/10 bg-surface-container-low hover:bg-surface-container"
-                    }`}
-                  >
-                    <span className="text-2xl leading-none shrink-0">{concern.emoji}</span>
-                    <div className="min-w-0">
-                      <p className={`text-[13px] font-bold ${activeCategory === concern.key ? "text-amber-700" : "text-on-surface"}`}>{concern.label}</p>
-                      <p className="text-[11px] text-on-surface-variant/50 mt-0.5">{concern.desc}</p>
-                    </div>
-                  </button>
-                ))
+                ljMode === "mom" ? (
+                  LJ_MOM_CONCERNS.map((concern) => (
+                    <button
+                      key={concern.key}
+                      onClick={() => { switchTab(concern.key); setShowConcernSheet(false); }}
+                      className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl border-2 transition-all cursor-pointer text-left ${
+                        activeCategory === concern.key
+                          ? "bg-amber-500/10 border-amber-400/40"
+                          : "border-outline-variant/10 bg-surface-container-low hover:bg-surface-container"
+                      }`}
+                    >
+                      <span className="text-2xl leading-none shrink-0">{concern.emoji}</span>
+                      <div className="min-w-0">
+                        <p className={`text-[13px] font-bold ${activeCategory === concern.key ? "text-amber-700" : "text-on-surface"}`}>{concern.label}</p>
+                        <p className="text-[11px] text-on-surface-variant/50 mt-0.5">{concern.desc}</p>
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  KIDS_CONCERN_FILTERS.map((concern) => (
+                    <button
+                      key={concern.key}
+                      onClick={() => { switchTab(concern.key); setShowConcernSheet(false); }}
+                      className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl border-2 transition-all cursor-pointer text-left ${
+                        activeCategory === concern.key
+                          ? "bg-amber-500/10 border-amber-400/40"
+                          : "border-outline-variant/10 bg-surface-container-low hover:bg-surface-container"
+                      }`}
+                    >
+                      <span className="text-2xl leading-none shrink-0">{concern.emoji}</span>
+                      <div className="min-w-0">
+                        <p className={`text-[13px] font-bold ${activeCategory === concern.key ? "text-amber-700" : "text-on-surface"}`}>{concern.label}</p>
+                        <p className="text-[11px] text-on-surface-variant/50 mt-0.5">{concern.desc}</p>
+                      </div>
+                    </button>
+                  ))
+                )
               ) : (CATEGORY_SUB_CONCERNS[activeCategory]?.length ?? 0) > 0 ? (
                 // Sub-concerns for the active category
                 <>
