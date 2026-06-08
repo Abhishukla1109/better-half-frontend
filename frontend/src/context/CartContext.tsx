@@ -46,7 +46,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (!stored) return;
     cartIdRef.current = stored;
     cartApi('get', { cartId: stored })
-      .then(c => { if (c) setCart(c); })
+      .then(c => {
+        if (c) {
+          setCart(c);
+        } else {
+          // Cart expired on Shopify — clear so next addItem creates a fresh one
+          localStorage.removeItem(CART_ID_KEY);
+          cartIdRef.current = null;
+        }
+      })
       .catch(() => { localStorage.removeItem(CART_ID_KEY); cartIdRef.current = null; });
   }, []);
 
@@ -58,7 +66,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     try {
       let updated: Cart | null;
       if (cartIdRef.current) {
-        updated = await cartApi('add', { cartId: cartIdRef.current, variantId, quantity });
+        try {
+          updated = await cartApi('add', { cartId: cartIdRef.current, variantId, quantity });
+        } catch {
+          // Cart may have expired — clear stale ID and create a fresh cart
+          localStorage.removeItem(CART_ID_KEY);
+          cartIdRef.current = null;
+          updated = await cartApi('create', { variantId, quantity });
+          if (updated) {
+            cartIdRef.current = updated.id;
+            localStorage.setItem(CART_ID_KEY, updated.id);
+          }
+        }
       } else {
         updated = await cartApi('create', { variantId, quantity });
         if (updated) {

@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
     }
   } catch (err) {
+    console.error("[cart]", err instanceof Error ? err.message : err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Shopify error" },
       { status: 500 },
