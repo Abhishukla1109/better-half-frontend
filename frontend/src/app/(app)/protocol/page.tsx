@@ -1142,50 +1142,96 @@ export default function ProtocolPage() {
         const cartCount = addedIds.size;
         const allPrimaryAdded = [...allPickedIds].every((id) => addedIds.has(id));
 
-        // Inline product card for horizontal rows
-        const ProductCard = ({ id, brand, name, price, mrp, image, style }: {
-          id: string; brand: string; name: string; price: number; mrp: number; image?: string; style?: "primary" | "secondary";
+        const BRAND_PILL: Record<string, { bg: string; text: string }> = {
+          "Man Matters": { bg: "bg-primary-container/10", text: "text-primary-container" },
+          "Be Bodywise":  { bg: "bg-rose-500/10",          text: "text-rose-600"           },
+          "Little Joys":  { bg: "bg-amber-500/10",         text: "text-amber-600"           },
+        };
+
+        const ProductCard = ({ id, brand, name, price, mrp, image, rating, isPrimary }: {
+          id: string; brand: string; name: string; price: number; mrp: number;
+          image?: string; rating?: number; isPrimary?: boolean;
         }) => {
           const isAdded = addedIds.has(id);
           const isLoading = addingId === id;
+          const pill = BRAND_PILL[brand] ?? { bg: "bg-surface-container", text: "text-on-surface-variant" };
+          const discountPct = mrp > price ? Math.round((1 - price / mrp) * 100) : 0;
+
           return (
-            <div className="flex-none w-40 snap-start rounded-2xl border border-outline-variant/12 bg-surface-container-lowest overflow-hidden">
-              <div className="w-full h-28 bg-surface-container overflow-hidden">
+            <div className="flex-none w-40 snap-start rounded-2xl border border-outline-variant/12 bg-surface-container-lowest overflow-hidden shadow-sm">
+              {/* Image with badge overlays */}
+              <div className="relative w-full h-[110px] bg-surface-container overflow-hidden">
                 {image
                   // eslint-disable-next-line @next/next/no-img-element
                   ? <img src={image} alt={name} className="w-full h-full object-cover" loading="lazy" />
                   : <div className="w-full h-full flex items-center justify-center text-3xl leading-none">{getSupplementEmoji(name)}</div>
                 }
+                {discountPct > 0 && (
+                  <span className="absolute top-2 left-2 bg-primary-container text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-md leading-none">
+                    {discountPct}% OFF
+                  </span>
+                )}
+                {isPrimary && (
+                  <span className="absolute top-2 right-2 bg-black/40 backdrop-blur-sm text-white text-[8px] font-bold px-1.5 py-0.5 rounded-md leading-none flex items-center gap-0.5">
+                    <Sparkles className="w-2 h-2" strokeWidth={2} />Top pick
+                  </span>
+                )}
               </div>
-              <div className="p-2.5">
-                <p className="text-[8px] font-bold text-on-surface-variant/40 uppercase tracking-wider mb-0.5">{brand}</p>
-                <p className="text-[11px] font-bold text-on-surface leading-snug line-clamp-2 mb-1.5 min-h-[30px]">{name}</p>
-                <div className="flex items-baseline gap-1 mb-2">
-                  <span className="text-[12px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">₹{price}</span>
-                  {mrp > price && <span className="text-[9px] text-on-surface-variant/35 line-through">₹{mrp}</span>}
+
+              {/* Card body */}
+              <div className="p-2.5 pt-2">
+                {/* Brand pill */}
+                <span className={`inline-block px-1.5 py-0.5 rounded-md text-[8px] font-bold mb-1.5 ${pill.bg} ${pill.text}`}>
+                  {brand}
+                </span>
+
+                {/* Name */}
+                <p className="text-[11px] font-bold text-on-surface leading-snug line-clamp-2 min-h-[28px] mb-1.5">{name}</p>
+
+                {/* Price + rating on same row */}
+                <div className="flex items-center justify-between mb-2.5">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">₹{price}</span>
+                    {mrp > price && <span className="text-[9px] text-on-surface-variant/35 line-through">₹{mrp}</span>}
+                  </div>
+                  {rating && rating > 0 ? (
+                    <span className="flex items-center gap-0.5 text-[10px] font-semibold text-on-surface-variant/60">
+                      <span className="text-amber-400">★</span>{rating.toFixed(1)}
+                    </span>
+                  ) : null}
                 </div>
+
+                {/* Add to Cart button */}
                 <button
                   onClick={() => handleAddToCart(id)}
                   disabled={isAdded || !!isLoading}
-                  className={`w-full py-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer disabled:cursor-default active:scale-[0.98] ${
+                  className={`w-full py-2 rounded-xl text-[10px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer disabled:cursor-default active:scale-[0.98] ${
                     isAdded
                       ? "bg-green-500/12 text-green-700"
-                      : style === "secondary"
-                        ? "bg-surface-container border border-outline-variant/20 text-on-surface-variant hover:bg-surface-container-high"
-                        : "bg-primary-container text-white hover:bg-primary"
+                      : isPrimary
+                        ? "bg-primary-container text-white hover:bg-primary"
+                        : "bg-surface-container border border-outline-variant/20 text-on-surface-variant hover:bg-surface-container-high"
                   }`}
                 >
                   {isLoading
                     ? <Loader2 className="w-3 h-3 animate-spin" strokeWidth={2.5} />
                     : isAdded
                       ? <><Check className="w-3 h-3" strokeWidth={2.5} /><span>Added</span></>
-                      : <><ShoppingBag className="w-3 h-3" strokeWidth={2} /><span>Add</span></>
+                      : <><ShoppingBag className="w-3 h-3" strokeWidth={2} /><span>Add to Cart</span></>
                   }
                 </button>
               </div>
             </div>
           );
         };
+
+        // Row section label component
+        const RowLabel = ({ children }: { children: React.ReactNode }) => (
+          <div className="flex items-center gap-2.5 px-5 mb-3">
+            <span className="text-[13px] font-extrabold text-on-surface">{children}</span>
+            <div className="flex-1 h-px bg-outline-variant/12" />
+          </div>
+        );
 
         return (
           <div
@@ -1230,14 +1276,12 @@ export default function ProtocolPage() {
                   const picks = group.indices.map((i) => protocol.supplements[i]);
                   const brand = picks[0]?.brand ?? "Man Matters";
 
-                  // Collect concern values that cover this group's picks
                   const groupConcernValues = new Set<string>();
                   for (const s of picks) {
                     const cp = catalogProducts.find((p) => p.id === s.id);
                     if (cp) cp.concern.forEach((c) => groupConcernValues.add(c));
                   }
 
-                  // Alternatives: same brand + overlapping concerns + not in protocol picks
                   const alternatives = catalogProducts
                     .filter((p) =>
                       p.brand === brand &&
@@ -1249,7 +1293,6 @@ export default function ProtocolPage() {
 
                   const altIds = new Set(alternatives.map((p) => p.id));
 
-                  // Bestsellers: same brand + not picks + not alternatives, sorted by score
                   const bestsellers = catalogProducts
                     .filter((p) =>
                       p.brand === brand &&
@@ -1261,49 +1304,45 @@ export default function ProtocolPage() {
 
                   return (
                     <div key={group.label} className="pt-5 pb-2">
-                      {/* Concern header — only when multiple groups */}
+                      {/* Concern group header — bigger + bolder when multi-concern */}
                       {protocolCartGroups.length > 1 && (
-                        <div className="flex items-center gap-2 px-5 mb-4">
-                          <span className="text-sm leading-none">{group.emoji}</span>
-                          <span className="text-[10px] font-bold text-on-surface-variant/55 uppercase tracking-wider">{group.label}</span>
+                        <div className="flex items-center gap-2.5 px-5 mb-4">
+                          <span className="text-xl leading-none">{group.emoji}</span>
+                          <span className="text-[15px] font-extrabold text-on-surface">{group.label}</span>
                           <div className="flex-1 h-px bg-outline-variant/15" />
                         </div>
                       )}
 
                       {/* Row 1 — Your Top Picks */}
-                      <p className="text-[10px] font-bold text-on-surface-variant/45 uppercase tracking-wider px-5 mb-2.5">Your Top Picks</p>
-                      <div className="flex gap-3 overflow-x-auto px-5 pb-1 hide-scrollbar snap-x snap-mandatory">
+                      <RowLabel>Your Top Picks</RowLabel>
+                      <div className="flex gap-3 overflow-x-auto px-5 pb-2 hide-scrollbar snap-x snap-mandatory">
                         {picks.map((s) => (
-                          <ProductCard key={s.id} id={s.id} brand={s.brand} name={s.name} price={s.price} mrp={s.mrp} image={s.image} style="primary" />
+                          <ProductCard key={s.id} id={s.id} brand={s.brand} name={s.name} price={s.price} mrp={s.mrp} image={s.image} rating={s.rating} isPrimary />
                         ))}
                       </div>
 
-                      {/* Row 2 — Alternatives for this concern */}
+                      {/* Row 2 — Alternatives */}
                       {alternatives.length > 0 && (
-                        <>
-                          <p className="text-[10px] font-bold text-on-surface-variant/45 uppercase tracking-wider px-5 mt-4 mb-2.5">
-                            Also works for {group.label}
-                          </p>
-                          <div className="flex gap-3 overflow-x-auto px-5 pb-1 hide-scrollbar snap-x snap-mandatory">
+                        <div className="mt-4">
+                          <RowLabel>Also works for {group.label}</RowLabel>
+                          <div className="flex gap-3 overflow-x-auto px-5 pb-2 hide-scrollbar snap-x snap-mandatory">
                             {alternatives.map((p) => (
-                              <ProductCard key={p.id} id={p.id} brand={p.brand} name={p.name} price={p.price} mrp={p.mrp} image={p.image} style="secondary" />
+                              <ProductCard key={p.id} id={p.id} brand={p.brand} name={p.name} price={p.price} mrp={p.mrp} image={p.image} />
                             ))}
                           </div>
-                        </>
+                        </div>
                       )}
 
-                      {/* Row 3 — Bestsellers on this brand */}
+                      {/* Row 3 — Bestsellers */}
                       {bestsellers.length > 0 && (
-                        <>
-                          <p className="text-[10px] font-bold text-on-surface-variant/45 uppercase tracking-wider px-5 mt-4 mb-2.5">
-                            Popular on {brand}
-                          </p>
-                          <div className="flex gap-3 overflow-x-auto px-5 pb-1 hide-scrollbar snap-x snap-mandatory">
+                        <div className="mt-4">
+                          <RowLabel>Popular on {brand}</RowLabel>
+                          <div className="flex gap-3 overflow-x-auto px-5 pb-2 hide-scrollbar snap-x snap-mandatory">
                             {bestsellers.map((p) => (
-                              <ProductCard key={p.id} id={p.id} brand={p.brand} name={p.name} price={p.price} mrp={p.mrp} image={p.image} style="secondary" />
+                              <ProductCard key={p.id} id={p.id} brand={p.brand} name={p.name} price={p.price} mrp={p.mrp} image={p.image} />
                             ))}
                           </div>
-                        </>
+                        </div>
                       )}
                     </div>
                   );
@@ -1311,9 +1350,8 @@ export default function ProtocolPage() {
                 <div className="h-3" />
               </div>
 
-              {/* Sticky footer — always visible */}
+              {/* Sticky footer */}
               <div className="shrink-0 px-5 pt-3 pb-5 border-t border-outline-variant/10 space-y-2">
-                {/* Add all picks — shown until all added */}
                 {!allPrimaryAdded && (
                   <button
                     onClick={handleAddAllPrimaries}
@@ -1326,7 +1364,6 @@ export default function ProtocolPage() {
                     }
                   </button>
                 )}
-                {/* Go to Cart — always shown, primary CTA */}
                 <button
                   onClick={() => { setShowProtocolCart(false); openCart(); }}
                   className={`w-full py-3.5 rounded-2xl text-sm font-bold transition-colors cursor-pointer flex items-center justify-center gap-2 ${
