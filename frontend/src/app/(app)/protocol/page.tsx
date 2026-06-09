@@ -1688,6 +1688,11 @@ export default function ProtocolPage() {
 
         {/* ── Product picks — right after habits ── */}
         {protocol.supplements.length > 0 && (
+          <p className="text-[11px] font-bold text-on-surface-variant/40 uppercase tracking-widest px-1 mb-2">
+            AI Recommendations
+          </p>
+        )}
+        {protocol.supplements.length > 0 && (
           <div
             ref={picksRef}
             className="mb-4 rounded-2xl overflow-hidden border border-primary-container/10 animate-fade-in-up"

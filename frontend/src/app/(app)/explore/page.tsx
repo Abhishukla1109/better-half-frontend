@@ -916,41 +916,34 @@ function ExplorePageContent() {
           </div>
         )}
 
-        {/* Section header */}
-        <div className="px-4 pt-4 pb-3">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <h1 className="text-[18px] font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)]">
-                {sectionTitle}
-              </h1>
-              {!showNoProfile && (
-                <p className="text-[12px] text-on-surface-variant/50 mt-0.5 truncate">
-                  {isForYou && isKid
-                    ? (() => {
-                        const concern = (activeMember?.profile as Record<string, unknown>)?.concern as string | undefined;
-                        const name = activeMember?.name ?? "your child";
-                        return concern ? `Matched to ${name}'s ${concern} goal` : `${displayedProducts.length} products`;
-                      })()
-                    : isForYou && forYouConcernValues.length > 0
-                      ? (() => {
-                          const raw = (profile?.concerns as string | undefined) ?? profile?.concern ?? "";
-                          const labels = raw.split(",").map((s) => s.trim()).filter(Boolean);
-                          return labels.length > 1
-                            ? `Matched across ${labels.length} concerns`
-                            : `Matched to your ${labels[0] ?? ""} concern`;
-                        })()
-                      : `${displayedProducts.length} product${displayedProducts.length !== 1 ? "s" : ""}`}
-                </p>
-              )}
-            </div>
-            {isForYou && !showNoProfile && (
+        {/* Section header — subtext + badge only (title duplicates the active tab) */}
+        {!showNoProfile && (
+          <div className="px-4 pt-3 pb-2 flex items-center justify-between gap-2">
+            <p className="text-[12px] text-on-surface-variant/50 truncate">
+              {isForYou && isKid
+                ? (() => {
+                    const concern = (activeMember?.profile as Record<string, unknown>)?.concern as string | undefined;
+                    const name = activeMember?.name ?? "your child";
+                    return concern ? `Matched to ${name}'s ${concern} goal` : `${displayedProducts.length} products`;
+                  })()
+                : isForYou && forYouConcernValues.length > 0
+                  ? (() => {
+                      const raw = (profile?.concerns as string | undefined) ?? profile?.concern ?? "";
+                      const labels = raw.split(",").map((s) => s.trim()).filter(Boolean);
+                      return labels.length > 1
+                        ? `Matched across ${labels.length} concerns`
+                        : `Matched to your ${labels[0] ?? ""} concern`;
+                    })()
+                  : `${displayedProducts.length} product${displayedProducts.length !== 1 ? "s" : ""}`}
+            </p>
+            {isForYou && (
               <div className="flex items-center gap-1 text-[10px] text-primary-container/80 bg-primary-container/8 px-2.5 py-1 rounded-full shrink-0">
                 <Sparkles className="w-2.5 h-2.5" strokeWidth={2} />
                 <span className="font-semibold">AI-matched</span>
               </div>
             )}
           </div>
-        </div>
+        )}
 
         {showNoProfile && <NoProfileState />}
 
