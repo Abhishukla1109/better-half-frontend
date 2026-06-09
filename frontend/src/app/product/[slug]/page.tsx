@@ -44,8 +44,8 @@ import { resolveVariantId } from "@/lib/shopify/variant-resolver";
 import { resolveSegment } from "@/lib/protocolEngine";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import type { Product } from "@/lib/protocolEngine";
-import { getEnrichedPDP } from "@/data/enrichedProducts";
 import type { EnrichedPDP } from "@/data/enrichedProducts";
+import { useShopifyPDP } from "@/hooks/useShopifyPDP";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 
 /* ── Icon resolver: maps string names from JSON config to Lucide components ── */
@@ -1230,7 +1230,7 @@ export default function ProductPage({
   const product = getProductBySlug(slug);
   const { products: catalogProducts, loading: catalogLoading } = useCatalogProducts();
   const newProduct = !product ? catalogProducts.find((p) => p.id === slug) : undefined;
-  const enriched = getEnrichedPDP(slug);
+  const { enriched } = useShopifyPDP(slug);
 
   const [selectedVariant, setSelectedVariant] = useState(0);
   const [selectedPack, setSelectedPack] = useState(0);
