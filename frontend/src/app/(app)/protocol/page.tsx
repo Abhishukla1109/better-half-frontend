@@ -581,7 +581,7 @@ export default function ProtocolPage() {
     }
 
     const visitKey  = `bh_protocol_visits_${activeId}`;
-    const nudgeKey  = `bh_question_nudge_${activeId}`;
+    const nudgeKey  = `bh_question_nudge_v2_${activeId}`;
     const todayKey  = `bh_today_answers_${activeId}`;
 
     // Visit tracking — day 1 gets 2 questions, return visits get 1
@@ -761,7 +761,7 @@ export default function ProtocolPage() {
       const updated = { ...prev, answered: true };
       try {
         const ak = activeProfileId ?? "main";
-        localStorage.setItem(`bh_question_nudge_${ak}`, JSON.stringify(updated));
+        localStorage.setItem(`bh_question_nudge_v2_${ak}`, JSON.stringify(updated));
       } catch { /* non-critical */ }
       return updated;
     });
@@ -773,15 +773,16 @@ export default function ProtocolPage() {
     }, 1800);
   }, []);
 
-  const handleSkip = useCallback((key: string) => {
-    setSkippedKeys((prev) => new Set([...prev, key]));
-    // Track daily skip count for nudge throttling
+  const handleSkip = useCallback((_key: string) => {
+    // Don't add to skippedKeys — same question must re-appear on next visit
     setNudgeState((prev) => {
       if (!prev) return prev;
-      const updated = { ...prev, skipCount: prev.skipCount + 1 };
+      // Strip 'shown' so the auto-open can fire again on next mount (2nd chance)
+      const { shown: _shown, ...rest } = prev;
+      const updated = { ...rest, skipCount: prev.skipCount + 1 };
       try {
         const ak = activeProfileId ?? "main";
-        localStorage.setItem(`bh_question_nudge_${ak}`, JSON.stringify(updated));
+        localStorage.setItem(`bh_question_nudge_v2_${ak}`, JSON.stringify(updated));
       } catch { /* non-critical */ }
       return updated;
     });
@@ -987,7 +988,6 @@ export default function ProtocolPage() {
   );
   const answeredCount = useMemo(() => countFollowUpAnswers(answers), [answers]);
   const allAnswered = answeredCount > 0 && currentQuestion === null;
-  // Skips count toward the per-session interaction cap so users can't skip forever
   const sessionLimitReached = (Math.max(answeredCount, savedAnswerCount) + skippedKeys.size) >= effectiveLimit;
   const ingredientList = useMemo(() => buildIngredientList(concernList, profile?.sex), [concernList, profile?.sex]);
   const { lead: summaryLead, insights: summaryInsights } = splitSummary(protocol?.summary ?? "");
@@ -1074,17 +1074,19 @@ export default function ProtocolPage() {
     if (nudgeState.skipCount >= 2) return;
     if (nudgeState.shown) return; // already shown today
     hasAutoOpened.current = true;
-    // Mark as shown in localStorage so navigation back doesn't re-trigger
+    // Write shown:true to localStorage only — calling setNudgeState here would trigger a
+    // re-render which causes React to run the effect cleanup (clearTimeout) before the
+    // question sheet ever opens. hasAutoOpened.current guards same-session re-entry.
     try {
       const ak = activeProfileId ?? "main";
-      const updated = { ...nudgeState, shown: true };
-      setNudgeState(updated);
-      localStorage.setItem(`bh_question_nudge_${ak}`, JSON.stringify(updated));
+      localStorage.setItem(`bh_question_nudge_v2_${ak}`, JSON.stringify({ ...nudgeState, shown: true }));
     } catch { /* non-critical */ }
     // First visit: wait 5s so user can read their recommendations first
     const delay = visitCount === 1 ? 5000 : 1500;
-    const t = setTimeout(() => setShowQuestionSheet(true), delay);
-    return () => clearTimeout(t);
+    // No cleanup return — the timeout must survive dep changes; hasAutoOpened.current
+    // prevents this effect from firing a second time.
+    setTimeout(() => setShowQuestionSheet(true), delay);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, protocol, profile, currentQuestion, nudgeState, visitCount, activeProfileId]);
 
   useEffect(() => {
