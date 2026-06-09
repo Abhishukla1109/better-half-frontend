@@ -21,6 +21,7 @@ export type Product = {
   category: string;
   baseScore: number;
   image?: string;
+  images?: string[];
   url?: string;
   rating?: number;
   reviewCount?: number;

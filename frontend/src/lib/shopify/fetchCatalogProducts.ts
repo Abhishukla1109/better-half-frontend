@@ -39,6 +39,7 @@ const CATALOG_QUERY = `
         title
         vendor
         featuredImage { url }
+        images(first: 6) { nodes { url } }
         priceRangeV2 { minVariantPrice { amount } }
         compareAtPriceRange { maxVariantCompareAtPrice { amount } }
         metafields(first: 10) {
@@ -55,6 +56,7 @@ type AdminProduct = {
   title: string;
   vendor: string;
   featuredImage: { url: string } | null;
+  images: { nodes: Array<{ url: string }> } | null;
   priceRangeV2: { minVariantPrice: { amount: string } };
   compareAtPriceRange: { maxVariantCompareAtPrice: { amount: string } | null } | null;
   metafields: { nodes: Array<{ namespace: string; key: string; value: string }> };
@@ -115,6 +117,7 @@ export async function fetchCatalogProducts(): Promise<Product[]> {
         category: concern[0] ?? "",
         baseScore,
         image:    p.featuredImage?.url,
+        images:   (p.images?.nodes ?? []).map((i) => i.url).filter(Boolean),
         url:      `https://${SHOP}/products/${p.handle}`,
       });
     }

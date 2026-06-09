@@ -214,6 +214,37 @@ function ProductCard({
   const router = useRouter();
   const { addItem } = useCart();
   const [cartState, setCartState] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [imgIdx, setImgIdx] = useState(0);
+  const touchX = useRef(0);
+  const touchY = useRef(0);
+  const didSwipe = useRef(false);
+
+  const allImages: string[] = product.images?.length
+    ? product.images
+    : product.image ? [product.image] : [];
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchX.current = e.touches[0].clientX;
+    touchY.current = e.touches[0].clientY;
+    didSwipe.current = false;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const dx = e.changedTouches[0].clientX - touchX.current;
+    const dy = e.changedTouches[0].clientY - touchY.current;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 28) {
+      didSwipe.current = true;
+      setImgIdx((prev) =>
+        dx < 0 ? Math.min(prev + 1, allImages.length - 1) : Math.max(prev - 1, 0)
+      );
+    }
+  }, [allImages.length]);
+
+  const handleImageClick = useCallback(() => {
+    if (didSwipe.current) return;
+    saveExploreScroll();
+    router.push(`/product/${product.id}`);
+  }, [router, product.id]);
 
   const handleAddToCart = useCallback(
     async (e: React.MouseEvent) => {
@@ -261,17 +292,19 @@ function ProductCard({
 
   return (
     <div className="flex flex-col bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant/10 hover:border-primary-container/30 hover:shadow-md transition-all duration-200 group">
-      {/* Image */}
+      {/* Image — swipeable on mobile */}
       <div
-        onClick={() => { saveExploreScroll(); router.push(`/product/${product.id}`); }}
+        onClick={handleImageClick}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         className="relative w-full h-[175px] sm:h-[190px] bg-surface-container-low cursor-pointer overflow-hidden"
       >
-        {product.image ? (
+        {allImages.length > 0 ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={product.image}
+            src={allImages[imgIdx]}
             alt={product.name}
-            className="w-full h-full object-contain p-2 group-hover:scale-[1.04] transition-transform duration-300"
+            className="w-full h-full object-contain p-2 transition-opacity duration-200"
             loading="lazy"
           />
         ) : (
@@ -289,7 +322,7 @@ function ProductCard({
           </span>
         )}
 
-        {/* Top-pick badge (match% now shown as pill below price) */}
+        {/* Top-pick badge */}
         {isTopPick && matchPct === undefined && (
           <div className="absolute top-2.5 right-2.5 flex items-center gap-0.5 bg-primary-container/90 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full leading-none shadow-sm">
             <Sparkles className="w-2.5 h-2.5" strokeWidth={2} />
@@ -297,10 +330,22 @@ function ProductCard({
           </div>
         )}
 
-        {/* External link hint on hover */}
-        <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <ExternalLink className="w-3.5 h-3.5 text-white drop-shadow" strokeWidth={2} />
-        </div>
+        {/* Image dot indicators — shown when product has multiple images */}
+        {allImages.length > 1 && (
+          <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1 pointer-events-none">
+            {allImages.slice(0, 6).map((_, i) => (
+              <span
+                key={i}
+                className="rounded-full transition-all duration-200"
+                style={{
+                  width: i === imgIdx ? 10 : 4,
+                  height: 4,
+                  background: i === imgIdx ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.35)",
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Content */}
