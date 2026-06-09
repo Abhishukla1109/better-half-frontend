@@ -1037,19 +1037,19 @@ export default function HomePage() {
         </div>
 
         {/* Name — first thing, right after greeting */}
-        <div id="card-name" className="feed-card-ai p-5 animate-fade-in-up" style={{ animationDelay: "150ms" }}>
+        <div id="card-name" className={nameSubmitted && !nameEditing ? "animate-fade-in-up" : "feed-card-ai p-5 animate-fade-in-up"} style={{ animationDelay: "150ms" }}>
           {nameSubmitted && !nameEditing ? (
-            <div className="flex items-center gap-2 animate-fade-in-up flex-wrap">
-              <p className="text-sm text-on-surface-variant">{isEditMode ? "Name" : (memberFlow === "partner" ? "Their name is" : "I'll call you")}</p>
-              <span className="inline-block px-4 py-2.5 rounded-xl bg-primary-container/15 border border-primary-container/20 text-sm font-semibold text-primary-container">
-                {name || "friend"}
-              </span>
+            <div className="flex items-center gap-3 px-2 py-1 animate-fade-in-up">
+              <div className="w-5 h-5 rounded-full bg-primary-container flex items-center justify-center shrink-0">
+                <Check className="w-3 h-3 text-white" strokeWidth={3} />
+              </div>
+              <p className="flex-1 text-[13px] font-semibold text-on-surface">{name || "friend"}</p>
               <button
                 onClick={() => setNameEditing(true)}
-                className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-surface-container-low cursor-pointer transition-colors"
+                className="flex items-center justify-center w-7 h-7 rounded-full hover:bg-surface-container-low cursor-pointer transition-colors"
                 aria-label="Edit name"
               >
-                <svg className="w-3.5 h-3.5 text-on-surface-variant/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
+                <svg className="w-3 h-3 text-on-surface-variant/35" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
               </button>
             </div>
           ) : (
@@ -1089,15 +1089,35 @@ export default function HomePage() {
         </div>
 
         {/* Step 1: Gender — visual tile card */}
-        <div id="card-sex" className="feed-card-ai p-5 animate-fade-in-up" style={{ animationDelay: "150ms" }}>
-          <p className="text-base text-on-surface leading-relaxed">
-            {memberFlow === "partner" ? `Tell me about ${name || "your partner"}` : "Who are we building this for?"}
-          </p>
-
-          {!profile.sex ? (
+        <div id="card-sex" className={profile.sex ? "animate-fade-in-up" : "feed-card-ai p-5 animate-fade-in-up"} style={{ animationDelay: "150ms" }}>
+          {profile.sex ? (
+            <div className="flex items-center gap-3 px-2 py-1 animate-fade-in-up">
+              <div className="w-5 h-5 rounded-full bg-primary-container flex items-center justify-center shrink-0">
+                <Check className="w-3 h-3 text-white" strokeWidth={3} />
+              </div>
+              <p className="flex-1 text-[13px] font-semibold text-on-surface">
+                {memberFlow === "partner"
+                  ? profile.sex === "male" ? `${name || "Partner"} — a man` : profile.sex === "female" ? `${name || "Partner"} — a woman` : "Prefer not to say"
+                  : profile.sex === "male" ? "For a man" : profile.sex === "female" ? "For a woman" : "I'd rather not say"}
+              </p>
+              <button
+                onClick={() => {
+                  setProfile((p) => ({ ...p, sex: undefined, age: undefined, concern: undefined, concerns: undefined }));
+                  setSelectedConcerns([]);
+                  setLevel("L0");
+                }}
+                className="flex items-center justify-center w-7 h-7 rounded-full hover:bg-surface-container-low cursor-pointer transition-colors shrink-0"
+                aria-label="Edit selection"
+              >
+                <svg className="w-3 h-3 text-on-surface-variant/35" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
+              </button>
+            </div>
+          ) : (
             <>
+              <p className="text-base text-on-surface leading-relaxed">
+                {memberFlow === "partner" ? `Tell me about ${name || "your partner"}` : "Who are we building this for?"}
+              </p>
               <div className="grid grid-cols-2 gap-3 mt-4">
-                {/* Male */}
                 <button
                   onClick={() => handleSexSelect("male")}
                   className="flex flex-col items-center justify-center gap-2.5 rounded-2xl border-2 border-primary-container/25 bg-primary-container/12 hover:bg-primary-container/22 hover:border-primary-container/45 transition-all duration-200 cursor-pointer py-5 active:scale-[0.97]"
@@ -1105,8 +1125,6 @@ export default function HomePage() {
                   <span className="text-3xl leading-none">👨</span>
                   <p className="text-[14px] font-extrabold text-primary-container">A man</p>
                 </button>
-
-                {/* Female */}
                 <button
                   onClick={() => handleSexSelect("female")}
                   className="flex flex-col items-center justify-center gap-2.5 rounded-2xl border-2 border-rose-400/25 bg-rose-400/10 hover:bg-rose-400/20 hover:border-rose-400/45 transition-all duration-200 cursor-pointer py-5 active:scale-[0.97]"
@@ -1122,86 +1140,42 @@ export default function HomePage() {
                 I&apos;d rather not say
               </button>
             </>
-          ) : (
-            <div className="mt-3 flex items-center gap-3 animate-fade-in-up">
-              {profile.sex !== "undisclosed" && (
-                <div
-                  className="w-11 h-11 rounded-xl shrink-0 overflow-hidden flex items-center justify-center"
-                  style={{ background: profile.sex === "male"
-                    ? "linear-gradient(150deg, #022e20 0%, #025c42 100%)"
-                    : "linear-gradient(150deg, #2d1020 0%, #641f45 100%)" }}
-                >
-                  <svg viewBox="0 0 90 130" className="h-[120%] w-auto opacity-40" fill="white" aria-hidden="true">
-                    {profile.sex === "male" ? (
-                      <>
-                        <ellipse cx="45" cy="26" rx="19" ry="22" />
-                        <path d="M39 47 L51 47 L50 58 L40 58 Z" />
-                        <path d="M0 68 C8 57 38 61 40 61 L50 61 C52 61 82 57 90 68 L90 130 L0 130 Z" />
-                      </>
-                    ) : (
-                      <>
-                        <path d="M25 18 Q5 65 8 130 L20 130 Q17 65 32 20 Z" />
-                        <path d="M65 18 Q85 65 82 130 L70 130 Q73 65 58 20 Z" />
-                        <ellipse cx="45" cy="26" rx="17" ry="21" />
-                        <path d="M40 46 L50 46 L51 56 L39 56 Z" />
-                        <path d="M8 66 C18 58 39 61 39 61 L51 61 C51 61 72 58 82 66 L84 130 L6 130 Z" />
-                      </>
-                    )}
-                  </svg>
-                </div>
-              )}
-              <span className="flex-1 text-sm font-semibold text-primary-container">
-                {memberFlow === "partner"
-                  ? profile.sex === "male" ? `${name || "Partner"} — a man` : profile.sex === "female" ? `${name || "Partner"} — a woman` : "Prefer not to say"
-                  : profile.sex === "male" ? "For me — a man" : profile.sex === "female" ? "For me — a woman" : "I'd rather not say"}
-              </span>
-              <button
-                onClick={() => {
-                  setProfile((p) => ({ ...p, sex: undefined, age: undefined, concern: undefined, concerns: undefined }));
-                  setSelectedConcerns([]);
-                  setLevel("L0");
-                }}
-                className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-surface-container-low cursor-pointer transition-colors shrink-0"
-                aria-label="Edit selection"
-              >
-                <svg className="w-3.5 h-3.5 text-on-surface-variant/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
-              </button>
-            </div>
           )}
         </div>
 
 
         {/* Step 2: Age — shown after gender */}
         {profile.sex && (
-          <div id="card-age" className="feed-card-ai p-5 animate-fade-in-up" style={{ animationDelay: "200ms" }}>
-            <p className="text-base text-on-surface leading-relaxed">
-              {memberFlow === "partner" ? `How old is ${name || "your partner"}?` : "And roughly how old are you?"}
-            </p>
-
+          <div id="card-age" className={profile.age ? "animate-fade-in-up" : "feed-card-ai p-5 animate-fade-in-up"} style={{ animationDelay: "200ms" }}>
             {profile.age ? (
-              <div className="mt-3 flex items-center gap-2 animate-fade-in-up">
-                <span className="inline-block px-4 py-2.5 rounded-xl bg-primary-container/15 border border-primary-container/20 text-sm font-semibold text-primary-container">
+              <div className="flex items-center gap-3 px-2 py-1 animate-fade-in-up">
+                <div className="w-5 h-5 rounded-full bg-primary-container flex items-center justify-center shrink-0">
+                  <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                </div>
+                <p className="flex-1 text-[13px] font-semibold text-on-surface">
                   {ageBucketLabel(profile.age)} years old
-                </span>
+                </p>
                 <button
                   onClick={() => {
                     setProfile((p) => ({ ...p, age: undefined, concern: undefined, concerns: undefined }));
                     setSelectedConcerns([]);
                     setLevel("L0");
                   }}
-                  className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-surface-container-low cursor-pointer transition-colors"
+                  className="flex items-center justify-center w-7 h-7 rounded-full hover:bg-surface-container-low cursor-pointer transition-colors"
                   aria-label="Edit age"
                 >
-                  <svg className="w-3.5 h-3.5 text-on-surface-variant/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
+                  <svg className="w-3 h-3 text-on-surface-variant/35" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
                 </button>
               </div>
             ) : (
               <>
+                <p className="text-base text-on-surface leading-relaxed">
+                  {memberFlow === "partner" ? `How old is ${name || "your partner"}?` : "And roughly how old are you?"}
+                </p>
                 <div className="mt-6 mb-1 flex flex-col items-center">
                   <span className="text-[64px] font-extrabold text-primary-container leading-none tracking-tight">{ageSlider}</span>
                   <span className="text-xs text-on-surface-variant/50 mt-1 uppercase tracking-widest font-semibold">years old</span>
                 </div>
-
                 <div className="px-1 mt-5 mb-5">
                   <input
                     type="range"
@@ -1220,7 +1194,6 @@ export default function HomePage() {
                     <span className="text-[11px] text-on-surface-variant/40 font-medium">65+</span>
                   </div>
                 </div>
-
                 <button
                   onClick={() => handleAgeSelect(bucketAge(ageSlider))}
                   className="w-full py-3 rounded-xl bg-primary-container text-sm font-semibold text-white cursor-pointer hover:bg-primary transition-colors duration-200"
