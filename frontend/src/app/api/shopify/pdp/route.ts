@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 import type { EnrichedPDP } from "@/data/enrichedProducts";
 
+export const revalidate = 3600;
+
 const SHOP = (process.env.NEXT_PUBLIC_SHOPIFY_STORE_URL ?? "").replace(/\/$/, "").replace("https://", "");
 const SF_TOKEN = process.env.SHOPIFY_STOREFRONT_PRIVATE_TOKEN ?? "";
 const SF_ENDPOINT = `https://${SHOP}/api/2024-01/graphql.json`;
@@ -59,14 +61,13 @@ export async function GET(req: NextRequest) {
         "Shopify-Storefront-Private-Token": SF_TOKEN,
       },
       body: JSON.stringify({ query: QUERY, variables: { handle } }),
-      next: { revalidate: 3600 },
     });
 
     const data = await res.json();
     const p = data?.data?.productByHandle;
     if (!p) return NextResponse.json(null);
 
-    const mf: MFNode[] = p.metafields ?? [];
+    const mf: MFNode[] = (p.metafields ?? []).filter(Boolean);
 
     const enriched: EnrichedPDP = {
       slug:            handle,
