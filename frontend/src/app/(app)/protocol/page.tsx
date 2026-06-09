@@ -415,6 +415,17 @@ function getConcernCategoryStyle(label: string): { text: string; line: string } 
   return { text: "text-on-surface", line: "bg-outline-variant/15" };
 }
 
+function getConcernCardBg(concern: string): string {
+  const k = concern.toLowerCase();
+  if (k.includes("hair") || k.includes("beard")) return "bg-rose-500/8 border-rose-500/15";
+  if (k.includes("skin") || k.includes("acne")) return "bg-amber-500/8 border-amber-500/15";
+  if (k.includes("weight")) return "bg-orange-500/8 border-orange-500/15";
+  if (k.includes("energy") || k.includes("gut")) return "bg-emerald-500/8 border-emerald-500/15";
+  if (k.includes("sleep") || k.includes("mind")) return "bg-indigo-500/8 border-indigo-500/15";
+  if (k.includes("hormone")) return "bg-teal-500/8 border-teal-500/15";
+  return "bg-surface-container-low border-outline-variant/10";
+}
+
 function getConcernTagStyle(c: string): string {
   const k = c.toLowerCase();
   if (k.includes("hair") || k.includes("beard")) return "bg-rose-500/10 text-rose-700 border-rose-500/20";
@@ -1115,7 +1126,7 @@ export default function ProtocolPage() {
 
   /* ── Rendered protocol ─────────────────────────────────────── */
   return (
-    <div className="min-h-dvh pb-24 overflow-x-clip">
+    <div className="min-h-dvh pb-24 overflow-x-clip" style={{ backgroundColor: "rgba(0,64,52,0.025)" }}>
 
       {/* Protocol sharpened dramatic overlay */}
       {showSharpen && (
@@ -1546,7 +1557,7 @@ export default function ProtocolPage() {
         {/* ── Unified protocol header card ── */}
         <div
           className="mb-4 rounded-2xl overflow-hidden animate-fade-in-up"
-          style={{ background: "linear-gradient(150deg, #003028 0%, #004034 40%, #0d4f3f 100%)" }}
+          style={{ background: "linear-gradient(150deg, #004034 0%, #15594a 50%, #1a6b58 100%)" }}
         >
           <div className="p-4">
 
@@ -1921,14 +1932,13 @@ export default function ProtocolPage() {
                   Why these work
                 </p>
                 <div className="grid grid-cols-2 gap-2">
-                  {ingredientList.map((item) => {
+                  {ingredientList.map((item, idx) => {
+                    // 4th card in multi-concern comes from secondary concern
+                    const itemConcern = (concernList.length >= 2 && idx === 3)
+                      ? (concernList[1] ?? concernList[0])
+                      : (concernList[0] ?? "");
+                    const cardStyle = getConcernCardBg(itemConcern);
                     const isExpanded = expandedReasonings.has(item.name);
-                    const cardStyle =
-                      item.priority === "essential"
-                        ? "bg-primary-container/10 border-primary-container/20"
-                        : item.priority === "recommended"
-                        ? "bg-amber-500/8 border-amber-500/20"
-                        : "bg-surface-container-low border-outline-variant/10";
                     const badgeStyle =
                       item.priority === "essential"
                         ? "bg-primary-container text-white"
