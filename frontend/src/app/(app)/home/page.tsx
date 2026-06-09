@@ -3,7 +3,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, ChevronRight, Check, Heart } from "lucide-react";
-import GreetingCard from "@/components/feed/cards/GreetingCard";
 import ConcernCard from "@/components/feed/cards/ConcernCard";
 import ProfilingCard from "@/components/feed/cards/ProfilingCard";
 import UserMessageCard from "@/components/feed/cards/UserMessageCard";
@@ -1019,11 +1018,23 @@ export default function HomePage() {
     <div className="px-4 py-4">
       <div className="flex flex-col gap-2">
 
-        {/* L0: Greeting */}
-        <GreetingCard
-          name={name}
-          contextLine="Answer 4 quick questions — I'll build a personalised supplement protocol just for you."
-        />
+        {/* L0: Hero block */}
+        <div
+          className="relative rounded-2xl px-5 pt-5 pb-4 overflow-hidden animate-fade-in-up"
+          style={{ background: "linear-gradient(135deg, #0d3d36 0%, #1e6b5e 60%, #0d3d36 100%)" }}
+        >
+          <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full" style={{ background: "#4ecdc4", opacity: 0.08 }} />
+          <div className="absolute right-4 bottom-4 w-16 h-16 rounded-full" style={{ background: "#4ecdc4", opacity: 0.06 }} />
+          <p className="relative text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#4ecdc4" }}>
+            ✦ BetterHalf
+          </p>
+          <p className="relative text-[19px] font-bold text-white leading-snug">
+            {name ? `Hey ${name} 👋` : "Your health, personalised."}
+          </p>
+          <p className="relative text-[12px] mt-1 leading-relaxed" style={{ color: "rgba(255,255,255,0.6)", maxWidth: 240 }}>
+            Answer 4 quick questions — I'll build a supplement protocol just for you.
+          </p>
+        </div>
 
         {/* Name — first thing, right after greeting */}
         <div id="card-name" className="feed-card-ai p-5 animate-fade-in-up" style={{ animationDelay: "150ms" }}>

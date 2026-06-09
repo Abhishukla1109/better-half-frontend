@@ -11,6 +11,7 @@ import ProtocolLoader from "@/components/ui/ProtocolLoader";
 import { useCart } from "@/context/CartContext";
 import { resolveVariantId } from "@/lib/shopify/variant-resolver";
 import { getProductRating } from "@/data/ratingsLookup";
+import BrandHeroBanners from "@/components/BrandHeroBanners";
 
 /* ── Category definitions ── */
 type CategoryDef = {
@@ -516,6 +517,18 @@ function ExplorePageContent() {
     router.replace(`?${p.toString()}`, { scroll: false });
   }, [router, searchParams, activeCategory]);
 
+  const handleBannerTap = useCallback((brand: string) => {
+    setSelectedBrand(brand);
+    setSelectedSubConcern(null);
+    const tab = brand === "Little Joys" ? "lj-kids" : "bestsellers";
+    if (brand === "Little Joys") setLjMode("kids");
+    setActiveCategory(tab);
+    const p = new URLSearchParams(searchParams.toString());
+    p.set("brand", brand);
+    p.set("tab", tab);
+    router.replace(`?${p.toString()}`, { scroll: false });
+  }, [router, searchParams]);
+
   const activeMemberName: string | null =
     activeMember?.name
     ?? (activeMember?.type === "child" ? "Your child"
@@ -899,6 +912,11 @@ function ExplorePageContent() {
         {productsLoading && <ProtocolLoader />}
 
         {!productsLoading && <>
+
+        {/* Brand hero carousel */}
+        {!showKidsFilters && (
+          <BrandHeroBanners onBrandTap={handleBannerTap} />
+        )}
 
         {/* Onboarding nudge */}
         {profileLoaded && !profile && (

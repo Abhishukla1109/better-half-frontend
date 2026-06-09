@@ -4,14 +4,21 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
+// Routes that are freely browseable without any auth
+function isBrowsePath(pathname: string) {
+  return ["/home", "/explore", "/product/"].some(
+    (p) => pathname === p || pathname.startsWith(p)
+  );
+}
+
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     async function check() {
-      // /home is the onboarding entry screen — accessible without auth
-      if (window.location.pathname === "/home") { setReady(true); return; }
+      // Browse routes — freely accessible without auth
+      if (isBrowsePath(window.location.pathname)) { setReady(true); return; }
 
       // Real Supabase session
       const { data: { session } } = await supabase.auth.getSession();
@@ -29,7 +36,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) setReady(true);
-      else if (event === "SIGNED_OUT" && window.location.pathname !== "/home") router.replace("/auth");
+      else if (event === "SIGNED_OUT" && !isBrowsePath(window.location.pathname)) router.replace("/auth");
     });
 
     return () => subscription.unsubscribe();

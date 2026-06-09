@@ -268,6 +268,7 @@ function NewProductPDP({
   enriched: EnrichedPDP | null;
   onBack: () => void;
 }) {
+  const router = useRouter();
   const { addItem, cart, openCart } = useCart();
   const { activeMember } = useActiveProfile();
   const hasProfile = activeMember !== null;
@@ -362,6 +363,7 @@ function NewProductPDP({
   }, [displayName]);
 
   const handleAddToCart = useCallback(async () => {
+    try { if (!localStorage.getItem("bh_auth")) { router.push("/"); return; } } catch {}
     if (cartState !== "idle") return;
     setCartState("loading");
     try {
@@ -374,7 +376,7 @@ function NewProductPDP({
     } finally {
       setTimeout(() => setCartState("idle"), 2500);
     }
-  }, [addItem, cartState, product.id]);
+  }, [addItem, cartState, product.id, router]);
 
   return (
     <div className="min-h-dvh bg-surface pb-24">
@@ -830,9 +832,14 @@ function NewProductPDP({
                             ))}
                           </div>
                         ) : (
-                          <div className="space-y-1.5">
-                            {bullets.map((b, i) => (
-                              <p key={i} className="text-[12px] text-on-surface-variant/70 leading-relaxed">{b.text}</p>
+                          <div className="space-y-2">
+                            {bullets.flatMap((b) =>
+                              b.text.split('. ').map(s => s.trim()).filter(s => s.length > 8)
+                            ).map((sentence, i) => (
+                              <div key={i} className="flex items-start gap-2.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-on-surface-variant/30 shrink-0 mt-1.5" />
+                                <p className="text-[12px] text-on-surface-variant/70 leading-relaxed">{sentence}</p>
+                              </div>
                             ))}
                           </div>
                         )}
@@ -1258,6 +1265,7 @@ export default function ProductPage({
 
   const handleAddToCart = useCallback(async () => {
     if (fromTreatment) { router.back(); return; }
+    try { if (!localStorage.getItem("bh_auth")) { router.push("/"); return; } } catch {}
     if (cartState !== "idle") return;
     setCartState("loading");
     try {
