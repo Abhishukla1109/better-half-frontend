@@ -1545,26 +1545,26 @@ export default function ProtocolPage() {
 
         {/* ── Unified protocol header card ── */}
         <div
-          className="mb-4 rounded-2xl border border-outline-variant/10 overflow-hidden animate-fade-in-up"
-          style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--color-primary-container) 18%, transparent) 0%, color-mix(in srgb, var(--color-primary-container) 8%, transparent) 60%, rgba(245,158,11,0.08) 100%)" }}
+          className="mb-4 rounded-2xl overflow-hidden animate-fade-in-up"
+          style={{ background: "linear-gradient(150deg, #003028 0%, #004034 40%, #0d4f3f 100%)" }}
         >
           <div className="p-4">
 
             {/* Top row: label + strength % */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-1.5">
-                <Sparkles className="w-3 h-3 text-primary-container" strokeWidth={1.5} />
-                <span className="text-[10px] font-bold text-primary-container uppercase tracking-widest">
+                <Sparkles className="w-3 h-3 text-primary-fixed/60" strokeWidth={1.5} />
+                <span className="text-[10px] font-bold text-primary-fixed/60 uppercase tracking-widest">
                   {possUpper} Protocol
                 </span>
               </div>
-              <span className="text-sm font-extrabold text-primary-container font-[family-name:var(--font-manrope)]">
+              <span className="text-sm font-extrabold text-white font-[family-name:var(--font-manrope)]">
                 {displayDepth}%
               </span>
             </div>
 
             {/* Title */}
-            <h1 className="text-[22px] font-extrabold text-primary font-[family-name:var(--font-manrope)] leading-tight capitalize mb-2.5">
+            <h1 className="text-[22px] font-extrabold text-white font-[family-name:var(--font-manrope)] leading-tight capitalize mb-2.5">
               {buildProtocolTitle(profile)}
             </h1>
 
@@ -1572,7 +1572,7 @@ export default function ProtocolPage() {
             {concernList.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-3">
                 {concernList.map((c) => (
-                  <span key={c} className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border ${getConcernTagStyle(c)}`}>
+                  <span key={c} className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-white/10 text-white/85 border border-white/15">
                     <span className="text-sm leading-none">{getConcernEmoji([c], profile?.sex)}</span>
                     {CONCERN_TITLE_MAP[c] ?? c.toLowerCase()}
                   </span>
@@ -1581,38 +1581,38 @@ export default function ProtocolPage() {
             )}
 
             {/* Strength bar */}
-            <div className="h-1.5 bg-black/8 rounded-full overflow-hidden mb-1.5">
+            <div className="h-1 bg-white/15 rounded-full overflow-hidden mb-1.5">
               <div
-                className="h-full bg-gradient-to-r from-primary-container/80 to-primary-container rounded-full transition-all duration-200 ease-out"
+                className="h-full bg-primary-fixed rounded-full transition-all duration-200 ease-out"
                 style={{ width: `${displayDepth}%` }}
               />
             </div>
-            <p className="text-[10px] text-on-surface-variant/45 mb-3">
-              Based on your onboarding answers — answer more below to improve
+            <p className="text-[10px] text-white/40 mb-3">
+              Built from your profile · answer more to refine
             </p>
 
-            {/* Insight chips — visual signals derived from profile, replaces prose sentence */}
+            {/* Insight chips */}
             {(() => {
               const p = profile as Record<string, unknown> | null;
-              const chips: { icon: string; label: string; style: string }[] = [];
+              const chips: { icon: string; label: string }[] = [];
               const diet = String(profile?.diet || "").toLowerCase();
               if (diet && !diet.includes("non") && (diet.includes("veg") || diet.includes("vegan")))
-                chips.push({ icon: "🌱", label: "Veg diet ✓", style: "bg-emerald-500/10 text-emerald-700 border-emerald-500/15" });
+                chips.push({ icon: "🌱", label: "Veg diet ✓" });
               else if (diet.includes("non"))
-                chips.push({ icon: "🍗", label: "Non-veg", style: "bg-orange-500/10 text-orange-700 border-orange-500/15" });
+                chips.push({ icon: "🍗", label: "Non-veg" });
               else if (diet.includes("egg"))
-                chips.push({ icon: "🥚", label: "Eggetarian", style: "bg-amber-500/10 text-amber-700 border-amber-500/15" });
+                chips.push({ icon: "🥚", label: "Eggetarian" });
               if (p?.stress_level === "high")
-                chips.push({ icon: "⚡", label: "Stress flagged", style: "bg-red-500/10 text-red-600 border-red-500/15" });
+                chips.push({ icon: "⚡", label: "Stress flagged" });
               else if (p?.sleep_quality === "rarely_good")
-                chips.push({ icon: "😴", label: "Sleep gap", style: "bg-indigo-500/10 text-indigo-700 border-indigo-500/15" });
+                chips.push({ icon: "😴", label: "Sleep gap" });
               else if (liveDepth < 55)
-                chips.push({ icon: "✦", label: "Still personalising", style: "bg-primary-container/10 text-primary-container border-primary-container/15" });
+                chips.push({ icon: "✦", label: "Still personalising" });
               if (chips.length === 0) return null;
               return (
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {chips.slice(0, 2).map((chip, i) => (
-                    <span key={i} className={`flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border ${chip.style}`}>
+                    <span key={i} className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white/10 text-white/75 border border-white/12">
                       <span className="text-[10px] leading-none">{chip.icon}</span>
                       {chip.label}
                     </span>
@@ -1623,49 +1623,49 @@ export default function ProtocolPage() {
 
             {/* Sharpen bar */}
             {allAnswered ? (
-              <div className="mt-3 flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-primary-container/10">
-                <Check className="w-3.5 h-3.5 text-primary-container shrink-0" strokeWidth={2.5} />
-                <p className="text-[12px] font-bold text-primary-container">Protocol fully personalised</p>
+              <div className="mt-3 flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/10">
+                <Check className="w-3.5 h-3.5 text-primary-fixed shrink-0" strokeWidth={2.5} />
+                <p className="text-[12px] font-bold text-white">Protocol fully personalised</p>
               </div>
             ) : (
               <button
                 onClick={() => setShowQuestionSheet(true)}
-                className="mt-3 w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-black/6 hover:bg-black/10 transition-colors cursor-pointer"
+                className="mt-3 w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-3.5 h-3.5 text-primary-container shrink-0" strokeWidth={1.5} />
+                  <Sparkles className="w-3.5 h-3.5 text-primary-fixed/80 shrink-0" strokeWidth={1.5} />
                   <div className="text-left">
-                    <p className="text-[12px] font-bold text-on-surface leading-none">
+                    <p className="text-[12px] font-bold text-white leading-none">
                       {sessionLimitReached ? "That's good for today" : "Sharpen your protocol"}
                     </p>
-                    <p className="text-[10px] text-on-surface-variant/55 mt-0.5">
+                    <p className="text-[10px] text-white/45 mt-0.5">
                       {sessionLimitReached ? `${liveDepth}% · Come back tomorrow` : "Answer more to sharpen more"}
                     </p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-on-surface-variant/40 shrink-0" strokeWidth={2} />
+                <ChevronRight className="w-4 h-4 text-white/30 shrink-0" strokeWidth={2} />
               </button>
             )}
           </div>
 
-          {/* Habits merged into protocol card — divider then horizontal scroll */}
+          {/* Habits — divider then clean list */}
           {protocol.lifestyle.length > 0 && (
             <>
-              <div className="mx-4 h-px bg-black/8" />
+              <div className="mx-4 h-px bg-white/10" />
               <div className="pt-3 pb-4 px-4">
-                <p className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-3">
-                  Habits before supplements.
+                <p className="text-[12px] font-bold text-white/55 uppercase tracking-widest mb-3">
+                  Habits before supplements
                 </p>
-                <div className={`grid gap-2 ${protocol.lifestyle.length === 3 ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4"}`}>
+                <div className="space-y-0">
                   {protocol.lifestyle.slice(0, 4).map((tip, i) => {
                     const { action } = splitRoutineText(tip);
                     const profileDiet = String(profile?.diet || "").toLowerCase();
                     const isVeg = !profileDiet.includes("non") && (profileDiet.includes("veg") || profileDiet.includes("vegan") || profileDiet.includes("egg"));
-                    const { emoji, bg } = getHabitStyle(tip, isVeg);
+                    const { emoji } = getHabitStyle(tip, isVeg);
                     return (
-                      <div key={i} className={`rounded-2xl p-3.5 flex flex-col ${bg}`}>
-                        <span className="text-4xl leading-none mb-2">{emoji}</span>
-                        <p className="text-[11px] font-bold text-on-surface/80 leading-snug">{compressHabit(action)}</p>
+                      <div key={i} className="flex items-center gap-3 py-2.5 border-b border-white/8 last:border-0">
+                        <span className="text-[22px] leading-none w-7 shrink-0">{emoji}</span>
+                        <p className="text-[12px] font-semibold text-white/75 leading-snug">{compressHabit(action)}</p>
                       </div>
                     );
                   })}
@@ -1747,7 +1747,6 @@ export default function ProtocolPage() {
                                   {reviewLabel && <span className="text-[10px] text-on-surface-variant/40">({reviewLabel})</span>}
                                 </div>
                               )}
-                              <p className="text-[10px] text-on-surface-variant/45 leading-none mb-1.5">👥 {getSocialCount(s)} similar</p>
                               <div className="flex items-end justify-between gap-1">
                                 <div>
                                   <p className="text-[15px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
