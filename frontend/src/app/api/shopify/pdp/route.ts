@@ -98,7 +98,8 @@ export async function GET(req: NextRequest) {
     };
 
     return NextResponse.json(enriched);
-  } catch {
+  } catch (err) {
+    console.error("[pdp] error:", err);
     return NextResponse.json(null, { status: 500 });
   }
 }
