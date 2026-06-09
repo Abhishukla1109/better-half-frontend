@@ -22,6 +22,7 @@ import { useCart } from "@/context/CartContext";
 import { resolveVariantId } from "@/lib/shopify/variant-resolver";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import { supabase } from "@/lib/supabase/client";
+import { getProductRating } from "@/data/ratingsLookup";
 
 /* ── Emoji per question key (for the AI question popup) ──── */
 const QUESTION_EMOJI: Record<string, string> = {
@@ -1161,14 +1162,15 @@ export default function ProtocolPage() {
           "Little Joys":  { bg: "bg-amber-500/10",         text: "text-amber-600"           },
         };
 
-        const ProductCard = ({ id, brand, name, price, mrp, image, rating, isPrimary }: {
+        const ProductCard = ({ id, brand, name, price, mrp, image, isPrimary }: {
           id: string; brand: string; name: string; price: number; mrp: number;
-          image?: string; rating?: number; isPrimary?: boolean;
+          image?: string; isPrimary?: boolean;
         }) => {
           const isAdded = addedIds.has(id);
           const isLoading = addingId === id;
           const pill = BRAND_PILL[brand] ?? { bg: "bg-surface-container", text: "text-on-surface-variant" };
           const discountPct = mrp > price ? Math.round((1 - price / mrp) * 100) : 0;
+          const ratingData = getProductRating(id);
 
           return (
             <div className="flex-none w-40 snap-start rounded-2xl border border-outline-variant/12 bg-surface-container-lowest overflow-hidden shadow-sm">
@@ -1207,9 +1209,9 @@ export default function ProtocolPage() {
                     <span className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">₹{price}</span>
                     {mrp > price && <span className="text-[9px] text-on-surface-variant/35 line-through">₹{mrp}</span>}
                   </div>
-                  {rating && rating > 0 ? (
+                  {ratingData ? (
                     <span className="flex items-center gap-0.5 text-[10px] font-semibold text-on-surface-variant/60">
-                      <span className="text-amber-400">★</span>{rating.toFixed(1)}
+                      <span className="text-amber-400">★</span>{ratingData.rating.toFixed(1)}
                     </span>
                   ) : null}
                 </div>
@@ -1330,7 +1332,7 @@ export default function ProtocolPage() {
                       <RowLabel>Your Top Picks</RowLabel>
                       <div className="flex gap-3 overflow-x-auto px-5 pb-2 hide-scrollbar snap-x snap-mandatory">
                         {picks.map((s) => (
-                          <ProductCard key={s.id} id={s.id} brand={s.brand} name={s.name} price={s.price} mrp={s.mrp} image={s.image} rating={s.rating} isPrimary />
+                          <ProductCard key={s.id} id={s.id} brand={s.brand} name={s.name} price={s.price} mrp={s.mrp} image={s.image} isPrimary />
                         ))}
                       </div>
 
@@ -1713,7 +1715,8 @@ export default function ProtocolPage() {
                     <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-1 pl-4">
                       {group.supplements.map((s) => {
                         const discountPct = s.mrp && s.mrp > s.price ? Math.round((1 - s.price / s.mrp) * 100) : 0;
-                        const reviewLabel = s.reviewCount ? (s.reviewCount >= 1000 ? `${(s.reviewCount / 1000).toFixed(1)}k` : `${s.reviewCount}`) : null;
+                        const ratingData = getProductRating(s.id);
+                        const reviewLabel = ratingData?.count ? (ratingData.count >= 1000 ? `${(ratingData.count / 1000).toFixed(1)}k` : `${ratingData.count}`) : null;
                         const trustBadge = getTrustBadge(s);
                         const displayScore = displayScoreMap.get(s.id) ?? s.matchScore;
                         return (
@@ -1756,10 +1759,10 @@ export default function ProtocolPage() {
                               {trustBadge && (
                                 <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-1.5 leading-none ${trustBadge.style}`}>{trustBadge.label}</span>
                               )}
-                              {s.rating && (
+                              {ratingData && (
                                 <div className="flex items-center gap-1 mb-1">
                                   <span className="text-amber-400 text-[12px] leading-none">★</span>
-                                  <span className="text-[11px] font-bold text-on-surface">{s.rating}</span>
+                                  <span className="text-[11px] font-bold text-on-surface">{ratingData.rating.toFixed(1)}</span>
                                   {reviewLabel && <span className="text-[10px] text-on-surface-variant/40">({reviewLabel})</span>}
                                 </div>
                               )}
@@ -1812,7 +1815,8 @@ export default function ProtocolPage() {
               <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-2 pl-4">
                 {protocol.supplements.slice(0, 5).map((s) => {
                   const discountPct = s.mrp && s.mrp > s.price ? Math.round((1 - s.price / s.mrp) * 100) : 0;
-                  const reviewLabel = s.reviewCount ? (s.reviewCount >= 1000 ? `${(s.reviewCount / 1000).toFixed(1)}k` : `${s.reviewCount}`) : null;
+                  const ratingData = getProductRating(s.id);
+                  const reviewLabel = ratingData?.count ? (ratingData.count >= 1000 ? `${(ratingData.count / 1000).toFixed(1)}k` : `${ratingData.count}`) : null;
                   const trustBadge = getTrustBadge(s);
                   const displayScore = displayScoreMap.get(s.id) ?? s.matchScore;
                   return (
@@ -1855,14 +1859,13 @@ export default function ProtocolPage() {
                         {trustBadge && (
                           <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-1.5 leading-none ${trustBadge.style}`}>{trustBadge.label}</span>
                         )}
-                        {s.rating && (
+                        {ratingData && (
                           <div className="flex items-center gap-1 mb-1">
                             <span className="text-amber-400 text-[12px] leading-none">★</span>
-                            <span className="text-[11px] font-bold text-on-surface">{s.rating}</span>
+                            <span className="text-[11px] font-bold text-on-surface">{ratingData.rating.toFixed(1)}</span>
                             {reviewLabel && <span className="text-[10px] text-on-surface-variant/40">({reviewLabel})</span>}
                           </div>
                         )}
-                        <p className="text-[10px] text-on-surface-variant/45 leading-none mb-1.5">👥 {getSocialCount(s)} similar</p>
                         <div className="flex items-end justify-between gap-1">
                           <div>
                             <p className="text-[15px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
