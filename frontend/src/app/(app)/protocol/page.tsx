@@ -23,6 +23,7 @@ import { resolveVariantId } from "@/lib/shopify/variant-resolver";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import { supabase } from "@/lib/supabase/client";
 import { getProductRating } from "@/data/ratingsLookup";
+import { track } from "@/lib/mixpanel";
 
 /* ── Emoji per question key (for the AI question popup) ──── */
 const QUESTION_EMOJI: Record<string, string> = {
@@ -713,6 +714,10 @@ export default function ProtocolPage() {
       .then((data: GeneratedProtocol) => {
         setProtocol(data);
         setLoading(false);
+        track("Protocol Generated", {
+          products_count: data.supplements?.length ?? 0,
+          model: data.model ?? "mock",
+        });
         try {
           const picks = data.supplements.slice(0, 5).map((s) => s.id).join(",");
           localStorage.setItem("bh_protocol_picks", picks);

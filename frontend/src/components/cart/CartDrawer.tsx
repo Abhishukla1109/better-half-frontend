@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight, Loader2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { formatPrice } from '@/lib/shopify/api';
+import { track } from '@/lib/mixpanel';
 
 export default function CartDrawer() {
   const { cart, isOpen, isLoading, closeCart, updateItem, removeItem, checkout } = useCart();
@@ -18,11 +19,16 @@ export default function CartDrawer() {
     if (isOpen) {
       if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
       setShouldRender(true);
+      // Fire Cart Viewed when drawer opens — tells us how many users reach this step
+      track("Cart Viewed", {
+        item_count: cart?.totalQuantity ?? 0,
+        cart_value: parseFloat(cart?.subtotal?.amount ?? "0"),
+      });
     } else {
       closeTimerRef.current = setTimeout(() => setShouldRender(false), 350);
     }
     return () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current); };
-  }, [isOpen]);
+  }, [isOpen, cart]);
 
   // Focus trap + close on Escape
   useEffect(() => {

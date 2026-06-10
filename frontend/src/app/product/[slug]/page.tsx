@@ -46,6 +46,7 @@ import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import type { Product } from "@/lib/protocolEngine";
 import type { EnrichedPDP } from "@/data/enrichedProducts";
 import { useShopifyPDP } from "@/hooks/useShopifyPDP";
+import { track } from "@/lib/mixpanel";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 
 /* ── Icon resolver: maps string names from JSON config to Lucide components ── */
@@ -324,6 +325,18 @@ function NewProductPDP({
   const [cartState, setCartState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [activeImage, setActiveImage] = useState(initialIndex);
   const [selectedPack, setSelectedPack] = useState(0);
+
+  // Fire once when this product page loads
+  useEffect(() => {
+    track("PDP Viewed", {
+      product_id:   product.id,
+      product_name: product.name,
+      brand:        product.brand,
+      price:        product.price,
+      concern:      product.concern?.[0] ?? "",
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product.id]);
 
   // Replace trailing size like "(30 N)" with the selected pack label
   const displayName = (() => {

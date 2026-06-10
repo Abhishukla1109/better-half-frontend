@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import type { Cart } from '@/lib/shopify/types';
+import { track } from '@/lib/mixpanel';
 
 const CART_ID_KEY = 'bh_cart_id';
 
@@ -85,7 +86,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem(CART_ID_KEY, updated.id);
         }
       }
-      if (updated) setCart(updated);
+      if (updated) {
+        setCart(updated);
+        track("Add to Cart", { variant_id: variantId });
+      }
       setIsOpen(true);
     } finally {
       setIsLoading(false);
@@ -116,6 +120,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const checkout = useCallback(() => {
     if (cart?.checkoutUrl) {
+      track("Checkout Started", {
+        item_count: cart.totalQuantity,
+        cart_value: parseFloat(cart.subtotal?.amount ?? "0"),
+      });
       window.location.href = cart.checkoutUrl;
     }
   }, [cart]); // cart state is fine here — checkout is always user-triggered after a render

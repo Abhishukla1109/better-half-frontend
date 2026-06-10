@@ -7,6 +7,7 @@ import ConcernCard from "@/components/feed/cards/ConcernCard";
 import ProfilingCard from "@/components/feed/cards/ProfilingCard";
 import UserMessageCard from "@/components/feed/cards/UserMessageCard";
 import { supabase } from "@/lib/supabase/client";
+import { track } from "@/lib/mixpanel";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 
 type ProfileLevel = "L0" | "L1" | "L2" | "L3";
@@ -406,18 +407,21 @@ export default function HomePage() {
     }
     setNameSubmitted(true);
     setNameEditing(false);
+    track("Onboarding Step Completed", { step: "name" });
     scrollToCard("card-sex");
   }, [scrollToCard]);
 
   const handleSexSelect = useCallback((sex: string) => {
     setProfile((p) => ({ ...p, sex }));
     applyTheme(sex === "female" ? "female" : "male");
+    track("Onboarding Step Completed", { step: "gender", value: sex });
     scrollToCard("card-age");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollToCard]);
 
   const handleAgeSelect = useCallback((age: string) => {
     setProfile((p) => ({ ...p, age }));
+    track("Onboarding Step Completed", { step: "age", value: age });
     scrollToCard("card-concern");
   }, [scrollToCard]);
 
@@ -430,6 +434,7 @@ export default function HomePage() {
     };
     setProfile((p) => ({ ...p, diet }));
     setLevel("L3");
+    track("Onboarding Step Completed", { step: "concern", concern: selectedConcerns.join(","), diet });
     localStorage.setItem("bh_profile", JSON.stringify(fullProfile));
 
     if (isEditMode && activeMember) {

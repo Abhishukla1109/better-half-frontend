@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, ArrowLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { track, identifyUser } from "@/lib/mixpanel";
 
 type Step = "email" | "code";
 
@@ -46,9 +47,13 @@ export default function AuthPage() {
   async function checkProfileAndRedirect(userId: string) {
     const { data } = await supabase.from("profiles").select("data").eq("id", userId).single();
     localStorage.setItem("bh_auth", JSON.stringify({ loggedIn: true }));
-    if (data?.data && Object.keys(data.data).length > 0) {
+    const hasProfile = data?.data && Object.keys(data.data).length > 0;
+    if (hasProfile) {
       localStorage.setItem("bh_profile", JSON.stringify(data.data));
     }
+    // Link all future Mixpanel events to this user's ID
+    identifyUser(userId);
+    track("Sign Up Completed", { has_existing_profile: !!hasProfile });
     router.replace("/home");
   }
 
@@ -67,6 +72,7 @@ export default function AuthPage() {
     if (err) {
       setError(err.message);
     } else {
+      track("Sign Up Started");
       setStep("code");
       setDigits(["", "", "", "", "", "", "", ""]);
       setCountdown(60);
