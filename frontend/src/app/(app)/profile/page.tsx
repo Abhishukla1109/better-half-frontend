@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function ProfilePage() {
   return (
     <div className="px-6 pt-8">
@@ -37,6 +39,15 @@ export default function ProfilePage() {
             </span>
           </div>
         ))}
+      </div>
+
+      {/* Legal links */}
+      <div className="mt-10 pb-8 flex items-center justify-center gap-4">
+        <Link href="/privacy" className="text-[12px] text-on-surface-variant/40 hover:text-on-surface-variant transition-colors">
+          Privacy Policy
+        </Link>
+        <span className="text-on-surface-variant/20 text-[10px]">·</span>
+        <span className="text-[12px] text-on-surface-variant/30">v1.0</span>
       </div>
     </div>
   );
