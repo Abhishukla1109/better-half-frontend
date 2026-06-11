@@ -106,8 +106,8 @@ export default function PrivacyPage() {
             </ul>
             <p className="mt-3">
               To exercise any of these rights, email us at{" "}
-              <a href="mailto:privacy@mosaicwellness.in" className="text-primary-container underline">
-                privacy@mosaicwellness.in
+              <a href="mailto:abhishek.shukla@mosaicwellness.in" className="text-primary-container underline">
+                abhishek.shukla@mosaicwellness.in
               </a>
               . We will respond within 30 days.
             </p>
@@ -124,8 +124,8 @@ export default function PrivacyPage() {
             <h2 className="text-[16px] font-bold text-on-surface mb-3">Contact</h2>
             <p>
               Questions about this policy? Reach us at{" "}
-              <a href="mailto:privacy@mosaicwellness.in" className="text-primary-container underline">
-                privacy@mosaicwellness.in
+              <a href="mailto:abhishek.shukla@mosaicwellness.in" className="text-primary-container underline">
+                abhishek.shukla@mosaicwellness.in
               </a>
               {" "}or write to Mosaic Wellness Pvt. Ltd., Mumbai, Maharashtra, India.
             </p>
