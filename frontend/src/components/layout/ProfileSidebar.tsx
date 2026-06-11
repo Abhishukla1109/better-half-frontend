@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { X, Plus, Check, Trash2, LogOut } from "lucide-react";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import type { FamilyMember } from "@/hooks/useActiveProfile";
@@ -225,6 +226,12 @@ export default function ProfileSidebar() {
             </div>
             <span className="text-sm font-semibold text-on-surface-variant/60">Sign out</span>
           </button>
+          <Link
+            href="/privacy"
+            className="w-full flex items-center justify-center py-2"
+          >
+            <span className="text-[11px] text-on-surface-variant/35 hover:text-on-surface-variant/60 transition-colors">Privacy Policy</span>
+          </Link>
         </div>
 
       </div>
