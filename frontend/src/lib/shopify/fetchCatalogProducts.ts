@@ -73,8 +73,8 @@ function getMeta(nodes: Array<{ namespace: string; key: string; value: string }>
   return nodes.find((m) => m.namespace === "custom" && m.key === key)?.value ?? "";
 }
 
-function splitCSV(val: string): string[] {
-  return val.split(",").map((s) => s.trim()).filter(Boolean);
+function splitCSV(val: string, lowercase = false): string[] {
+  return val.split(",").map((s) => lowercase ? s.trim().toLowerCase() : s.trim()).filter(Boolean);
 }
 
 function normalizeBrand(vendor: string): "Man Matters" | "Be Bodywise" | "Little Joys" {
@@ -92,8 +92,8 @@ export async function fetchCatalogProducts(): Promise<Product[]> {
     const page: CatalogPage = await adminGql<CatalogPage>(token, CATALOG_QUERY, { first: 250, after: cursor });
     for (const p of page.products.nodes) {
       const nodes = p.metafields.nodes;
-      const concern  = splitCSV(getMeta(nodes, "bh_concern"));
-      const gender   = splitCSV(getMeta(nodes, "bh_gender"));
+      const concern  = splitCSV(getMeta(nodes, "bh_concern"), true);
+      const gender   = splitCSV(getMeta(nodes, "bh_gender"), true);
       const segment  = splitCSV(getMeta(nodes, "bh_segment"));
       const followUp = splitCSV(getMeta(nodes, "bh_follow_up"));
       const scoreStr = getMeta(nodes, "bh_score");
