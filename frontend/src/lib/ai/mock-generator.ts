@@ -4,7 +4,7 @@
    Uses calculateProtocolMatch for real product recommendations.
    ══════════════════════════════════════════════════════════════ */
 
-import { calculateProtocolMatch, resolveSegment } from "@/lib/protocolEngine";
+import { calculateProtocolMatch, calculateFallbackMatch, resolveSegment } from "@/lib/protocolEngine";
 import type { UserSegment, MatchedProduct, Product } from "@/lib/protocolEngine";
 import { calculateProfileDepth } from "./profile-depth";
 import { getProductShopifyUrl } from "./product-handles";
@@ -682,15 +682,17 @@ function buildSupplements(
   };
 
   const matched = calculateProtocolMatch(userSegment, products);
+  // If no concern-specific products found (metafields not yet set in Shopify for this concern),
+  // fall back to keyword-based matching so users never see an empty protocol
+  const finalMatched = matched.length > 0 ? matched : calculateFallbackMatch(userSegment, products);
 
-  if (matched.length === 0) {
-    // Fallback if no products matched (shouldn't happen with real catalog)
+  if (finalMatched.length === 0) {
     return [];
   }
 
-  const categoryById = new Map(matched.map((p) => [p.id, p.category]));
+  const categoryById = new Map(finalMatched.map((p) => [p.id, p.category]));
 
-  const supplements = matched.map((product, idx) => {
+  const supplements = finalMatched.map((product, idx) => {
     const timing =
       narrative.productTiming[product.category] ||
       "Morning with breakfast";

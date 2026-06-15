@@ -61,6 +61,32 @@ export function resolveSegment(
   return segments;
 }
 
+// ── FALLBACK MATCH — used when no concern-specific products exist yet ──
+// Matches by followUp keywords + gender, ignoring concern field
+export function calculateFallbackMatch(user: UserSegment, products: Product[]): MatchedProduct[] {
+  if (!user.followUp) return [];
+  const userSegments = resolveSegment(user.gender, user.age, user.shoppingFor, user.kidsAge);
+  const followUpLower = user.followUp.toLowerCase();
+
+  return products.map((product) => {
+    let score = product.baseScore;
+    if (product.brand === "Little Joys") return null;
+    const genderMatch = product.gender.includes(user.gender.toLowerCase()) || product.gender.includes("all");
+    if (!genderMatch) return null;
+    const followUpMatch = product.followUp.some((f) => followUpLower.includes(f.toLowerCase()));
+    if (!followUpMatch) return null;
+    const segmentOverlap = product.segment.some((s) => userSegments.includes(s));
+    if (segmentOverlap) score += 5; else score -= 10;
+    score = Math.min(score, 99);
+    if (score < 65) return null;
+    return { ...product, matchScore: score };
+  })
+    .filter((item): item is MatchedProduct => item !== null)
+    .filter((item, idx, arr) => arr.findIndex((p) => p.id === item.id) === idx)
+    .sort((a, b) => b.matchScore - a.matchScore)
+    .slice(0, 3);
+}
+
 // ── MAIN MATCHING FUNCTION ──
 export function calculateProtocolMatch(user: UserSegment, products: Product[]): MatchedProduct[] {
   const userSegments = resolveSegment(
