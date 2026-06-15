@@ -328,12 +328,22 @@ function NewProductPDP({
 
   // Fire once when this product page loads
   useEffect(() => {
+    const source = (() => {
+      try {
+        const ref = document.referrer;
+        if (ref.includes("/protocol")) return "protocol";
+        if (ref.includes("/explore")) return "explore";
+        if (ref.includes("/kids")) return "kids";
+        return "direct";
+      } catch { return "unknown"; }
+    })();
     track("PDP Viewed", {
       product_id:   product.id,
       product_name: product.name,
       brand:        product.brand,
       price:        product.price,
       concern:      product.concern?.[0] ?? "",
+      source,
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.id]);
@@ -382,14 +392,28 @@ function NewProductPDP({
     try {
       const variantId = await resolveVariantId(product.id);
       if (!variantId) throw new Error("not found");
-      await addItem(variantId, 1);
+      const source = (() => {
+        try {
+          const ref = document.referrer;
+          if (ref.includes("/protocol")) return "protocol";
+          if (ref.includes("/explore")) return "explore";
+          return "direct";
+        } catch { return "unknown"; }
+      })();
+      await addItem(variantId, 1, {
+        product_name: product.name,
+        brand: product.brand,
+        price: product.price,
+        concern: product.concern?.[0],
+        source,
+      });
       setCartState("done");
     } catch {
       setCartState("error");
     } finally {
       setTimeout(() => setCartState("idle"), 2500);
     }
-  }, [addItem, cartState, product.id, router]);
+  }, [addItem, cartState, product.id, product.name, product.brand, product.price, product.concern, router]);
 
   return (
     <div className="min-h-dvh bg-surface pb-24">

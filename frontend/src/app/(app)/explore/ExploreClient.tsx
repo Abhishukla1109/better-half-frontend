@@ -5,6 +5,7 @@ import { Search, ShoppingBag } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
+import { track } from '@/lib/mixpanel';
 import type { Product as ShopifyProduct } from '@/lib/shopify/types';
 import type { LocalProduct } from '@/lib/localProducts';
 
@@ -76,7 +77,7 @@ export default function ExploreClient({ shopifyProducts, localProducts }: Props)
             {CONCERN_CHIPS.map(chip => (
               <button
                 key={chip.key}
-                onClick={() => setActiveFilter(chip.key)}
+                onClick={() => { setActiveFilter(chip.key); if (chip.key !== 'all') track("Explore Filter Applied", { filter: chip.key }); }}
                 className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
                   activeFilter === chip.key
                     ? 'bg-[#004f54] text-white'

@@ -6,13 +6,21 @@ import { track } from '@/lib/mixpanel';
 
 const CART_ID_KEY = 'bh_cart_id';
 
+interface AddToCartMeta {
+  product_name?: string;
+  brand?: string;
+  price?: number;
+  concern?: string;
+  source?: string;
+}
+
 interface CartContextValue {
   cart: Cart | null;
   isOpen: boolean;
   isLoading: boolean;
   openCart: () => void;
   closeCart: () => void;
-  addItem: (variantId: string, quantity?: number) => Promise<void>;
+  addItem: (variantId: string, quantity?: number, meta?: AddToCartMeta) => Promise<void>;
   updateItem: (lineId: string, quantity: number) => Promise<void>;
   removeItem: (lineId: string) => Promise<void>;
   checkout: () => void;
@@ -62,7 +70,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const openCart = useCallback(() => setIsOpen(true), []);
   const closeCart = useCallback(() => setIsOpen(false), []);
 
-  const addItem = useCallback(async (variantId: string, quantity = 1) => {
+  const addItem = useCallback(async (variantId: string, quantity = 1, meta?: AddToCartMeta) => {
     setIsLoading(true);
     try {
       let updated: Cart | null;
@@ -88,7 +96,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
       if (updated) {
         setCart(updated);
-        track("Add to Cart", { variant_id: variantId });
+        const hasProtocol = !!localStorage.getItem("bh_protocol_picks");
+        track("Add to Cart", {
+          variant_id: variantId,
+          product_name: meta?.product_name,
+          brand: meta?.brand,
+          price: meta?.price,
+          concern: meta?.concern,
+          source: meta?.source ?? "unknown",
+          has_protocol: hasProtocol,
+        });
       }
       setIsOpen(true);
     } finally {
@@ -120,9 +137,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const checkout = useCallback(() => {
     if (cart?.checkoutUrl) {
+      const hasProtocol = !!localStorage.getItem("bh_protocol_picks");
       track("Checkout Started", {
         item_count: cart.totalQuantity,
         cart_value: parseFloat(cart.subtotal?.amount ?? "0"),
+        has_protocol: hasProtocol,
       });
       window.location.href = cart.checkoutUrl;
     }

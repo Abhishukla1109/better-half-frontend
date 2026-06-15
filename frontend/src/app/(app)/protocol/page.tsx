@@ -717,6 +717,8 @@ export default function ProtocolPage() {
         track("Protocol Generated", {
           products_count: data.supplements?.length ?? 0,
           model: data.model ?? "mock",
+          concern: (stored?.concerns ?? "").split(",")[0]?.trim() || stored?.concern || "unknown",
+          gender: (stored as Record<string, unknown>)?.sex as string || "unknown",
         });
         try {
           const picks = data.supplements.slice(0, 5).map((s) => s.id).join(",");
@@ -727,6 +729,7 @@ export default function ProtocolPage() {
   }, [router]);
 
   const handleAnswer = useCallback((key: string, value: string) => {
+    track("Protocol Question Answered", { question_key: key, answer: value });
     setAnswers((prev) => {
       const updated = { ...prev, [key]: value };
       try {
@@ -1727,7 +1730,7 @@ export default function ProtocolPage() {
                         return (
                           <div
                             key={s.id}
-                            onClick={() => router.push(`/product/${s.id}`)}
+                            onClick={() => { track("Product Card Tapped", { product_id: s.id, product_name: s.name, brand: s.brand, source: "protocol" }); router.push(`/product/${s.id}`); }}
                             className="flex-shrink-0 w-[52vw] max-w-[200px] min-w-[160px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 overflow-hidden cursor-pointer hover:border-primary-container/30 transition-all duration-200 active:scale-[0.98]"
                           >
                             <div className="relative w-full h-[148px] bg-surface-container-low">
@@ -1827,7 +1830,7 @@ export default function ProtocolPage() {
                   return (
                     <div
                       key={s.id}
-                      onClick={() => router.push(`/product/${s.id}`)}
+                      onClick={() => { track("Product Card Tapped", { product_id: s.id, product_name: s.name, brand: s.brand, source: "protocol" }); router.push(`/product/${s.id}`); }}
                       className="flex-shrink-0 w-[52vw] max-w-[200px] min-w-[160px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 overflow-hidden cursor-pointer hover:border-primary-container/30 transition-all duration-200 active:scale-[0.98]"
                     >
                       <div className="relative w-full h-[148px] bg-surface-container-low">
