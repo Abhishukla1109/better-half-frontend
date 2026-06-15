@@ -29,10 +29,10 @@ const CATEGORIES: CategoryDef[] = [
   { key: "hair",       label: "Hair",       abbr: "H",  emoji: "💇",  gradient: "from-blue-500/20 to-cyan-500/20",       concernValues: ["hair"] },
   { key: "beard",      label: "Beard",      abbr: "Bd", emoji: "🧔",  gradient: "from-slate-500/20 to-stone-500/20",     concernValues: ["beard"] },
   { key: "skin",       label: "Skin",       abbr: "Sk", emoji: "✨",  gradient: "from-rose-400/20 to-pink-500/20",       concernValues: ["skin"] },
-  { key: "weight",     label: "Weight",     abbr: "W",  emoji: "⚖️",  gradient: "from-emerald-500/20 to-teal-500/20",   concernValues: ["energy"], followUpFilter: ["belly fat","fat","lose","body composition","muscle","strength","protein","gain","creatine","recovery","endurance","athlete"] },
+  { key: "weight",     label: "Weight",     abbr: "W",  emoji: "⚖️",  gradient: "from-emerald-500/20 to-teal-500/20",   concernValues: ["weight"] },
   { key: "nutrition",  label: "Nutrition",  abbr: "N",  emoji: "🌿",  gradient: "from-lime-500/20 to-green-500/20",     concernValues: ["energy"] },
   { key: "sleep",      label: "Sleep",      abbr: "Sl", emoji: "😴",  gradient: "from-indigo-500/20 to-purple-500/20",  concernValues: ["sleep"] },
-  { key: "hormones",   label: "Hormones",   abbr: "P",  emoji: "🧬",  gradient: "from-fuchsia-500/20 to-violet-500/20", concernValues: ["energy"], followUpFilter: ["testosterone","libido","drive","performance","cortisol"] },
+  { key: "hormones",   label: "Hormones",   abbr: "P",  emoji: "🧬",  gradient: "from-fuchsia-500/20 to-violet-500/20", concernValues: ["hormones"] },
 ];
 
 const CONCERN_LIST = [
@@ -286,8 +286,8 @@ function ProductCard({
     text: "text-on-surface-variant",
   };
 
-  // Pills: concern label + match %
-  const concernPill = CONCERN_CHIP[product.concern[0]] ?? null;
+  // Pills: all concern labels + match %
+  const concernPills = (product.concern ?? []).map((c) => CONCERN_CHIP[c]).filter(Boolean) as string[];
   const matchPill = matchPct !== undefined && matchPct >= 75 ? `${matchPct}% match` : null;
 
   return (
@@ -383,14 +383,14 @@ function ProductCard({
           )}
         </div>
 
-        {/* Info pills — concern + match */}
-        {(concernPill || matchPill) && (
+        {/* Info pills — concerns + match */}
+        {(concernPills.length > 0 || matchPill) && (
           <div className="flex flex-wrap gap-1 mt-0.5">
-            {concernPill && (
-              <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-surface-container border border-outline-variant/15 text-on-surface-variant/70 leading-none">
-                {concernPill}
+            {concernPills.map((pill) => (
+              <span key={pill} className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-surface-container border border-outline-variant/15 text-on-surface-variant/70 leading-none">
+                {pill}
               </span>
-            )}
+            ))}
             {matchPill && (
               <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-primary-container/10 border border-primary-container/20 text-primary-container leading-none">
                 ✦ {matchPill}

@@ -83,6 +83,37 @@ function normalizeBrand(vendor: string): "Man Matters" | "Be Bodywise" | "Little
   return "Man Matters";
 }
 
+// Shopify metafields for these products are wrong or incomplete.
+// First concern in each array becomes the primary category shown on PDPs.
+const CONCERN_OVERRIDES: Record<string, string[]> = {
+  // Hormones products — Shopify has them as 'energy' or single-concern
+  "endure-long-last-spray-20ml":                                    ["hormones"],
+  "tostero-120-capsules":                                           ["energy", "hormones"],
+  "tostero-capsules-60n":                                           ["energy", "hormones"],
+  "shilajit-gummies":                                               ["hormones", "energy", "weight"],
+  "shilajit-gummies-60n":                                           ["hormones", "energy", "weight", "hair"],
+  "complete-endurance-kit-1x-endure-spray-1x-tostero-capsules":    ["energy", "hormones"],
+
+  // Ashwagandha is an adaptogen — relevant for energy, sleep AND hormones (cortisol/testosterone)
+  "ashwagandha-gummies":                                            ["energy", "sleep", "hormones"],
+
+  // Weight products — Shopify only tags them 'energy'
+  "creatine-powder":                                                ["weight"],
+  "creatine-electrolyte":                                           ["energy", "weight"],
+  "micronised-creatine-monohydrate":                                ["energy", "weight"],
+  "ultimate-strength-kit":                                          ["energy", "weight"],
+  "superblend":                                                     ["energy", "weight"],
+  "plant-protein-powder-500-gm":                                    ["energy", "weight"],
+  "super-blend-nutrition-powder":                                   ["energy", "weight"],
+  "whey-protein-powder-500-gm":                                     ["energy", "weight"],
+  "muscle-nutrients-kit":                                           ["energy", "weight"],
+
+  // Magnesium products — sleep primary, also relevant for energy
+  "magnesium-glycinate-gummies-60n":                                ["sleep", "energy"],
+  "magnesium-gummies-and-lotion-kit":                               ["sleep", "energy"],
+  "10-magnesium-lotion-300ml":                                      ["sleep", "energy"],  // wrongly tagged 'skin' in Shopify
+};
+
 export async function fetchCatalogProducts(): Promise<Product[]> {
   const token = await getAdminToken();
   const results: Product[] = [];
@@ -92,7 +123,8 @@ export async function fetchCatalogProducts(): Promise<Product[]> {
     const page: CatalogPage = await adminGql<CatalogPage>(token, CATALOG_QUERY, { first: 250, after: cursor });
     for (const p of page.products.nodes) {
       const nodes = p.metafields.nodes;
-      const concern  = splitCSV(getMeta(nodes, "bh_concern"), true);
+      const rawConcern = splitCSV(getMeta(nodes, "bh_concern"), true);
+      const concern    = CONCERN_OVERRIDES[p.handle] ?? rawConcern;
       const gender   = splitCSV(getMeta(nodes, "bh_gender"), true);
       const segment  = splitCSV(getMeta(nodes, "bh_segment"));
       const followUp = splitCSV(getMeta(nodes, "bh_follow_up"));

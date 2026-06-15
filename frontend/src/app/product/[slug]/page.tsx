@@ -222,10 +222,11 @@ const CONCERN_LABEL: Record<string, string> = {
 
 const CONCERN_DISPLAY: Record<string, string> = {
   hair: "Hair & Growth",
-  beard: "Beard & Skin",
+  beard: "Beard & Growth",
   energy: "Energy & Vitality",
   weight: "Weight Management",
   sleep: "Sleep & Recovery",
+  hormones: "Hormones & Vitality",
   immunity: "Immunity",
   skin: "Skin & Glow",
   nutrition: "Nutrition",
@@ -566,9 +567,10 @@ function NewProductPDP({
               (d) => d.feature.toLowerCase() === "suitable for age"
             )?.value;
             if (suitableFor) chips.push({ emoji: "👤", text: suitableFor });
-            const concern = product.concern?.[0];
-            const concernLabel = CONCERN_DISPLAY[concern?.toLowerCase() ?? ""];
-            if (concernLabel) chips.push({ emoji: "🎯", text: concernLabel });
+            for (const c of product.concern ?? []) {
+              const concernLabel = CONCERN_DISPLAY[c?.toLowerCase() ?? ""];
+              if (concernLabel) chips.push({ emoji: "🎯", text: concernLabel });
+            }
             if (!chips.length && matchScore === null) return null;
             return (
               <div className="flex flex-wrap gap-1.5 mt-2">
