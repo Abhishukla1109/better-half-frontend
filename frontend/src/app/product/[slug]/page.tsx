@@ -1293,7 +1293,8 @@ export default function ProductPage({
   if (!product && !newProduct) return null;
 
   /* ── Lightweight / Enriched PDP for new catalog products ── */
-  if (newProduct) return <NewProductPDP product={newProduct} enriched={enriched} onBack={() => router.back()} />;
+  const handleBack = () => window.history.length > 1 ? router.back() : router.replace("/explore");
+  if (newProduct) return <NewProductPDP product={newProduct} enriched={enriched} onBack={handleBack} />;
 
   /* product is guaranteed non-null from here — new catalog was handled above */
   if (!product) return null;
@@ -1323,7 +1324,7 @@ export default function ProductPage({
       <header className="glass-header fixed top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto flex items-center justify-between h-12 px-4">
           <button
-            onClick={() => router.back()}
+            onClick={() => window.history.length > 1 ? router.back() : router.replace("/explore")}
             className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-low transition-colors cursor-pointer"
             aria-label="Go back"
           >

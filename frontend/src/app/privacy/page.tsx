@@ -1,22 +1,20 @@
-import { Metadata } from "next";
-import Link from "next/link";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy",
-};
+import { useRouter } from "next/navigation";
 
 export default function PrivacyPage() {
+  const router = useRouter();
   return (
     <div className="min-h-dvh bg-surface">
       <div className="max-w-2xl mx-auto px-6 py-10">
         {/* Header */}
         <div className="mb-8">
-          <Link
-            href="/home"
-            className="text-[13px] text-on-surface-variant/60 hover:text-on-surface-variant mb-6 inline-block"
+          <button
+            onClick={() => window.history.length > 1 ? router.back() : router.replace("/home")}
+            className="text-[13px] text-on-surface-variant/60 hover:text-on-surface-variant mb-6 inline-block cursor-pointer"
           >
             ← Back
-          </Link>
+          </button>
           <h1 className="text-[24px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-2">
             Privacy Policy
           </h1>
