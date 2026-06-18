@@ -16,9 +16,13 @@ export function buildPrompt(profile: UserProfile, products: Product[]): { system
 
   const isMulti = allConcerns.length > 1;
 
-  // Get matched products for each concern, merge unique
+  // Get matched products for each concern, merge unique.
+  // Two-pass approach: first guarantee at least 1 product per concern,
+  // then fill remaining slots — mirrors the engine's own first/second pass.
   const seenIds = new Set<string>();
   const allMatchedProducts: ReturnType<typeof calculateProtocolMatch> = [];
+  const perConcernMatched: ReturnType<typeof calculateProtocolMatch>[] = [];
+
   for (const concern of allConcerns) {
     const p = profile as Record<string, string | undefined>;
     const isBearder = concern === "Hair / beard" && (p.hair_primary === "beard" || p.hair_concern_type === "beard");
@@ -28,13 +32,30 @@ export function buildPrompt(profile: UserProfile, products: Product[]): { system
       diet: profile.diet || "non-veg",
       concern: isBearder ? "beard" : (concern.toLowerCase().split(" / ")[0] || "energy"),
     }, products);
+    perConcernMatched.push(matched);
+  }
+
+  // First pass: 1 guaranteed product per concern
+  for (const matched of perConcernMatched) {
     for (const p of matched) {
       if (!seenIds.has(p.id)) {
         seenIds.add(p.id);
         allMatchedProducts.push(p);
+        break;
       }
     }
-    if (allMatchedProducts.length >= 6) break;
+  }
+  // Second pass: fill up to 2 more per concern
+  for (const matched of perConcernMatched) {
+    let added = 0;
+    for (const p of matched) {
+      if (added >= 2) break;
+      if (!seenIds.has(p.id)) {
+        seenIds.add(p.id);
+        allMatchedProducts.push(p);
+        added++;
+      }
+    }
   }
 
   const productContext =

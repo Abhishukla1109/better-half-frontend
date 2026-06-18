@@ -817,9 +817,17 @@ function buildMultiConcernSupplements(
   }
 
   // First pass: guarantee at least 1 product per concern
+  // Prioritise products whose primary category matches the current concern so that
+  // multi-concern products (e.g. Magnesium tagged ["sleep","energy"]) aren't stolen
+  // by whichever concern happens to run first.
   for (const { rawConcern, narrative, matched } of concernData) {
     if (result.length >= MAX) break;
-    for (const product of matched) {
+    const resolvedConcern = resolveConcern(rawConcern, profile);
+    const primaryFirst = [
+      ...matched.filter((p) => p.category === resolvedConcern),
+      ...matched.filter((p) => p.category !== resolvedConcern),
+    ];
+    for (const product of primaryFirst) {
       if (addProduct(product, narrative, rawConcern)) break;
     }
   }

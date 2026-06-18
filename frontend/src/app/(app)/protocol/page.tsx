@@ -939,29 +939,36 @@ export default function ProtocolPage() {
         indices: supplements.map((_, i) => i),
       }];
     }
-    const groups: { label: string; emoji: string; indices: number[] }[] = [];
+    const groups = concernList.map((label) => ({
+      label: CONCERN_DISPLAY[label] ?? label,
+      emoji: CONCERN_EMOJI[label] ?? "✦",
+      concernValues: ONBOARDING_CONCERN_MAP[label] ?? [],
+      indices: [] as number[],
+    }));
     const assigned = new Set<number>();
-    for (const label of concernList) {
-      const concernValues = ONBOARDING_CONCERN_MAP[label] ?? [];
-      const indices: number[] = [];
+    // First pass: assign by primary category so multi-concern products aren't stolen by the first matching group
+    for (let i = 0; i < supplements.length; i++) {
+      const catalog = catalogProducts.find((p) => p.id === supplements[i].id);
+      const primaryCat = catalog?.category ?? catalog?.concern?.[0] ?? "";
+      const targetGroup = groups.find((g) => g.concernValues.includes(primaryCat));
+      if (targetGroup) { targetGroup.indices.push(i); assigned.add(i); }
+    }
+    // Second pass: assign remaining by any concern match
+    for (const group of groups) {
       for (let i = 0; i < supplements.length; i++) {
         if (assigned.has(i)) continue;
         const productConcerns = catalogProducts.find((p) => p.id === supplements[i].id)?.concern ?? [];
-        if (productConcerns.some((c) => concernValues.includes(c))) {
-          indices.push(i);
+        if (productConcerns.some((c) => group.concernValues.includes(c))) {
+          group.indices.push(i);
           assigned.add(i);
         }
       }
-      if (indices.length > 0) {
-        groups.push({ label: CONCERN_DISPLAY[label] ?? label, emoji: CONCERN_EMOJI[label] ?? "✦", indices });
-      }
     }
-    const unassigned = supplements.map((_, i) => i).filter((i) => !assigned.has(i));
-    if (unassigned.length > 0) {
-      if (groups.length > 0) groups[0].indices.push(...unassigned);
-      else groups.push({ label: "Your Picks", emoji: "✦", indices: unassigned });
+    // Fallback: unassigned go to first group
+    for (let i = 0; i < supplements.length; i++) {
+      if (!assigned.has(i)) groups[0]?.indices.push(i);
     }
-    return groups;
+    return groups.filter((g) => g.indices.length > 0);
   }, [protocol, concernList, catalogProducts]);
 
   // Group supplements by user concern — only when 2+ concerns
@@ -971,10 +978,19 @@ export default function ProtocolPage() {
     const groups = concernList.map((label) => ({
       label,
       displayLabel: CONCERN_DISPLAY[label] ?? label,
+      emoji: CONCERN_EMOJI[label] ?? "✦",
       concernValues: ONBOARDING_CONCERN_MAP[label] ?? [],
       supplements: [] as ProtocolSupplement[],
     }));
     const assigned = new Set<string>();
+    // First pass: assign by primary category so multi-concern products aren't stolen by the first matching group
+    for (const s of pool) {
+      const catalog = catalogProducts.find((p) => p.id === s.id);
+      const primaryCat = catalog?.category ?? catalog?.concern?.[0] ?? "";
+      const targetGroup = groups.find((g) => g.concernValues.includes(primaryCat));
+      if (targetGroup) { targetGroup.supplements.push(s); assigned.add(s.id); }
+    }
+    // Second pass: assign remaining by any concern match
     for (const group of groups) {
       for (const s of pool) {
         if (assigned.has(s.id)) continue;
@@ -985,9 +1001,9 @@ export default function ProtocolPage() {
         }
       }
     }
-    // Unassigned supplements go to first group
+    // Fallback: unassigned go to first group
     for (const s of pool) {
-      if (!assigned.has(s.id)) groups[0].supplements.push(s);
+      if (!assigned.has(s.id)) groups[0]?.supplements.push(s);
     }
     return groups.filter((g) => g.supplements.length > 0);
   }, [protocol, concernList, catalogProducts]);
@@ -1603,22 +1619,17 @@ export default function ProtocolPage() {
         >
           <div className="p-4">
 
-            {/* Top row: label + strength % */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-1.5">
-                <Sparkles className="w-3 h-3 text-primary-fixed/60" strokeWidth={1.5} />
-                <span className="text-[10px] font-bold text-primary-fixed/60 uppercase tracking-widest">
-                  {possUpper} Protocol
-                </span>
-              </div>
+            {/* Top row: sparkle + strength % */}
+            <div className="flex items-center justify-between mb-2">
+              <Sparkles className="w-3 h-3 text-primary-fixed/60" strokeWidth={1.5} />
               <span className="text-sm font-extrabold text-white font-[family-name:var(--font-manrope)]">
                 {displayDepth}%
               </span>
             </div>
 
             {/* Title */}
-            <h1 className="text-[22px] font-extrabold text-white font-[family-name:var(--font-manrope)] leading-tight capitalize mb-2.5">
-              {buildProtocolTitle(profile)}
+            <h1 className="text-[22px] font-extrabold text-white font-[family-name:var(--font-manrope)] leading-tight mb-2.5">
+              {possUpper} Protocol
             </h1>
 
             {/* Concern tags */}
@@ -1747,10 +1758,10 @@ export default function ProtocolPage() {
                 {groupedSupplements.map((group) => (
                   <div key={group.label}>
                     <div className="flex items-center gap-2 px-4 mb-2.5">
-                      <span className="text-[16px] leading-none">{CONCERN_EMOJI[group.label] ?? "✦"}</span>
-                      <span className={`text-[12px] font-bold ${getConcernCategoryStyle(group.label).text}`}>{group.displayLabel}</span>
+                      <span className="text-[16px] leading-none">{group.emoji}</span>
+                      <span className={`text-[12px] font-bold ${getConcernCategoryStyle(group.displayLabel).text}`}>{group.displayLabel}</span>
                       <span className="text-[10px] text-on-surface-variant/40">· {group.supplements.length} matched</span>
-                      <div className={`flex-1 h-px ${getConcernCategoryStyle(group.label).line}`} />
+                      <div className={`flex-1 h-px ${getConcernCategoryStyle(group.displayLabel).line}`} />
                     </div>
                     <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-1 pl-4">
                       {group.supplements.map((s) => {
