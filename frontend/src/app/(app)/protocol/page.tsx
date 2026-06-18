@@ -239,6 +239,38 @@ function splitRoutineText(text: string): { action: string; detail: string | null
   return { action: text, detail: null };
 }
 
+/* Compact timing label: "Morning with food" → "🌅 Morning · with food" */
+function skipTiming(name: string): boolean {
+  const n = name.toLowerCase();
+  // Topical products — timing (e.g. "With breakfast") is irrelevant
+  if (
+    n.includes("shampoo") || n.includes("serum") || n.includes("spray") ||
+    n.includes("lotion") || n.includes("conditioner") || n.includes("face wash") ||
+    n.includes("facewash") || n.includes("cream") || n.includes("hair oil") ||
+    n.includes("scalp oil") || n.includes("gel") || n.includes("scrub") ||
+    n.includes("cleanser") || n.includes("toner") || n.includes("sunscreen") ||
+    n.includes("roll on") || n.includes("roll-on") || n.includes("patch") ||
+    n.includes("wash") || n.includes("mask")
+  ) return true;
+  // Kits and combos contain multiple items — a single timing label is misleading
+  if (
+    n.includes("kit") || n.includes("combo") || n.includes("pack") ||
+    n.includes("bundle") || n.includes("set")
+  ) return true;
+  return false;
+}
+
+function formatTiming(timing: string): string {
+  const t = timing.toLowerCase();
+  let emoji = "⏰";
+  if (t.includes("morning") || t.includes("breakfast")) emoji = "🌅";
+  else if (t.includes("night") || t.includes("bed") || t.includes("evening")) emoji = "🌙";
+  else if (t.includes("post") && t.includes("workout")) emoji = "💪";
+  else if (t.includes("afternoon") || t.includes("lunch")) emoji = "☀️";
+  const label = timing.length > 30 ? timing.slice(0, 28) + "…" : timing;
+  return `${emoji} ${label}`;
+}
+
 /* Keyword-based emoji for supplement / ingredient types */
 function getSupplementEmoji(name: string): string {
   const n = name.toLowerCase();
@@ -1767,6 +1799,11 @@ export default function ProtocolPage() {
                               {trustBadge && (
                                 <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-1.5 leading-none ${trustBadge.style}`}>{trustBadge.label}</span>
                               )}
+                              {s.timing && !skipTiming(s.name) && (
+                                <p className="text-[10px] font-semibold text-on-surface-variant/55 mb-1.5 leading-none">
+                                  {formatTiming(s.timing)}
+                                </p>
+                              )}
                               {ratingData && (
                                 <div className="flex items-center gap-1 mb-1">
                                   <span className="text-amber-400 text-[12px] leading-none">★</span>
@@ -1866,6 +1903,11 @@ export default function ProtocolPage() {
                         )}
                         {trustBadge && (
                           <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-1.5 leading-none ${trustBadge.style}`}>{trustBadge.label}</span>
+                        )}
+                        {s.timing && !skipTiming(s.name) && (
+                          <p className="text-[10px] font-semibold text-on-surface-variant/55 mb-1.5 leading-none">
+                            {formatTiming(s.timing)}
+                          </p>
                         )}
                         {ratingData && (
                           <div className="flex items-center gap-1 mb-1">

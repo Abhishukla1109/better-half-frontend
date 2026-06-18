@@ -155,6 +155,17 @@ const CONCERN_CHIP: Record<string, string> = {
   focus:     "🧠 Brain & Focus",
 };
 
+/* Concern-specific color tokens for the By Concern sheet */
+const CONCERN_COLORS: Record<string, { idle: string; active: string; text: string }> = {
+  hair:      { idle: "bg-sky-500/10 border-sky-500/20",       active: "bg-sky-500/20 border-sky-500/50",       text: "text-sky-700"      },
+  beard:     { idle: "bg-slate-500/10 border-slate-500/20",   active: "bg-slate-500/20 border-slate-500/50",   text: "text-slate-700"    },
+  skin:      { idle: "bg-rose-500/10 border-rose-500/20",     active: "bg-rose-500/20 border-rose-500/50",     text: "text-rose-700"     },
+  weight:    { idle: "bg-emerald-500/10 border-emerald-500/20", active: "bg-emerald-500/20 border-emerald-500/50", text: "text-emerald-700" },
+  nutrition: { idle: "bg-lime-500/10 border-lime-500/20",     active: "bg-lime-500/20 border-lime-500/50",     text: "text-lime-700"     },
+  sleep:     { idle: "bg-indigo-500/10 border-indigo-500/20", active: "bg-indigo-500/20 border-indigo-500/50", text: "text-indigo-700"   },
+  hormones:  { idle: "bg-fuchsia-500/10 border-fuchsia-500/20", active: "bg-fuchsia-500/20 border-fuchsia-500/50", text: "text-fuchsia-700" },
+};
+
 type StoredProfile = Record<string, string | undefined>;
 
 function concernLabel(raw: string): string {
@@ -949,6 +960,36 @@ function ExplorePageContent() {
             );
           })}
         </div>
+
+        {/* Sub-concern chips — inline refinement row shown when active category has sub-concerns */}
+        {!showKidsFilters && (CATEGORY_SUB_CONCERNS[activeCategory]?.length ?? 0) > 0 && (
+          <div className="flex gap-1.5 px-4 pb-3 overflow-x-auto hide-scrollbar">
+            <button
+              onClick={() => setSelectedSubConcern(null)}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all cursor-pointer border ${
+                selectedSubConcern === null
+                  ? "bg-on-surface/90 text-surface border-transparent"
+                  : "bg-transparent border-outline-variant/25 text-on-surface-variant/60 hover:border-outline-variant/50"
+              }`}
+            >
+              All
+            </button>
+            {CATEGORY_SUB_CONCERNS[activeCategory].map((sub) => (
+              <button
+                key={sub.key}
+                onClick={() => setSelectedSubConcern(sub.key === selectedSubConcern ? null : sub.key)}
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all cursor-pointer border ${
+                  selectedSubConcern === sub.key
+                    ? "bg-on-surface/90 text-surface border-transparent"
+                    : "bg-transparent border-outline-variant/25 text-on-surface-variant/60 hover:border-outline-variant/50"
+                }`}
+              >
+                <span className="text-[10px] leading-none">{sub.emoji}</span>
+                {sub.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Scrollable content ── */}
@@ -1294,23 +1335,28 @@ function ExplorePageContent() {
                 // No category selected or category has no sub-concerns → top-level concern selector
                 CONCERN_LIST
                   .filter((c) => !(c.key === "beard" && (profile?.sex === "female" || selectedBrand === "Be Bodywise")))
-                  .map((concern) => (
-                    <button
-                      key={concern.key}
-                      onClick={() => { switchTab(concern.key); setShowConcernSheet(false); }}
-                      className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl border-2 transition-all cursor-pointer text-left ${
-                        activeCategory === concern.key
-                          ? "bg-primary-container/10 border-primary-container/35"
-                          : "border-outline-variant/10 bg-surface-container-low hover:bg-surface-container"
-                      }`}
-                    >
-                      <span className="text-2xl leading-none shrink-0">{concern.emoji}</span>
-                      <div className="min-w-0">
-                        <p className={`text-[13px] font-bold ${activeCategory === concern.key ? "text-primary-container" : "text-on-surface"}`}>{concern.label}</p>
-                        <p className="text-[11px] text-on-surface-variant/50 mt-0.5">{concern.desc}</p>
-                      </div>
-                    </button>
-                  ))
+                  .map((concern) => {
+                    const cc = CONCERN_COLORS[concern.key];
+                    const isActive = activeCategory === concern.key;
+                    return (
+                      <button
+                        key={concern.key}
+                        onClick={() => { switchTab(concern.key); setShowConcernSheet(false); }}
+                        className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl border-2 transition-all cursor-pointer text-left ${
+                          isActive
+                            ? cc ? cc.active : "bg-primary-container/10 border-primary-container/35"
+                            : cc ? cc.idle : "border-outline-variant/10 bg-surface-container-low hover:opacity-80"
+                        }`}
+                      >
+                        <span className="text-2xl leading-none shrink-0">{concern.emoji}</span>
+                        <div className="min-w-0">
+                          <p className={`text-[13px] font-bold ${isActive ? (cc?.text ?? "text-primary-container") : "text-on-surface"}`}>{concern.label}</p>
+                          <p className="text-[11px] text-on-surface-variant/50 mt-0.5">{concern.desc}</p>
+                        </div>
+                        {isActive && <Check className="w-4 h-4 shrink-0 ml-auto" strokeWidth={2.5} style={{ color: "currentColor" }} />}
+                      </button>
+                    );
+                  })
               )}
             </div>
           </div>
