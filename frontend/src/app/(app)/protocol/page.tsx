@@ -1615,43 +1615,40 @@ export default function ProtocolPage() {
         {/* ── Unified protocol header card ── */}
         <div
           className="mb-4 rounded-2xl overflow-hidden animate-fade-in-up"
-          style={{ background: "linear-gradient(150deg, #004034 0%, #15594a 50%, #1a6b58 100%)" }}
+          style={{ background: "linear-gradient(160deg, #002b22 0%, #004034 40%, #1a6b58 100%)" }}
         >
-          <div className="p-4">
-
-            {/* Top row: sparkle + strength % */}
-            <div className="flex items-center justify-between mb-2">
-              <Sparkles className="w-3 h-3 text-primary-fixed/60" strokeWidth={1.5} />
-              <span className="text-sm font-extrabold text-white font-[family-name:var(--font-manrope)]">
-                {displayDepth}%
-              </span>
-            </div>
+          <div className="p-5">
 
             {/* Title */}
-            <h1 className="text-[22px] font-extrabold text-white font-[family-name:var(--font-manrope)] leading-tight mb-2.5">
+            <h1 className="text-[26px] font-extrabold text-white font-[family-name:var(--font-manrope)] leading-tight mb-3">
               {possUpper} Protocol
             </h1>
 
             {/* Concern tags */}
             {concernList.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-3">
+              <div className="flex flex-wrap gap-2 mb-4">
                 {concernList.map((c) => (
-                  <span key={c} className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-white/10 text-white/85 border border-white/15">
-                    <span className="text-sm leading-none">{getConcernEmoji([c], profile?.sex)}</span>
+                  <span key={c} className="flex items-center gap-1.5 text-[13px] font-bold px-3.5 py-1.5 rounded-full bg-white/10 text-white border border-white/20">
+                    <span className="text-base leading-none">{getConcernEmoji([c], profile?.sex)}</span>
                     {CONCERN_TITLE_MAP[c] ?? c.toLowerCase()}
                   </span>
                 ))}
               </div>
             )}
 
-            {/* Strength bar */}
-            <div className="h-1 bg-white/15 rounded-full overflow-hidden mb-1.5">
-              <div
-                className="h-full bg-primary-fixed rounded-full transition-all duration-200 ease-out"
-                style={{ width: `${displayDepth}%` }}
-              />
+            {/* Strength bar + % — unified row */}
+            <div className="flex items-center gap-3 mb-1.5">
+              <div className="flex-1 h-2 bg-white/15 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${displayDepth}%`, background: "linear-gradient(90deg, #7fffd4, #ffffff)" }}
+                />
+              </div>
+              <span className="text-[15px] font-extrabold text-white font-[family-name:var(--font-manrope)] tabular-nums shrink-0">
+                {displayDepth}%
+              </span>
             </div>
-            <p className="text-[10px] text-white/40 mb-3">
+            <p className="text-[11px] text-white/50 mb-4">
               Built from your profile · answer more to refine
             </p>
 
@@ -1717,7 +1714,7 @@ export default function ProtocolPage() {
             <>
               <div className="mx-4 h-px bg-white/10" />
               <div className="pt-3 pb-4 px-4">
-                <p className="text-[12px] font-bold text-white/55 uppercase tracking-widest mb-3">
+                <p className="text-[13px] font-bold text-white/80 uppercase tracking-widest mb-3">
                   Habits before supplements
                 </p>
                 <div className="space-y-0">
@@ -1727,9 +1724,9 @@ export default function ProtocolPage() {
                     const isVeg = !profileDiet.includes("non") && (profileDiet.includes("veg") || profileDiet.includes("vegan") || profileDiet.includes("egg"));
                     const { emoji } = getHabitStyle(tip, isVeg);
                     return (
-                      <div key={i} className="flex items-center gap-3 py-2.5 border-b border-white/8 last:border-0">
+                      <div key={i} className="flex items-center gap-3 py-3 border-b border-white/8 last:border-0">
                         <span className="text-[22px] leading-none w-7 shrink-0">{emoji}</span>
-                        <p className="text-[12px] font-semibold text-white/75 leading-snug">{compressHabit(action)}</p>
+                        <p className="text-[13px] font-semibold text-white/85 leading-snug">{compressHabit(action)}</p>
                       </div>
                     );
                   })}
@@ -1741,7 +1738,7 @@ export default function ProtocolPage() {
 
         {/* ── Product picks — right after habits ── */}
         {protocol.supplements.length > 0 && (
-          <p className="text-[11px] font-bold text-on-surface-variant/40 uppercase tracking-widest px-1 mb-2">
+          <p className="text-[13px] font-bold text-on-surface-variant uppercase tracking-widest px-1 mb-3">
             AI Recommendations
           </p>
         )}
@@ -1759,8 +1756,8 @@ export default function ProtocolPage() {
                   <div key={group.label}>
                     <div className="flex items-center gap-2 px-4 mb-2.5">
                       <span className="text-[16px] leading-none">{group.emoji}</span>
-                      <span className={`text-[12px] font-bold ${getConcernCategoryStyle(group.displayLabel).text}`}>{group.displayLabel}</span>
-                      <span className="text-[10px] text-on-surface-variant/40">· {group.supplements.length} matched</span>
+                      <span className={`text-[14px] font-extrabold ${getConcernCategoryStyle(group.displayLabel).text}`}>{group.displayLabel}</span>
+                      <span className="text-[11px] font-semibold text-on-surface-variant/50">· {group.supplements.length} matched</span>
                       <div className={`flex-1 h-px ${getConcernCategoryStyle(group.displayLabel).line}`} />
                     </div>
                     <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-1 pl-4">
@@ -1776,7 +1773,7 @@ export default function ProtocolPage() {
                             onClick={() => { track("Product Card Tapped", { product_id: s.id, product_name: s.name, brand: s.brand, source: "protocol" }); router.push(`/product/${s.id}`); }}
                             className="flex-shrink-0 w-[52vw] max-w-[200px] min-w-[160px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 overflow-hidden cursor-pointer hover:border-primary-container/30 transition-all duration-200 active:scale-[0.98]"
                           >
-                            <div className="relative w-full h-[148px] bg-surface-container-low">
+                            <div className="relative w-full h-[164px] bg-surface-container-low">
                               {s.image ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img src={s.image} alt={s.name} className="w-full h-full object-cover" loading="lazy" />
@@ -1796,12 +1793,12 @@ export default function ProtocolPage() {
                               )}
                             </div>
                             <div className="p-3">
-                              <p className="text-[10px] font-bold text-primary-container/60 uppercase tracking-wider mb-0.5">{s.brand}</p>
-                              <p className="text-[13px] font-bold text-on-surface leading-snug line-clamp-2 mb-1">{s.name}</p>
+                              <p className="text-[11px] font-bold text-primary-container/70 uppercase tracking-wider mb-0.5">{s.brand}</p>
+                              <p className="text-[15px] font-bold text-on-surface leading-snug line-clamp-2 mb-1.5">{s.name}</p>
                               {s.reasonTags && s.reasonTags.length > 0 && (
                                 <div className="flex flex-wrap gap-1 mb-2">
                                   {s.reasonTags.slice(0, 2).map((tag, i) => (
-                                    <span key={i} className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-primary-container/10 text-primary-container leading-none whitespace-nowrap">
+                                    <span key={i} className="text-[11px] font-semibold px-2 py-1 rounded-full bg-primary-container/10 text-primary-container leading-none whitespace-nowrap">
                                       {tag}
                                     </span>
                                   ))}
@@ -1824,7 +1821,7 @@ export default function ProtocolPage() {
                               )}
                               <div className="flex items-end justify-between gap-1">
                                 <div>
-                                  <p className="text-[15px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
+                                  <p className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
                                   {s.mrp && s.mrp > s.price && <p className="text-[9px] text-on-surface-variant/35 line-through mt-0.5">₹{s.mrp}</p>}
                                 </div>
                                 <button
@@ -1881,7 +1878,7 @@ export default function ProtocolPage() {
                       onClick={() => { track("Product Card Tapped", { product_id: s.id, product_name: s.name, brand: s.brand, source: "protocol" }); router.push(`/product/${s.id}`); }}
                       className="flex-shrink-0 w-[52vw] max-w-[200px] min-w-[160px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 overflow-hidden cursor-pointer hover:border-primary-container/30 transition-all duration-200 active:scale-[0.98]"
                     >
-                      <div className="relative w-full h-[148px] bg-surface-container-low">
+                      <div className="relative w-full h-[164px] bg-surface-container-low">
                         {s.image ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={s.image} alt={s.name} className="w-full h-full object-cover" loading="lazy" />
@@ -1901,12 +1898,12 @@ export default function ProtocolPage() {
                         )}
                       </div>
                       <div className="p-3">
-                        <p className="text-[10px] font-bold text-primary-container/60 uppercase tracking-wider mb-0.5">{s.brand}</p>
-                        <p className="text-[13px] font-bold text-on-surface leading-snug line-clamp-2 mb-1">{s.name}</p>
+                        <p className="text-[11px] font-bold text-primary-container/70 uppercase tracking-wider mb-0.5">{s.brand}</p>
+                        <p className="text-[15px] font-bold text-on-surface leading-snug line-clamp-2 mb-1.5">{s.name}</p>
                         {s.reasonTags && s.reasonTags.length > 0 && (
                           <div className="flex flex-wrap gap-1 mb-2">
                             {s.reasonTags.slice(0, 2).map((tag, i) => (
-                              <span key={i} className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-primary-container/10 text-primary-container leading-none whitespace-nowrap">
+                              <span key={i} className="text-[11px] font-semibold px-2 py-1 rounded-full bg-primary-container/10 text-primary-container leading-none whitespace-nowrap">
                                 {tag}
                               </span>
                             ))}
@@ -1929,7 +1926,7 @@ export default function ProtocolPage() {
                         )}
                         <div className="flex items-end justify-between gap-1">
                           <div>
-                            <p className="text-[15px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
+                            <p className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
                             {s.mrp && s.mrp > s.price && <p className="text-[9px] text-on-surface-variant/35 line-through mt-0.5">₹{s.mrp}</p>}
                           </div>
                           <button
@@ -1996,8 +1993,8 @@ export default function ProtocolPage() {
 
             {/* Why these work — 2×2 grid */}
             {ingredientList.length > 0 && (
-              <div className="mb-3 animate-fade-in-up">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50 mb-2 px-1">
+              <div className="mb-4 mt-2 animate-fade-in-up">
+                <p className="text-[15px] font-extrabold text-on-surface mb-3 px-1">
                   Why these work
                 </p>
                 <div className="grid grid-cols-2 gap-2">
