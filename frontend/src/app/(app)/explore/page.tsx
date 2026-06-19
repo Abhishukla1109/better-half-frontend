@@ -29,18 +29,18 @@ const CATEGORIES: CategoryDef[] = [
   { key: "hair",       label: "Hair",       abbr: "H",  emoji: "💇",  gradient: "from-blue-500/20 to-cyan-500/20",       concernValues: ["hair"] },
   { key: "beard",      label: "Beard",      abbr: "Bd", emoji: "🧔",  gradient: "from-slate-500/20 to-stone-500/20",     concernValues: ["beard"] },
   { key: "skin",       label: "Skin",       abbr: "Sk", emoji: "✨",  gradient: "from-rose-400/20 to-pink-500/20",       concernValues: ["skin"] },
-  { key: "weight",     label: "Weight",     abbr: "W",  emoji: "⚖️",  gradient: "from-emerald-500/20 to-teal-500/20",   concernValues: ["weight"] },
+  { key: "weight",     label: "Weight",     abbr: "W",  emoji: "🏋️",  gradient: "from-emerald-500/20 to-teal-500/20",   concernValues: ["weight"] },
   { key: "nutrition",  label: "Nutrition",  abbr: "N",  emoji: "🌿",  gradient: "from-lime-500/20 to-green-500/20",     concernValues: ["energy"] },
-  { key: "sleep",      label: "Sleep",      abbr: "Sl", emoji: "😴",  gradient: "from-indigo-500/20 to-purple-500/20",  concernValues: ["sleep"] },
+  { key: "sleep",      label: "Sleep",      abbr: "Sl", emoji: "🌙",  gradient: "from-indigo-500/20 to-purple-500/20",  concernValues: ["sleep"] },
   { key: "hormones",   label: "Hormones",   abbr: "P",  emoji: "🧬",  gradient: "from-fuchsia-500/20 to-violet-500/20", concernValues: ["hormones"] },
 ];
 
 const CONCERN_LIST = [
   { key: "hair",      emoji: "💇", label: "Hair Fall & Growth",  desc: "Biotin, DHT blockers, scalp health" },
   { key: "skin",      emoji: "✨", label: "Skin & Acne",         desc: "Collagen, glutathione, clear skin" },
-  { key: "weight",    emoji: "⚖️", label: "Weight Management",   desc: "Fat loss, muscle, metabolism" },
+  { key: "weight",    emoji: "🏋️", label: "Weight Management",   desc: "Fat loss, muscle, metabolism" },
   { key: "nutrition", emoji: "🌿", label: "Energy & Gut",        desc: "Ashwagandha, vitamins, probiotics" },
-  { key: "sleep",     emoji: "😴", label: "Sleep & Stress",      desc: "Melatonin, magnesium, calm" },
+  { key: "sleep",     emoji: "🌙", label: "Sleep & Stress",      desc: "Melatonin, magnesium, calm" },
   { key: "hormones",  emoji: "🧬", label: "Hormonal Health",     desc: "PCOS, testosterone, balance" },
 ];
 
@@ -78,7 +78,7 @@ const CATEGORY_SUB_CONCERNS: Record<string, SubConcern[]> = {
     { key: "stress",       label: "Stress & Cortisol",   emoji: "🧘", desc: "Ashwagandha, cortisol balance",  followUpTerms: ["cortisol","stress","anxiety","mood","motivation"] },
   ],
   sleep: [
-    { key: "sleep-quality", label: "Better Sleep",  emoji: "😴", desc: "Melatonin, magnesium, rest",   followUpTerms: ["sleep","insomnia","poor sleep","rest","relaxation","glycinate","magnesium"] },
+    { key: "sleep-quality", label: "Better Sleep",  emoji: "🌙", desc: "Melatonin, magnesium, rest",   followUpTerms: ["sleep","insomnia","poor sleep","rest","relaxation","glycinate","magnesium"] },
     { key: "stress-calm",   label: "Stress & Calm", emoji: "🧘", desc: "Calm, anxiety, cortisol",      followUpTerms: ["anxiety","calm","cortisol","stress","mood"] },
   ],
 };
@@ -145,9 +145,9 @@ const CONCERN_CHIP: Record<string, string> = {
   hair:      "💇 Hair Health",
   beard:     "🧔 Beard Growth",
   skin:      "✨ Skin & Glow",
-  weight:    "⚖️ Weight",
+  weight:    "🏋️ Weight",
   energy:    "🌿 Energy & Gut",
-  sleep:     "😴 Sleep",
+  sleep:     "🌙 Sleep",
   hormones:  "🧬 Hormones",
   immunity:  "🛡️ Immunity",
   growth:    "🌱 Growth",

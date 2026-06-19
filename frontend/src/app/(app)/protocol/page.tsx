@@ -150,11 +150,11 @@ const CONCERN_DISPLAY: Record<string, string> = {
 
 /* Emoji per concern */
 const CONCERN_EMOJI: Record<string, string> = {
-  "Hair / beard": "💆",
+  "Hair / beard": "💇",
   "Skin / acne": "✨",
   "Energy / gut": "⚡",
   "Weight": "🏋️",
-  "Hormones": "🔬",
+  "Hormones": "🧬",
   "Sleep / mind": "🌙",
 };
 
@@ -373,7 +373,7 @@ function buildIngredientList(concernList: string[], sex?: string): IngredientRec
 function getConcernEmoji(concernList: string[], sex?: string): string {
   const primary = (concernList[0] ?? "").toLowerCase();
   const isFemale = sex === "female";
-  if (primary.includes("hair") || primary.includes("beard")) return isFemale ? "💆‍♀️" : "💆‍♂️";
+  if (primary.includes("hair") || primary.includes("beard")) return isFemale ? "💇‍♀️" : "💇‍♂️";
   if (primary.includes("skin") || primary.includes("acne")) return "✨";
   if (primary.includes("energy") || primary.includes("gut")) return "⚡";
   if (primary.includes("sleep") || primary.includes("mind")) return "🌙";

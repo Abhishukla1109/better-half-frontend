@@ -621,9 +621,9 @@ export default function HomePage() {
     const isKids = memberFlow === "kids";
 
     const CONCERN_META: Record<string, { label: string; emoji: string; style: string }> = {
-      "Hair / beard": { label: "Hair & Beard", emoji: "🪮", style: "bg-rose-500/10 text-rose-700 border border-rose-500/20" },
+      "Hair / beard": { label: "Hair & Beard", emoji: "💇", style: "bg-rose-500/10 text-rose-700 border border-rose-500/20" },
       "Skin / acne":  { label: "Skin & Acne",  emoji: "✨", style: "bg-amber-500/10 text-amber-700 border border-amber-500/20" },
-      "Weight":       { label: "Weight",        emoji: "⚖️", style: "bg-orange-500/10 text-orange-700 border border-orange-500/20" },
+      "Weight":       { label: "Weight",        emoji: "🏋️", style: "bg-orange-500/10 text-orange-700 border border-orange-500/20" },
       "Energy / gut": { label: "Energy & Gut",  emoji: "⚡", style: "bg-yellow-500/10 text-yellow-700 border border-yellow-500/20" },
       "Sleep / mind": { label: "Sleep & Mind",  emoji: "🌙", style: "bg-indigo-500/10 text-indigo-700 border border-indigo-500/20" },
       "Hormones":     { label: "Hormones",      emoji: "🧬", style: "bg-teal-500/10 text-teal-700 border border-teal-500/20" },
