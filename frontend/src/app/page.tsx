@@ -115,7 +115,7 @@ export default function LandingPage() {
             style={{ background: "linear-gradient(180deg, rgba(21,89,74,0.08) 0%, transparent 50%)" }}
           />
           <div className="relative max-w-[440px]">
-            <p className="text-[11px] font-bold text-primary-container uppercase tracking-widest mb-5">AI Health Companion</p>
+            <p className="text-[11px] font-bold text-primary-container uppercase tracking-widest mb-5">India&apos;s first personalised supplement protocol</p>
             <h1 className="text-[28px] lg:text-[52px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-[1.05] tracking-tight mb-3 lg:mb-4">
               Your personal<br />
               <span className="text-primary-container">health protocol,</span><br />
@@ -128,12 +128,22 @@ export default function LandingPage() {
               onClick={handleDemo}
               className="flex items-center justify-between w-full py-4 px-6 rounded-2xl bg-primary-container text-white font-bold text-[15px] hover:bg-primary transition-colors duration-200 cursor-pointer"
             >
-              <span>Get my free protocol</span>
+              <span>Build my protocol in 60 seconds</span>
               <span className="text-xl leading-none">→</span>
             </button>
-            <p className="mt-5 text-[12px] text-on-surface-variant/35">
-              Made by Mosaic Wellness
-            </p>
+            {/* Social proof + trust */}
+            <div className="mt-5 flex items-center gap-3">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container border border-outline-variant/15">
+                <span className="text-[11px]">✦</span>
+                <span className="text-[11px] font-semibold text-on-surface-variant/70">50+ products · 3 brands · 8 concerns</span>
+              </div>
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <div className="w-5 h-5 rounded-md overflow-hidden bg-primary-container/10 flex items-center justify-center shrink-0">
+                <Sparkles className="w-3 h-3 text-primary-container" strokeWidth={1.5} />
+              </div>
+              <p className="text-[12px] text-on-surface-variant/40">By <span className="font-semibold text-on-surface-variant/60">Mosaic Wellness</span> — makers of Man Matters &amp; Be Bodywise</p>
+            </div>
           </div>
         </div>
 
