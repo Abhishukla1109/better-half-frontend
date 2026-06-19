@@ -1036,8 +1036,14 @@ export default function HomePage() {
           <p className="relative text-[19px] font-bold text-white leading-snug">
             {name ? `Hey ${name} 👋` : "Your health, personalised."}
           </p>
-          <p className="relative text-[12px] mt-1 leading-relaxed" style={{ color: "rgba(255,255,255,0.6)", maxWidth: 240 }}>
-            Answer 4 quick questions — I'll build a supplement protocol just for you.
+          <div className="relative flex items-center gap-2 mt-2.5">
+            <span className="flex items-center gap-1.5 bg-white/15 border border-white/20 rounded-full px-3 py-1">
+              <span className="text-[11px]">⚡</span>
+              <span className="text-[11px] font-bold text-white">4 questions · 60 seconds</span>
+            </span>
+          </div>
+          <p className="relative text-[11px] mt-2 leading-relaxed" style={{ color: "rgba(255,255,255,0.5)", maxWidth: 240 }}>
+            I&apos;ll build a supplement protocol just for you.
           </p>
         </div>
 
