@@ -1798,7 +1798,7 @@ export default function ProtocolPage() {
                               {s.reasonTags && s.reasonTags.length > 0 && (
                                 <div className="flex flex-wrap gap-1 mb-2">
                                   {s.reasonTags.slice(0, 2).map((tag, i) => (
-                                    <span key={i} className="text-[11px] font-semibold px-2 py-1 rounded-full bg-primary-container/10 text-primary-container leading-none whitespace-nowrap">
+                                    <span key={i} className={`text-[11px] font-semibold px-2 py-1 rounded-full border leading-none whitespace-nowrap ${getConcernTagStyle(catalogProducts.find(p => p.id === s.id)?.category ?? "")}`}>
                                       {tag}
                                     </span>
                                   ))}
@@ -1813,24 +1813,25 @@ export default function ProtocolPage() {
                                 </p>
                               )}
                               {ratingData && (
-                                <div className="flex items-center gap-1 mb-1">
-                                  <span className="text-amber-400 text-[12px] leading-none">★</span>
-                                  <span className="text-[11px] font-bold text-on-surface">{ratingData.rating.toFixed(1)}</span>
+                                <div className="flex items-center gap-1.5 mb-2">
+                                  <span className="flex items-center gap-1 bg-amber-400/15 border border-amber-400/25 rounded-full px-2 py-0.5">
+                                    <span className="text-amber-500 text-[11px] leading-none">★</span>
+                                    <span className="text-[11px] font-bold text-amber-700">{ratingData.rating.toFixed(1)}</span>
+                                  </span>
                                   {reviewLabel && <span className="text-[10px] text-on-surface-variant/40">({reviewLabel})</span>}
                                 </div>
                               )}
-                              <div className="flex items-end justify-between gap-1">
-                                <div>
-                                  <p className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
-                                  {s.mrp && s.mrp > s.price && <p className="text-[9px] text-on-surface-variant/35 line-through mt-0.5">₹{s.mrp}</p>}
-                                </div>
+                              <div>
+                                <p className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
+                                {s.mrp && s.mrp > s.price && <p className="text-[9px] text-on-surface-variant/35 line-through mt-0.5">₹{s.mrp}</p>}
                                 <button
                                   onClick={(e) => { e.stopPropagation(); void handleAddToCart(s.id); }}
                                   disabled={addingId === s.id || addedIds.has(s.id)}
-                                  className={`flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 cursor-pointer shrink-0 ${addedIds.has(s.id) ? "bg-primary-container text-white" : "bg-primary-container/15 text-primary-container hover:bg-primary-container/30"} disabled:opacity-60`}
+                                  className={`mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-[12px] font-bold transition-all duration-200 cursor-pointer active:scale-[0.98] text-white disabled:opacity-60 ${addedIds.has(s.id) ? "bg-primary-container" : ""}`}
+                                  style={!addedIds.has(s.id) ? { background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)" } : undefined}
                                   aria-label={addedIds.has(s.id) ? "Added" : "Add to cart"}
                                 >
-                                  {addingId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : addedIds.has(s.id) ? <Check className="w-4 h-4" strokeWidth={2.5} /> : <ShoppingBag className="w-4 h-4" strokeWidth={2} />}
+                                  {addingId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : addedIds.has(s.id) ? <><Check className="w-3.5 h-3.5" strokeWidth={2.5} /><span>Added</span></> : <><ShoppingBag className="w-3.5 h-3.5" strokeWidth={2} /><span>Add</span></>}
                                 </button>
                               </div>
                             </div>
@@ -1903,7 +1904,7 @@ export default function ProtocolPage() {
                         {s.reasonTags && s.reasonTags.length > 0 && (
                           <div className="flex flex-wrap gap-1 mb-2">
                             {s.reasonTags.slice(0, 2).map((tag, i) => (
-                              <span key={i} className="text-[11px] font-semibold px-2 py-1 rounded-full bg-primary-container/10 text-primary-container leading-none whitespace-nowrap">
+                              <span key={i} className={`text-[11px] font-semibold px-2 py-1 rounded-full border leading-none whitespace-nowrap ${getConcernTagStyle(catalogProducts.find(p => p.id === s.id)?.category ?? "")}`}>
                                 {tag}
                               </span>
                             ))}
@@ -1918,24 +1919,25 @@ export default function ProtocolPage() {
                           </p>
                         )}
                         {ratingData && (
-                          <div className="flex items-center gap-1 mb-1">
-                            <span className="text-amber-400 text-[12px] leading-none">★</span>
-                            <span className="text-[11px] font-bold text-on-surface">{ratingData.rating.toFixed(1)}</span>
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <span className="flex items-center gap-1 bg-amber-400/15 border border-amber-400/25 rounded-full px-2 py-0.5">
+                              <span className="text-amber-500 text-[11px] leading-none">★</span>
+                              <span className="text-[11px] font-bold text-amber-700">{ratingData.rating.toFixed(1)}</span>
+                            </span>
                             {reviewLabel && <span className="text-[10px] text-on-surface-variant/40">({reviewLabel})</span>}
                           </div>
                         )}
-                        <div className="flex items-end justify-between gap-1">
-                          <div>
-                            <p className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
-                            {s.mrp && s.mrp > s.price && <p className="text-[9px] text-on-surface-variant/35 line-through mt-0.5">₹{s.mrp}</p>}
-                          </div>
+                        <div>
+                          <p className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
+                          {s.mrp && s.mrp > s.price && <p className="text-[9px] text-on-surface-variant/35 line-through mt-0.5">₹{s.mrp}</p>}
                           <button
                             onClick={(e) => { e.stopPropagation(); void handleAddToCart(s.id); }}
                             disabled={addingId === s.id || addedIds.has(s.id)}
-                            className={`flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 cursor-pointer shrink-0 ${addedIds.has(s.id) ? "bg-primary-container text-white" : "bg-primary-container/15 text-primary-container hover:bg-primary-container/30"} disabled:opacity-60`}
+                            className={`mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-[12px] font-bold transition-all duration-200 cursor-pointer active:scale-[0.98] text-white disabled:opacity-60 ${addedIds.has(s.id) ? "bg-primary-container" : ""}`}
+                            style={!addedIds.has(s.id) ? { background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)" } : undefined}
                             aria-label={addedIds.has(s.id) ? "Added" : "Add to cart"}
                           >
-                            {addingId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : addedIds.has(s.id) ? <Check className="w-4 h-4" strokeWidth={2.5} /> : <ShoppingBag className="w-4 h-4" strokeWidth={2} />}
+                            {addingId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : addedIds.has(s.id) ? <><Check className="w-3.5 h-3.5" strokeWidth={2.5} /><span>Added</span></> : <><ShoppingBag className="w-3.5 h-3.5" strokeWidth={2} /><span>Add</span></>}
                           </button>
                         </div>
                       </div>

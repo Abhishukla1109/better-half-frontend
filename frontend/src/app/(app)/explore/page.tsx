@@ -133,7 +133,7 @@ const LJ_MOM_CONCERNS = [
 const KIDS_CATEGORY_KEYS = KIDS_CATEGORY_FILTERS.map((c) => c.key);
 const KIDS_CONCERN_KEYS  = KIDS_CONCERN_FILTERS.map((c) => c.key);
 
-/* Brand badge colors */
+/* Brand badge colors — used by the brand filter button */
 const BRAND_STYLE: Record<string, { bg: string; text: string }> = {
   "Man Matters": { bg: "bg-primary-container/10", text: "text-primary-container" },
   "Be Bodywise": { bg: "bg-rose-500/10", text: "text-rose-500" },
@@ -292,11 +292,6 @@ function ProductCard({
       : `${ratingData.count}`
     : null;
 
-  const brand = BRAND_STYLE[product.brand] ?? {
-    bg: "bg-surface-container",
-    text: "text-on-surface-variant",
-  };
-
   // Pills: all concern labels + match %
   const concernPills = (product.concern ?? []).map((c) => CONCERN_CHIP[c]).filter(Boolean) as string[];
   const matchPill = matchPct !== undefined && matchPct >= 75 ? `${matchPct}% match` : null;
@@ -361,30 +356,27 @@ function ProductCard({
 
       {/* Content */}
       <div className="p-3.5 flex flex-col flex-1 gap-1.5">
-        {/* Brand + rating row */}
-        <div className="flex items-center justify-between gap-1">
-          <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md leading-none ${brand.bg} ${brand.text}`}>
-            {product.brand}
-          </span>
-          {ratingData && (
-            <div className="flex items-center gap-0.5">
-              <span className="text-[11px] leading-none text-amber-400">★</span>
-              <span className="text-[10px] font-bold text-on-surface">{ratingData.rating.toFixed(1)}</span>
-              {reviewLabel && (
-                <span className="text-[9px] text-on-surface-variant/35">({reviewLabel})</span>
-              )}
-            </div>
-          )}
-        </div>
+        {/* Rating row */}
+        {ratingData && (
+          <div className="flex items-center gap-1">
+            <span className="flex items-center gap-0.5 bg-amber-400/15 border border-amber-400/25 rounded-full px-1.5 py-0.5">
+              <span className="text-amber-500 text-[10px] leading-none">★</span>
+              <span className="text-[10px] font-bold text-amber-700">{ratingData.rating.toFixed(1)}</span>
+            </span>
+            {reviewLabel && (
+              <span className="text-[9px] text-on-surface-variant/35">({reviewLabel})</span>
+            )}
+          </div>
+        )}
 
         {/* Product name */}
-        <p className="text-[12px] font-bold text-on-surface leading-snug line-clamp-2 flex-1">
+        <p className="text-[13px] font-bold text-on-surface leading-snug line-clamp-2 flex-1">
           {product.name}
         </p>
 
         {/* Price row */}
         <div className="flex items-baseline gap-1.5">
-          <span className="text-[15px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">
+          <span className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">
             &#8377;{product.price}
           </span>
           {product.mrp > product.price && (
@@ -398,12 +390,12 @@ function ProductCard({
         {(concernPills.length > 0 || matchPill) && (
           <div className="flex flex-wrap gap-1 mt-0.5">
             {concernPills.map((pill) => (
-              <span key={pill} className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-surface-container border border-outline-variant/15 text-on-surface-variant/70 leading-none">
+              <span key={pill} className="text-[10px] font-semibold px-2 py-1 rounded-full bg-surface-container border border-outline-variant/15 text-on-surface-variant/70 leading-none">
                 {pill}
               </span>
             ))}
             {matchPill && (
-              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-primary-container/10 border border-primary-container/20 text-primary-container leading-none">
+              <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-primary-container/10 border border-primary-container/20 text-primary-container leading-none">
                 ✦ {matchPill}
               </span>
             )}
@@ -419,8 +411,9 @@ function ProductCard({
               ? "bg-green-500/15 text-green-600"
               : cartState === "error"
               ? "bg-red-500/10 text-red-500"
-              : "bg-primary-container text-white hover:bg-primary"
+              : "text-white"
           }`}
+          style={cartState === "idle" || cartState === "loading" ? { background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)" } : undefined}
         >
           {cartState === "loading" && <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2.5} />}
           {cartState === "done"    && <Check className="w-3.5 h-3.5" strokeWidth={2.5} />}
