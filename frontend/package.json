@@ -10,7 +10,10 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "shopify:definitions": "node --env-file=.env.local scripts/create-metafield-definitions.mjs",
+    "shopify:push": "node --env-file=.env.local scripts/push-enriched-metafields.mjs",
+    "shopify:push:dry": "node --env-file=.env.local scripts/push-enriched-metafields.mjs --dry-run"
   },
   "dependencies": {
     "@shopify/storefront-api-client": "^1.0.10",

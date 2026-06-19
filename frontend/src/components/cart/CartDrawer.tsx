@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight, Loader2 } from 'lucide-react';
@@ -11,6 +11,38 @@ import { track } from '@/lib/mixpanel';
 export default function CartDrawer() {
   const { cart, isOpen, isLoading, closeCart, updateItem, removeItem, checkout } = useCart();
   const drawerRef = useRef<HTMLDivElement>(null);
+
+  // Push a history entry when the drawer opens so the Android/iOS back button
+  // closes the drawer rather than navigating away from the page.
+  const historyPushedRef = useRef(false);
+  useEffect(() => {
+    if (isOpen) {
+      window.history.pushState({ cartDrawer: true }, '');
+      historyPushedRef.current = true;
+    } else {
+      historyPushedRef.current = false;
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    const onPop = () => {
+      if (historyPushedRef.current) {
+        historyPushedRef.current = false;
+        closeCart();
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [closeCart]);
+
+  // When user manually closes (X / backdrop), pop the history entry we pushed.
+  const handleClose = useCallback(() => {
+    if (historyPushedRef.current) {
+      historyPushedRef.current = false;
+      window.history.back();
+    }
+    closeCart();
+  }, [closeCart]);
 
   // Mount/unmount after animation to prevent iOS Safari horizontal overflow
   const [shouldRender, setShouldRender] = useState(false);
@@ -51,10 +83,10 @@ export default function CartDrawer() {
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/40 z-[51] transition-opacity duration-300 ${
           isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
-        onClick={closeCart}
+        onClick={handleClose}
         aria-hidden="true"
       />
 
@@ -66,7 +98,7 @@ export default function CartDrawer() {
         role="dialog"
         aria-modal="true"
         aria-label="Shopping cart"
-        className={`fixed top-0 right-0 h-full w-full max-w-[400px] bg-white z-50 flex flex-col
+        className={`fixed top-0 right-0 h-full w-full max-w-[400px] bg-white z-[52] flex flex-col
           shadow-2xl transition-transform duration-300 ease-out outline-none
           ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
@@ -81,7 +113,7 @@ export default function CartDrawer() {
             </h2>
           </div>
           <button
-            onClick={closeCart}
+            onClick={handleClose}
             aria-label="Close cart"
             className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[#f0f5f5] text-[#6b7280] transition-colors"
           >

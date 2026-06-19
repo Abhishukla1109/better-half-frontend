@@ -2,13 +2,43 @@
 
 import { useState, useEffect } from "react";
 import type { EnrichedPDP } from "@/data/enrichedProducts";
+import { getEnrichedPDP } from "@/data/enrichedProducts";
 
 // In-memory cache — survives re-renders, cleared on page refresh
 const _cache = new Map<string, EnrichedPDP>();
 
+function merge(remote: EnrichedPDP, local: EnrichedPDP): EnrichedPDP {
+  return {
+    ...remote,
+    // Fall back to local JSON for any field that came back empty from Shopify
+    subtitle:       remote.subtitle       || local.subtitle,
+    images:         remote.images?.length ? remote.images : local.images,
+    ingredients:    remote.ingredients?.length ? remote.ingredients : local.ingredients,
+    timeline:       remote.timeline?.length ? remote.timeline : local.timeline,
+    faqs:           remote.faqs?.length ? remote.faqs : local.faqs,
+    reviews:        remote.reviews?.length ? remote.reviews : local.reviews,
+    badges:         remote.badges?.length ? remote.badges : local.badges,
+    disclaimers:    remote.disclaimers?.length ? remote.disclaimers : local.disclaimers,
+    additionalInfo: remote.additionalInfo?.length ? remote.additionalInfo : local.additionalInfo,
+    howToUse:       remote.howToUse || local.howToUse,
+    productDetails: (remote.productDetails?.details?.length || remote.productDetails?.description?.length)
+      ? remote.productDetails
+      : local.productDetails,
+    rating:         (remote.rating?.average != null) ? remote.rating : local.rating,
+    price:          remote.price ?? local.price,
+    forWith:        remote.forWith ?? local.forWith,
+    recommendation: remote.recommendation ?? local.recommendation,
+    ageGroup:       remote.ageGroup ?? local.ageGroup,
+    allergens:      remote.allergens ?? local.allergens,
+    productType:    remote.productType ?? local.productType,
+    benefits:       remote.benefits?.length ? remote.benefits : local.benefits,
+  };
+}
+
 export function useShopifyPDP(slug: string): { enriched: EnrichedPDP | null; pdpLoading: boolean } {
-  const [enriched, setEnriched] = useState<EnrichedPDP | null>(_cache.get(slug) ?? null);
-  const [pdpLoading, setPdpLoading] = useState(!_cache.has(slug));
+  const local = getEnrichedPDP(slug);
+  const [enriched, setEnriched] = useState<EnrichedPDP | null>(_cache.get(slug) ?? local);
+  const [pdpLoading, setPdpLoading] = useState(!_cache.has(slug) && local == null);
 
   useEffect(() => {
     if (_cache.has(slug)) {
@@ -17,13 +47,19 @@ export function useShopifyPDP(slug: string): { enriched: EnrichedPDP | null; pdp
       return;
     }
 
+    // If we have local JSON, show it immediately — don't wait for network
+    if (local) setEnriched(local);
+
     let cancelled = false;
     fetch(`/api/shopify/pdp?handle=${encodeURIComponent(slug)}`)
       .then((r) => r.json())
       .then((data: EnrichedPDP | null) => {
         if (cancelled) return;
-        if (data) _cache.set(slug, data);
-        setEnriched(data);
+        const merged = data
+          ? local ? merge(data, local) : data
+          : local;
+        if (merged) _cache.set(slug, merged);
+        setEnriched(merged);
         setPdpLoading(false);
       })
       .catch(() => {
@@ -31,6 +67,7 @@ export function useShopifyPDP(slug: string): { enriched: EnrichedPDP | null; pdp
       });
 
     return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
   return { enriched, pdpLoading };

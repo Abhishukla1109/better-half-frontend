@@ -233,6 +233,7 @@ export type EnrichedPDP = {
   disclaimers: Array<{ title: string; description: string; image?: string }>;
   worksBestWith: Array<{ title: string; description: string; image?: string }>;
   additionalInfo: Array<{ title: string; content: string }>;
+  price?: number;
   /** "For / With" callout — Be Bodywise specific, optional */
   forWith?: { for: string; with: string };
   /** Percentage of users who recommend this product, e.g. "97%" */

@@ -45,6 +45,8 @@ import { resolveSegment } from "@/lib/protocolEngine";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import type { Product } from "@/lib/protocolEngine";
 import type { EnrichedPDP } from "@/data/enrichedProducts";
+import { getEnrichedPDP } from "@/data/enrichedProducts";
+import { PRODUCT_PAIRINGS, ROUTINE_HEADER, type PairingItem } from "@/data/productPairings";
 import { useShopifyPDP } from "@/hooks/useShopifyPDP";
 import { track } from "@/lib/mixpanel";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
@@ -326,6 +328,95 @@ function NewProductPDP({
   const [cartState, setCartState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [activeImage, setActiveImage] = useState(initialIndex);
   const [selectedPack, setSelectedPack] = useState(0);
+  const [routineCartState, setRoutineCartState] = useState<"idle" | "loading" | "done" | "error">("idle");
+
+  const pairedItems = useMemo(() => {
+    const pairs: PairingItem[] = PRODUCT_PAIRINGS[product.id] ?? [];
+    return pairs.map((pair) => {
+      const e = getEnrichedPDP(pair.slug);
+      if (!e) return null;
+      return { slug: pair.slug, reason: pair.reason, enriched: e };
+    }).filter((x): x is { slug: string; reason: string; enriched: EnrichedPDP } => x !== null);
+  }, [product.id]);
+
+  const [selectedPairs, setSelectedPairs] = useState<Set<string>>(new Set());
+  const [includeMain, setIncludeMain] = useState(true);
+  const [pairPrices, setPairPrices] = useState<Record<string, number>>({});
+
+  // Fetch prices for paired items that don't have one in local JSON
+  useEffect(() => {
+    const missing = pairedItems.filter(p => p.enriched.price == null);
+    if (missing.length === 0) return;
+    Promise.allSettled(
+      missing.map(p =>
+        fetch(`/api/shopify/pdp?handle=${encodeURIComponent(p.slug)}`)
+          .then(r => r.json())
+          .then((data: { price?: number } | null) => ({ slug: p.slug, price: data?.price }))
+      )
+    ).then(results => {
+      const map: Record<string, number> = {};
+      for (const r of results) {
+        if (r.status === "fulfilled" && r.value.price != null) map[r.value.slug] = r.value.price;
+      }
+      if (Object.keys(map).length > 0) setPairPrices(map);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pairedItems.length]);
+
+  // Initialise selection once pairedItems are known
+  useEffect(() => {
+    if (pairedItems.length > 0) {
+      setSelectedPairs(new Set(pairedItems.map((p) => p.slug)));
+    }
+  }, [pairedItems.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const togglePair = useCallback((slug: string) => {
+    setSelectedPairs((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) next.delete(slug); else next.add(slug);
+      return next;
+    });
+  }, []);
+
+  const routineTotal =
+    (includeMain ? (enriched?.price ?? 0) : 0) +
+    pairedItems
+      .filter((p) => selectedPairs.has(p.slug))
+      .reduce((sum, p) => sum + (p.enriched.price ?? pairPrices[p.slug] ?? 0), 0);
+
+  const routineItemCount = (includeMain ? 1 : 0) + selectedPairs.size;
+
+  const handleAddRoutine = useCallback(async () => {
+    try { if (!localStorage.getItem("bh_auth")) { router.push("/"); return; } } catch {}
+    if (routineCartState !== "idle" || routineItemCount === 0) return;
+    setRoutineCartState("loading");
+    // Collect variant IDs already in cart to avoid double-adding
+    const inCartIds = new Set((cart?.items ?? []).map((i) => i.variantId));
+    try {
+      // Main product first (if selected)
+      if (includeMain) {
+        const mainVariantId = await resolveVariantId(product.id);
+        if (mainVariantId && !inCartIds.has(mainVariantId)) {
+          await addItem(mainVariantId, 1, { product_name: product.name, source: "routine-builder" });
+          inCartIds.add(mainVariantId);
+        }
+      }
+      // Paired products
+      const toAdd = pairedItems.filter((p) => selectedPairs.has(p.slug));
+      for (const item of toAdd) {
+        const variantId = await resolveVariantId(item.slug);
+        if (variantId && !inCartIds.has(variantId)) {
+          await addItem(variantId, 1, { product_name: item.slug, source: "routine-builder" });
+          inCartIds.add(variantId);
+        }
+      }
+      setRoutineCartState("done");
+    } catch {
+      setRoutineCartState("error");
+    } finally {
+      setTimeout(() => setRoutineCartState("idle"), 2500);
+    }
+  }, [routineCartState, routineItemCount, includeMain, selectedPairs, pairedItems, cart, product.id, product.name, router, addItem]);
 
   // Fire once when this product page loads
   useEffect(() => {
@@ -1038,6 +1129,155 @@ function NewProductPDP({
           </div>
         )}
 
+
+        {/* ── Complete your routine ── */}
+        {pairedItems.length > 0 && (
+          <div className="mt-8" style={{ background: "linear-gradient(145deg, #00352E 0%, #004D40 60%, #00564A 100%)" }}>
+            <div className="px-5 pt-5 pb-6">
+              {/* Header */}
+              <div className="flex items-center gap-1.5 mb-1">
+                <Sparkles className="w-3 h-3 text-amber-300/70" strokeWidth={1.5} />
+                <span className="text-[10px] font-extrabold text-white/40 uppercase tracking-widest">Pairs well with</span>
+              </div>
+              <h2 className="text-[18px] font-extrabold text-white font-[family-name:var(--font-manrope)] mb-4">
+                {ROUTINE_HEADER[product.concern?.[0] ?? ""] ?? "Complete your routine"}
+              </h2>
+
+              {/* Selectable cards — horizontal scroll, peek effect */}
+              <div className="-mx-5 px-5 flex gap-3 overflow-x-auto scrollbar-hide pb-1">
+                {/* Main product card (first) */}
+                {(() => {
+                  const img = enriched?.images?.[0];
+                  const avg = enriched?.rating?.average;
+                  const cnt = enriched?.rating?.count;
+                  const price = enriched?.price;
+                  return (
+                    <button
+                      key="__main__"
+                      onClick={() => setIncludeMain(prev => !prev)}
+                      className={`shrink-0 w-[148px] flex flex-col rounded-2xl overflow-hidden text-left transition-all duration-200 cursor-pointer active:scale-[0.97] ${includeMain ? "opacity-100" : "opacity-50"}`}
+                      style={{ background: "rgba(255,255,255,0.97)" }}
+                    >
+                      <div className="relative aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">
+                        {img ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={img} alt={enriched?.name ?? product.name} className="w-full h-full object-contain p-2" />
+                        ) : (
+                          <span className="text-4xl font-extrabold text-gray-200">{(enriched?.name ?? product.name).charAt(0)}</span>
+                        )}
+                        <div className={`absolute top-2 left-2 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200 ${includeMain ? "bg-primary-container shadow-sm" : "bg-white/80 border-2 border-gray-300"}`}>
+                          {includeMain && <CheckCircle className="w-4 h-4 text-white" strokeWidth={2.5} />}
+                        </div>
+                      </div>
+                      <div className="flex flex-col flex-1 p-3">
+                        <div className="flex-1 flex flex-col gap-1">
+                          <p className="text-[12px] font-semibold text-on-surface leading-snug line-clamp-2">{enriched?.name ?? product.name}</p>
+                          <span className="self-start text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full leading-snug">
+                            Your pick
+                          </span>
+                          {avg != null && (
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <Star className="w-3 h-3 text-amber-400 fill-amber-400" strokeWidth={0} />
+                              <span className="text-[11px] font-semibold text-on-surface">{avg.toFixed(1)}</span>
+                              {cnt != null && (
+                                <span className="text-[10px] text-on-surface-variant/40">
+                                  ({cnt >= 1000 ? `${(cnt / 1000).toFixed(1)}k` : cnt})
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {price != null && (
+                            <p className="text-[15px] font-extrabold text-on-surface mt-0.5">₹{price}</p>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })()}
+
+                {/* Paired product cards */}
+                {pairedItems.map(({ slug, reason, enriched: pe }) => {
+                  const selected = selectedPairs.has(slug);
+                  const img = pe.images?.[0];
+                  const avg = pe.rating?.average;
+                  const cnt = pe.rating?.count;
+                  const price = pe.price ?? pairPrices[slug];
+                  return (
+                    <div
+                      key={slug}
+                      className={`shrink-0 w-[148px] relative flex flex-col rounded-2xl overflow-hidden transition-opacity duration-200 ${selected ? "opacity-100" : "opacity-50"}`}
+                      style={{ background: "rgba(255,255,255,0.97)" }}
+                    >
+                      {/* Tick — toggles selection, does NOT navigate */}
+                      <button
+                        onClick={() => togglePair(slug)}
+                        className={`absolute top-2 left-2 z-10 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${selected ? "bg-primary-container shadow-sm" : "bg-white/80 border-2 border-gray-300"}`}
+                        aria-label={selected ? "Remove from routine" : "Add to routine"}
+                      >
+                        {selected && <CheckCircle className="w-4 h-4 text-white" strokeWidth={2.5} />}
+                      </button>
+                      {/* Card body — tapping opens the full PDP */}
+                      <Link href={`/product/${slug}`} className="flex flex-col flex-1 active:scale-[0.97] transition-transform duration-150">
+                        <div className="relative aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">
+                          {img ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={img} alt={pe.name} className="w-full h-full object-contain p-2" />
+                          ) : (
+                            <span className="text-4xl font-extrabold text-gray-200">{pe.name.charAt(0)}</span>
+                          )}
+                        </div>
+                        <div className="flex flex-col flex-1 p-3">
+                          <div className="flex-1 flex flex-col gap-1">
+                            <p className="text-[12px] font-semibold text-on-surface leading-snug line-clamp-2">{pe.name}</p>
+                            <span className="self-start text-[10px] font-semibold text-primary-container bg-primary-container/10 px-2 py-0.5 rounded-full leading-snug">
+                              {reason}
+                            </span>
+                            {avg != null && (
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <Star className="w-3 h-3 text-amber-400 fill-amber-400" strokeWidth={0} />
+                                <span className="text-[11px] font-semibold text-on-surface">{avg.toFixed(1)}</span>
+                                {cnt != null && (
+                                  <span className="text-[10px] text-on-surface-variant/40">
+                                    ({cnt >= 1000 ? `${(cnt / 1000).toFixed(1)}k` : cnt})
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {price != null && (
+                              <p className="text-[15px] font-extrabold text-on-surface mt-0.5">₹{price}</p>
+                            )}
+                          </div>
+                        </div>
+                      </Link>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Single CTA */}
+              <button
+                onClick={handleAddRoutine}
+                disabled={routineCartState !== "idle" || routineItemCount === 0}
+                className="mt-4 w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-[13px] font-bold text-white transition-all duration-200 cursor-pointer active:scale-[0.98] disabled:opacity-50"
+                style={
+                  routineCartState === "done"  ? { background: "#22c55e" } :
+                  routineCartState === "error" ? { background: "#ef4444" } :
+                  routineItemCount === 0       ? { background: "rgba(255,255,255,0.15)" } :
+                  { background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)" }
+                }
+              >
+                {routineCartState === "loading" && <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />}
+                {routineCartState === "done"    && <CheckCircle className="w-4 h-4" strokeWidth={2.5} />}
+                {routineCartState === "idle"    && <ShoppingCart className="w-4 h-4" strokeWidth={2} />}
+                {routineCartState === "loading" ? "Adding to cart…"
+                  : routineCartState === "done" ? "Added to cart!"
+                  : routineCartState === "error" ? "Something went wrong"
+                  : routineItemCount === 0 ? "Select at least one"
+                  : `Add ${routineItemCount} to cart${routineTotal > 0 ? ` · ₹${routineTotal}` : ""}`}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ── Reviews ── */}
         {enriched?.reviews && enriched.reviews.length > 0 && (
