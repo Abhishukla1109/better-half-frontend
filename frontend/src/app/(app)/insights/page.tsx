@@ -307,6 +307,15 @@ function computeAvg7(storageKey: string, scoreMap: Record<string, number>): numb
   return scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
 }
 
+function computeAvgPrev7(storageKey: string, scoreMap: Record<string, number>): number | null {
+  const scores = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - i - 7);
+    const v = localStorage.getItem(`${storageKey}_${d.toDateString()}`);
+    return v ? (scoreMap[v] ?? null) : null;
+  }).filter((s): s is number => s !== null);
+  return scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
+}
+
 function saveHealthSignals() {
   try {
     const signals = {
@@ -362,6 +371,12 @@ const VITALITY_MESSAGES = [
   { min: 40, msg: "You've started the journey. Small daily habits are what make protocols work." },
   { min: 0,  msg: "Every great health journey starts here. Check in daily and your score climbs." },
 ];
+
+const MILESTONE_CONFIG: Record<number, { emoji: string; badge: string; title: string; msg: string; gradient: string }> = {
+  7:  { emoji: "🔥", badge: "Week Warrior",      title: "7-Day Streak!",   msg: "One full week of showing up. The hardest part is behind you — your body is adapting.",           gradient: "linear-gradient(135deg, #c2410c 0%, #d97706 100%)" },
+  14: { emoji: "⚡", badge: "Two Weeks Strong",   title: "14 Days In!",     msg: "Two weeks of consistency. Most people quit before now. The compounding has begun.",              gradient: "linear-gradient(135deg, #4338ca 0%, #7c3aed 100%)" },
+  30: { emoji: "🏆", badge: "Protocol Champion", title: "30 Days Done!",   msg: "This is where the science really kicks in. Real, measurable change. You've earned your ₹100 cashback.", gradient: "linear-gradient(135deg, #047857 0%, #0d9488 100%)" },
+};
 
 /* ── Supabase sync helpers ── */
 async function upsertHealthLog(userId: string, date: string, type: string, value: string) {
@@ -456,6 +471,10 @@ export default function InsightsPage() {
   const [secondaryAnswer, setSecondaryAnswer] = useState<string | null>(null);
   const [secondaryHistory, setSecondaryHistory] = useState<{ date: string; key: string | null; dayLabel: string }[]>([]);
   const [hasProfile, setHasProfile] = useState(false);
+  const [vitalityDelta, setVitalityDelta] = useState<number | null>(null);
+  const [milestoneToShow, setMilestoneToShow] = useState<number | null>(null);
+  const [rewardState, setRewardState] = useState<{ unlockedAt: string; daysLeft: number } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const today   = new Date().toDateString();
   const todayChecked = checkins[today];
@@ -545,6 +564,41 @@ export default function InsightsPage() {
     } catch {}
   }, [catalogProducts]);
 
+  // Save daily vitality snapshot; compute delta vs 7 days ago
+  useEffect(() => {
+    if (!profileLoaded) return;
+    try {
+      const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const past = localStorage.getItem(`bh_vitality_${sevenDaysAgo.toDateString()}`);
+      if (past !== null) setVitalityDelta(vitality - parseInt(past));
+      localStorage.setItem(`bh_vitality_${new Date().toDateString()}`, String(vitality));
+    } catch {}
+  }, [vitality, profileLoaded]);
+
+  // Milestone detection + reward unlock
+  useEffect(() => {
+    if (!profileLoaded || streak === 0) return;
+    try {
+      const seen: number[] = JSON.parse(localStorage.getItem("bh_milestones_seen") ?? "[]");
+      const hit = [7, 14, 30].find(m => streak >= m && !seen.includes(m));
+      if (hit) setMilestoneToShow(hit);
+    } catch {}
+    if (streak >= 30) {
+      try {
+        const raw = localStorage.getItem("bh_reward_unlocked");
+        if (!raw) {
+          localStorage.setItem("bh_reward_unlocked", JSON.stringify({ unlockedAt: new Date().toDateString() }));
+          setRewardState({ unlockedAt: new Date().toDateString(), daysLeft: 5 });
+        } else {
+          const { unlockedAt } = JSON.parse(raw) as { unlockedAt: string };
+          const daysSince = Math.floor((Date.now() - new Date(unlockedAt).getTime()) / 86400000);
+          const daysLeft = Math.max(0, 5 - daysSince);
+          if (daysLeft > 0) setRewardState({ unlockedAt, daysLeft });
+        }
+      } catch {}
+    }
+  }, [streak, profileLoaded]);
+
   const handleCheckin = (val: boolean) => {
     const updated = { ...checkins, [today]: val };
     setCheckins(updated);
@@ -573,6 +627,22 @@ export default function InsightsPage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) upsertHealthLog(session.user.id, today, ACTIVE_SECONDARY.key, key);
     });
+  };
+
+  const dismissMilestone = () => {
+    if (!milestoneToShow) return;
+    try {
+      const seen: number[] = JSON.parse(localStorage.getItem("bh_milestones_seen") ?? "[]");
+      if (!seen.includes(milestoneToShow)) seen.push(milestoneToShow);
+      localStorage.setItem("bh_milestones_seen", JSON.stringify(seen));
+    } catch {}
+    setMilestoneToShow(null);
+  };
+
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText("BH30STREAK").catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   // Complementary products — same concern first, pad with top-rated cross-concern if catalog is thin
@@ -615,6 +685,18 @@ export default function InsightsPage() {
     const scores = energyHistory.filter(h => h.key).map(h => vals[h.key!] ?? 50);
     return scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
   }, [energyHistory]);
+
+  const energyDelta = useMemo(() => {
+    if (energyScore === null) return null;
+    const vals: Record<string, number> = { energised: 100, okay: 65, sluggish: 35, drained: 10 };
+    const prevScores = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(); d.setDate(d.getDate() - i - 7);
+      const v = localStorage.getItem(`bh_energy_${d.toDateString()}`);
+      return v ? (vals[v] ?? null) : null;
+    }).filter((s): s is number => s !== null);
+    if (!prevScores.length) return null;
+    return energyScore - Math.round(prevScores.reduce((a, b) => a + b, 0) / prevScores.length);
+  }, [energyScore]);
 
   const wellbeingScore = useMemo(() => {
     try {
@@ -728,6 +810,34 @@ export default function InsightsPage() {
           </h1>
         </div>
 
+        {/* ── Reward banner — only when earned ── */}
+        {rewardState && (
+          <div className="mb-5 rounded-3xl overflow-hidden" style={{ background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)" }}>
+            <div className="px-5 py-4">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest mb-1">30-Day Reward Unlocked</p>
+                  <p className="text-[22px] font-extrabold text-white font-[family-name:var(--font-manrope)] leading-none">₹100 Cashback</p>
+                  <p className="text-[12px] text-white/55 mt-1">Expires in {rewardState.daysLeft} day{rewardState.daysLeft !== 1 ? "s" : ""} · apply at checkout</p>
+                </div>
+                <span className="text-[38px] leading-none">🎁</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-white/10 border border-white/20 rounded-xl px-3 py-2.5">
+                  <p className="text-[14px] font-extrabold text-white tracking-[0.15em] font-mono">BH30STREAK</p>
+                </div>
+                <button
+                  onClick={handleCopyCode}
+                  className="px-4 py-2.5 rounded-xl bg-white text-[12px] font-bold transition-all"
+                  style={{ color: "#004034" }}
+                >
+                  {copied ? "Copied!" : "Copy"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── Desktop two-column layout ── */}
         <div className="lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
 
@@ -788,6 +898,12 @@ export default function InsightsPage() {
                 <text x="45" y="42" textAnchor="middle" fill="#1c1b1f" fontSize="17" fontWeight="800" fontFamily="Manrope,sans-serif">{vitality}</text>
                 <text x="45" y="54" textAnchor="middle" fill="#9ca3af" fontSize="8" fontWeight="600">/ 100</text>
               </svg>
+              {vitalityDelta !== null && (
+                <div className={`ml-2 flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${vitalityDelta >= 0 ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-600"}`}>
+                  <span>{vitalityDelta >= 0 ? "↑" : "↓"}</span>
+                  <span>{Math.abs(vitalityDelta)} vs last week</span>
+                </div>
+              )}
             </div>
             {concernScores.length > 0 && (
               <div className="space-y-1.5">
@@ -857,6 +973,14 @@ export default function InsightsPage() {
                   );
                 })}
               </div>
+            </div>
+          )}
+          {energyDelta !== null && (
+            <div className="mt-2 flex items-center gap-1.5">
+              <span className={`text-[11px] font-bold ${energyDelta >= 0 ? "text-emerald-600" : "text-rose-500"}`}>
+                {energyDelta >= 0 ? "↑" : "↓"} {Math.abs(energyDelta)} pts
+              </span>
+              <span className="text-[10px] text-on-surface-variant/40">vs last week</span>
             </div>
           )}
         </div>
@@ -1221,6 +1345,47 @@ export default function InsightsPage() {
         </div>{/* end full-width section */}
 
       </div>{/* end max-w-4xl container */}
+
+      {/* ── Milestone celebration modal ── */}
+      {milestoneToShow && (() => {
+        const cfg = MILESTONE_CONFIG[milestoneToShow];
+        if (!cfg) return null;
+        return (
+          <>
+            <div className="fixed inset-0 z-[80] bg-black/50 backdrop-blur-[3px]" onClick={dismissMilestone} />
+            <div className="fixed inset-0 z-[81] flex items-center justify-center px-5 pointer-events-none">
+              <div className="w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl pointer-events-auto animate-fade-in-up">
+                {/* Gradient header */}
+                <div className="px-6 pt-8 pb-6 text-center" style={{ background: cfg.gradient }}>
+                  <div className="text-[64px] leading-none mb-3">{cfg.emoji}</div>
+                  <p className="text-[11px] font-bold text-white/60 uppercase tracking-widest mb-1">{cfg.badge}</p>
+                  <p className="text-[28px] font-extrabold text-white font-[family-name:var(--font-manrope)] leading-tight">{cfg.title}</p>
+                </div>
+                {/* Body */}
+                <div className="bg-white px-6 py-5">
+                  <p className="text-[14px] text-on-surface/70 leading-relaxed text-center mb-5">{cfg.msg}</p>
+                  {milestoneToShow === 30 && rewardState && (
+                    <div className="mb-4 rounded-2xl px-4 py-3.5 flex items-center justify-between" style={{ background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)" }}>
+                      <div>
+                        <p className="text-[10px] font-bold text-white/50 uppercase tracking-wider mb-0.5">Your reward</p>
+                        <p className="text-[18px] font-extrabold text-white font-[family-name:var(--font-manrope)]">₹100 Cashback</p>
+                      </div>
+                      <span className="text-[28px]">🎁</span>
+                    </div>
+                  )}
+                  <button
+                    onClick={dismissMilestone}
+                    className="w-full py-3.5 rounded-2xl text-[14px] font-bold text-white transition-all active:scale-[0.98]"
+                    style={{ background: cfg.gradient }}
+                  >
+                    Keep going →
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      })()}
 
       {/* ── Vitality breakdown popover ── */}
       {showVitalityPopover && (
