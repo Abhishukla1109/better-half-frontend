@@ -357,12 +357,15 @@ function getMonthCells(year: number, month: number): (Date | null)[] {
   for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d));
   return cells;
 }
-function calcVitality(checkins: Checkins, depthTotal: number, visitCount: number): number {
+function calcVitality(checkins: Checkins, depthTotal: number, signalsScore: number | null): number {
   const last30 = Array.from({ length: 30 }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() - i); return d.toDateString();
   });
   const checked = last30.filter(k => checkins[k] === true).length;
-  return Math.round(Math.min((checked / 30) * 40 + (depthTotal / 100) * 30 + (Math.min(visitCount, 90) / 90) * 30, 100));
+  const consistency = (checked / 30) * 40;
+  const profile     = (depthTotal / 100) * 25;
+  const signals     = signalsScore !== null ? (signalsScore / 100) * 35 : 0;
+  return Math.round(Math.min(consistency + profile + signals, 100));
 }
 
 const VITALITY_MESSAGES = [
@@ -479,7 +482,19 @@ export default function InsightsPage() {
   const today   = new Date().toDateString();
   const todayChecked = checkins[today];
   const streak   = useMemo(() => calcStreak(checkins), [checkins]);
-  const vitality = useMemo(() => calcVitality(checkins, depthTotal, visitCount), [checkins, depthTotal, visitCount]);
+
+  // All 4 check-in dimensions averaged — powers the Signals pillar and vitality formula
+  const signalsScore = useMemo(() => {
+    const energy   = computeAvg7("bh_energy",   { energised: 100, okay: 65, sluggish: 35, drained: 10 });
+    const sleep    = computeAvg7("bh_sleep",    { deep: 100, okay: 65, restless: 35, terrible: 10 });
+    const focus    = computeAvg7("bh_focus",    { sharp: 100, good: 70, foggy: 35, unfocused: 10 });
+    const physical = computeAvg7("bh_physical", { strong: 100, normal: 70, tired: 35, heavy: 10 });
+    const vals = [energy, sleep, focus, physical].filter((v): v is number => v !== null);
+    return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [energyLevel, secondaryAnswer]);
+
+  const vitality = useMemo(() => calcVitality(checkins, depthTotal, signalsScore), [checkins, depthTotal, signalsScore]);
   const calCells = useMemo(() => getMonthCells(calYear, calMonth), [calYear, calMonth]);
 
   const vitalMsg = VITALITY_MESSAGES.find(m => vitality >= m.min)?.msg ?? VITALITY_MESSAGES[3].msg;
@@ -698,44 +713,25 @@ export default function InsightsPage() {
     return energyScore - Math.round(prevScores.reduce((a, b) => a + b, 0) / prevScores.length);
   }, [energyScore]);
 
-  const wellbeingScore = useMemo(() => {
-    try {
-      const sleepAvg = computeAvg7("bh_sleep",    { deep: 100, okay: 65, restless: 35, terrible: 10 });
-      const focusAvg = computeAvg7("bh_focus",    { sharp: 100, good: 70, foggy: 35, unfocused: 10 });
-      const physAvg  = computeAvg7("bh_physical", { strong: 100, normal: 70, tired: 35, heavy: 10 });
-      const vals = [sleepAvg, focusAvg, physAvg].filter((v): v is number => v !== null);
-      return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
-    } catch { return null; }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [secondaryAnswer]);
-
   const pillars = useMemo(() => {
     const consistency = adherence?.pct ?? 0;
-    const foundation  = Math.round(Math.min((visitCount / 90) * 100, 100));
     const profile     = Math.round(Math.min(depthTotal, 100));
-    const combinedEnergy = (energyScore != null && wellbeingScore != null)
-      ? Math.round((energyScore + wellbeingScore) / 2)
-      : energyScore ?? wellbeingScore ?? 50;
-    const hasSignals = energyScore != null || wellbeingScore != null;
+    const signals     = signalsScore ?? 0;
     return [
       {
         emoji: "🔥", label: "Consistency", score: consistency, color: consistency >= 70 ? "#10b981" : consistency >= 40 ? "#f59e0b" : "#f43f5e",
-        sublabel: adherence ? `${adherence.taken} of ${adherence.total} days checked in` : "Start checking in daily",
+        sublabel: adherence ? `${adherence.taken} of ${adherence.total} days checked in` : "Check in daily to build your score",
       },
       {
-        emoji: "⚡", label: "Energy", score: combinedEnergy, color: combinedEnergy >= 70 ? "#10b981" : combinedEnergy >= 40 ? "#0ea5e9" : "#f59e0b",
-        sublabel: hasSignals ? "Energy, sleep & focus signals" : "Log your daily check-ins to track this",
+        emoji: "📊", label: "Signals", score: signals, color: signals >= 70 ? "#10b981" : signals >= 40 ? "#0ea5e9" : "#f59e0b",
+        sublabel: signalsScore !== null ? "Energy, sleep, focus & physical" : "Log daily check-ins to track this",
       },
       {
-        emoji: "🌱", label: "Foundation", score: foundation, color: "#7c3aed",
-        sublabel: visitCount > 0 ? `${visitCount} days on protocol` : "Protocol just started",
-      },
-      {
-        emoji: "👤", label: "Personalisation", score: profile, color: profile >= 70 ? "#10b981" : "#f59e0b",
+        emoji: "👤", label: "Profile", score: profile, color: profile >= 70 ? "#10b981" : "#f59e0b",
         sublabel: profile >= 70 ? "Profile well set up" : "Add more detail on your protocol page",
       },
     ];
-  }, [adherence, visitCount, depthTotal, energyScore, wellbeingScore]);
+  }, [adherence, depthTotal, signalsScore]);
 
   const vitalityLabel =
     vitality >= 81 ? "Thriving" :
@@ -745,10 +741,9 @@ export default function InsightsPage() {
 
   const keyInsight = useMemo(() => {
     const lowest = [...pillars].sort((a, b) => a.score - b.score)[0];
-    if (lowest.label === "Consistency"     && lowest.score < 40) return "Your biggest lever right now is daily check-ins. Even 5 consistent days will visibly move your score.";
-    if (lowest.label === "Energy"          && lowest.score < 40) return "Your energy logs suggest you're running low. Check sleep and hydration — supplements work best on a rested body.";
-    if (lowest.label === "Foundation"      && lowest.score < 30) return "You're in the early days. The first 30 days build the base — keep your protocol going and the score will compound.";
-    if (lowest.label === "Personalisation" && lowest.score < 50) return "A more complete profile means better-matched recommendations. Answer a few questions on your protocol page.";
+    if (lowest.label === "Consistency" && lowest.score < 40) return "Your biggest lever right now is daily check-ins. Even 5 consistent days will visibly move your score.";
+    if (lowest.label === "Signals"     && lowest.score < 40) return "Your health signals are low. Log your energy, sleep, and focus daily — every answer moves your vitality score.";
+    if (lowest.label === "Profile"     && lowest.score < 50) return "A more complete profile means better-matched recommendations. Answer a few more questions on your protocol page.";
     return "You're building solid habits. Stay consistent and your vitality score will continue to rise.";
   }, [pillars]);
 
