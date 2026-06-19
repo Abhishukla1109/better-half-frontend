@@ -1620,7 +1620,7 @@ export default function ProtocolPage() {
           <div className="p-5">
 
             {/* Title */}
-            <h1 className="text-[26px] font-extrabold text-white font-[family-name:var(--font-manrope)] leading-tight mb-3">
+            <h1 className="text-[30px] font-extrabold text-white font-[family-name:var(--font-manrope)] leading-tight mb-3">
               {possUpper} Protocol
             </h1>
 
@@ -1714,19 +1714,19 @@ export default function ProtocolPage() {
             <>
               <div className="mx-4 h-px bg-white/10" />
               <div className="pt-3 pb-4 px-4">
-                <p className="text-[13px] font-bold text-white/80 uppercase tracking-widest mb-3">
+                <p className="text-[11px] font-bold text-white/50 uppercase tracking-widest mb-3">
                   Habits before supplements
                 </p>
-                <div className="space-y-0">
+                <div className="grid grid-cols-2 gap-2">
                   {protocol.lifestyle.slice(0, 4).map((tip, i) => {
                     const { action } = splitRoutineText(tip);
                     const profileDiet = String(profile?.diet || "").toLowerCase();
                     const isVeg = !profileDiet.includes("non") && (profileDiet.includes("veg") || profileDiet.includes("vegan") || profileDiet.includes("egg"));
                     const { emoji } = getHabitStyle(tip, isVeg);
                     return (
-                      <div key={i} className="flex items-center gap-3 py-3 border-b border-white/8 last:border-0">
-                        <span className="text-[22px] leading-none w-7 shrink-0">{emoji}</span>
-                        <p className="text-[13px] font-semibold text-white/85 leading-snug">{compressHabit(action)}</p>
+                      <div key={i} className="flex flex-col gap-2 rounded-2xl bg-white/8 border border-white/10 px-3 py-3">
+                        <span className="text-[24px] leading-none">{emoji}</span>
+                        <p className="text-[12px] font-semibold text-white/90 leading-snug">{compressHabit(action)}</p>
                       </div>
                     );
                   })}
@@ -1738,9 +1738,15 @@ export default function ProtocolPage() {
 
         {/* ── Product picks — right after habits ── */}
         {protocol.supplements.length > 0 && (
-          <p className="text-[13px] font-bold text-on-surface-variant uppercase tracking-widest px-1 mb-3">
-            AI Recommendations
-          </p>
+          <div className="flex items-center gap-2 px-1 mb-3">
+            <p className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
+              Picked for {profile?.name ? profile.name : "you"}
+            </p>
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold text-white" style={{ background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)" }}>
+              <Sparkles className="w-2.5 h-2.5" strokeWidth={2} />
+              AI matched
+            </span>
+          </div>
         )}
         {protocol.supplements.length > 0 && (
           <div
