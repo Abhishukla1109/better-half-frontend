@@ -13,7 +13,9 @@
     "test:watch": "vitest",
     "shopify:definitions": "node --env-file=.env.local scripts/create-metafield-definitions.mjs",
     "shopify:push": "node --env-file=.env.local scripts/push-enriched-metafields.mjs",
-    "shopify:push:dry": "node --env-file=.env.local scripts/push-enriched-metafields.mjs --dry-run"
+    "shopify:push:dry": "node --env-file=.env.local scripts/push-enriched-metafields.mjs --dry-run",
+    "quality": "node scripts/quality-check.mjs",
+    "quality:slug": "node scripts/quality-check.mjs --slug"
   },
   "dependencies": {
     "@shopify/storefront-api-client": "^1.0.10",

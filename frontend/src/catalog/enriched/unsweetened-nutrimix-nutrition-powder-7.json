@@ -101,6 +101,27 @@
     "with": "Ragi, Bajra & Oats"
   },
   "packs": [],
-  "badges": [],
+  "badges": [
+    {
+      "label": "No White Sugar",
+      "icon": "https://i.mscwlns.co/mosaic-wellness/image/upload/v1656330148/Little%20Joys/PDP/Safety/New/9.png"
+    },
+    {
+      "label": "Gluten Free",
+      "icon": "https://i.mscwlns.co/mosaic-wellness/image/upload/v1656330147/Little%20Joys/PDP/Safety/New/2.png"
+    },
+    {
+      "label": "100% Veg",
+      "icon": "https://i.mscwlns.co/mosaic-wellness/image/upload/v1656330147/Little%20Joys/PDP/Safety/New/1.png"
+    },
+    {
+      "label": "No Preservatives",
+      "icon": "https://i.mscwlns.co/mosaic-wellness/image/upload/v1656330148/Little%20Joys/PDP/Safety/New/7.png"
+    },
+    {
+      "label": "No Side effects",
+      "icon": "https://i.mscwlns.co/mosaic-wellness/image/upload/v1656330148/Little%20Joys/PDP/Safety/New/8.png"
+    }
+  ],
   "timeline": []
 }

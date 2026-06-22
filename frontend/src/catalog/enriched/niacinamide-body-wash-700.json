@@ -70,26 +70,7 @@
     ]
   },
   "howToUse": "Step 1: On wet skin, take some body wash in your palms or on a loofah.\nStep 2: Massage the body wash into skin using gentle, circular motions.\nStep 3: Once done, rinse with lukewarm/cold water.",
-  "timeline": [
-    {
-      "period": "Step 1",
-      "title": "The Be Bodywise app will be a partner for you in your journey to healthy skin.",
-      "description": "",
-      "image": "https://i.mscwlns.co/media/misc/pdp_rcl/body-care-mini-pack/Download%20App%20for%20Skin_1ygk2j.gif?tr=w-600"
-    },
-    {
-      "period": "Step 2",
-      "title": "Get daily reminders & rewards on the Be Bodywise app for staying consistent with your skin regimen.",
-      "description": "",
-      "image": "https://i.mscwlns.co/media/misc/pdp_rcl/body-care-mini-pack/Habit%20Tracker%20for%20skin%202nd%20option_hg7dpo.gif?tr=w-600"
-    },
-    {
-      "period": "Step 3",
-      "title": "SAVE UPTO 30% on your next order using the wallet on our app.",
-      "description": "",
-      "image": "https://i.mscwlns.co/media/misc/pdp_rcl/body-care-mini-pack/Wallet%20for%20skin_6ymscu.gif?tr=w-600"
-    }
-  ],
+  "timeline": [],
   "faqs": [
     {
       "question": "Can I use niacinamide body wash every day?",

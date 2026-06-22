@@ -53,26 +53,7 @@
     ]
   },
   "howToUse": "Step 1: Shake the product & Press the pump to release the foam\nStep 2: Apply it to your skin.\nStep 3: Continue with your shower routine.\n❌Do not use it in an upside-down position.",
-  "timeline": [
-    {
-      "period": "Step 1",
-      "title": "Shake the product & Press the pump to release the foam",
-      "description": "",
-      "image": "https://i.mscwlns.co/media/misc/pdp_rcl/hyaluronic-acid-mousse/3_jtcxpo.gif?tr=w-600"
-    },
-    {
-      "period": "Step 2",
-      "title": "Apply it to your skin",
-      "description": "",
-      "image": "https://i.mscwlns.co/media/misc/pdp_rcl/hyaluronic-acid-mousse/4_kzf22v.gif?tr=w-600"
-    },
-    {
-      "period": "Step 3",
-      "title": "Continue with your shower routine.",
-      "description": "",
-      "image": "https://i.mscwlns.co/media/misc/pdp_rcl/hyaluronic-acid-mousse/5%20%281%29_3w52ze.gif?tr=w-600"
-    }
-  ],
+  "timeline": [],
   "faqs": [
     {
       "question": "Can I use Hyaluronic Acid Body Wash every day?",

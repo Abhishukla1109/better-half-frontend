@@ -69,6 +69,67 @@ function resolveIcon(name: string): LucideIcon {
   return iconMap[name] || Zap;
 }
 
+/* ── Bold ingredient names in Product Details bullets ── */
+const INGREDIENT_RE = new RegExp(
+  [
+    /\d+(?:\.\d+)?%\s*[A-Z][\w-]*/.source,      // "2% Niacinamide", "1.5%Zinc"
+    /\b[A-Z][A-Z0-9]{1,}(?:-[A-Z0-9]+)*\b/.source, // ZPTO, KSM-66, BHA, DHT
+    /\b[A-Z][a-z]{2,}(?:ol|in|ide|ase|ine|yl|ic|ate|one|ose|ene|ole)\b/.source, // Glycerin, Ceramide, Niacinamide
+  ].join("|"),
+  "g"
+);
+
+function highlightIngredients(text: string): React.ReactNode {
+  INGREDIENT_RE.lastIndex = 0;
+  const ranges: [number, number][] = [];
+  let m: RegExpExecArray | null;
+  while ((m = INGREDIENT_RE.exec(text)) !== null) {
+    ranges.push([m.index, m.index + m[0].length]);
+  }
+
+  // Fallback: bold first 3 words when no ingredient pattern detected
+  if (ranges.length === 0) {
+    const wordRe = /\S+/g;
+    let count = 0;
+    let wm: RegExpExecArray | null;
+    while ((wm = wordRe.exec(text)) !== null && count < 3) {
+      ranges.push([wm.index, wm.index + wm[0].length]);
+      count++;
+    }
+    // Merge the three word ranges into one span covering first N chars
+    if (ranges.length > 0) {
+      ranges.splice(0, ranges.length, [ranges[0][0], ranges[ranges.length - 1][1]]);
+    }
+  }
+
+  if (ranges.length === 0) return text;
+
+  // Merge overlapping/adjacent ranges
+  ranges.sort((a, b) => a[0] - b[0]);
+  const merged: [number, number][] = [];
+  for (const [s, e] of ranges) {
+    if (merged.length && s <= merged[merged.length - 1][1]) {
+      merged[merged.length - 1][1] = Math.max(merged[merged.length - 1][1], e);
+    } else {
+      merged.push([s, e]);
+    }
+  }
+
+  const nodes: React.ReactNode[] = [];
+  let cursor = 0;
+  for (const [s, e] of merged) {
+    if (s > cursor) nodes.push(text.slice(cursor, s));
+    nodes.push(
+      <strong key={s} className="font-semibold text-[#0a1e1e]">
+        {text.slice(s, e)}
+      </strong>
+    );
+    cursor = e;
+  }
+  if (cursor < text.length) nodes.push(text.slice(cursor));
+  return <>{nodes}</>;
+}
+
 /* ── Parallax Hook ── */
 function useParallax(speed = 0.35) {
   const ref = useRef<HTMLDivElement>(null);
@@ -859,51 +920,50 @@ function NewProductPDP({
 
         {/* ── Product Details / How to Use tabs ── */}
         {enriched && (
-          <div className="mt-6 px-5">
-            <div className="flex border-b border-outline-variant/15">
+          <div className="mt-6">
+            {/* Tab bar */}
+            <div className="flex border-b-2 border-[#e2e8e8] px-5">
               {(["details", "how-to-use"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`flex-1 py-2.5 text-sm font-semibold cursor-pointer transition-colors ${
+                  className={`flex-1 py-3.5 text-[14px] font-700 cursor-pointer transition-colors ${
                     activeTab === tab
-                      ? "text-primary-container border-b-2 border-primary-container"
-                      : "text-on-surface-variant/50"
+                      ? "text-[#004f54] border-b-2 border-[#004f54] -mb-[2px]"
+                      : "text-[#9ca3af]"
                   }`}
                 >
                   {tab === "details" ? "Product Details" : "How to Use"}
                 </button>
               ))}
             </div>
-            <div className="pt-4">
+
+            <div className="px-5 pt-5 pb-2">
               {activeTab === "details" ? (
                 <div>
+                  {/* Supplement facts grid */}
                   {(() => {
                     const SKIP = new Set(["price", "lasts for"]);
-                    const EMOJI: Record<string, string> = {
-                      "suitable for age": "👤",
-                      "net qty": "📦",
-                      "flavour": "🍬",
-                      "properties": "🌱",
-                      "country of origin": "🌏",
-                      "net weight": "⚖️",
-                      "form": "💊",
-                      "shelf life": "📅",
+                    const FEAT_EMOJI: Record<string, string> = {
+                      "suitable for age": "👤", "net qty": "📦", "flavour": "🍬",
+                      "properties": "🌱", "country of origin": "🌏", "net weight": "⚖️",
+                      "form": "💊", "shelf life": "📅",
                     };
                     const rows = enriched.productDetails.details.filter(
                       (d) => !SKIP.has(d.feature.toLowerCase())
                     );
+                    if (!rows.length) return null;
                     return (
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-2 mb-5">
                         {rows.map((d, i) => {
-                          const emoji = EMOJI[d.feature.toLowerCase()] ?? "•";
+                          const emoji = FEAT_EMOJI[d.feature.toLowerCase()] ?? "•";
                           const isLong = d.value.length > 35;
                           return (
-                            <div key={i} className={`flex items-start gap-2 px-3 py-2.5 rounded-xl bg-surface-container-lowest border border-outline-variant/8 ${isLong ? "col-span-2" : ""}`}>
-                              <span className="text-sm shrink-0 mt-0.5">{emoji}</span>
+                            <div key={i} className={`flex items-start gap-2.5 px-3.5 py-3 rounded-2xl bg-[#f7fafa] border border-[#e2e8e8] ${isLong ? "col-span-2" : ""}`}>
+                              <span className="text-base shrink-0 mt-0.5">{emoji}</span>
                               <div className="min-w-0">
-                                <p className="text-[10px] font-semibold text-on-surface-variant/55 uppercase tracking-wide">{d.feature}</p>
-                                <p className="text-xs font-semibold text-on-surface mt-0.5 leading-snug">{d.value}</p>
+                                <p className="text-[10px] font-700 text-[#9ca3af] uppercase tracking-wider">{d.feature}</p>
+                                <p className="text-[13px] font-600 text-[#1a2e2e] mt-0.5 leading-snug">{d.value}</p>
                               </div>
                             </div>
                           );
@@ -911,18 +971,17 @@ function NewProductPDP({
                       </div>
                     );
                   })()}
-                  {enriched.productDetails.description.length > 0 && (() => {
-                    // Merge all description lines, then parse emoji-separated bullets
-                    const fullText = enriched.productDetails.description.join(" ").trim();
 
-                    // Split on ". " or " " immediately before an emoji character
-                    const EMOJI_LEAD = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{27BF}\u{1F000}-\u{1F02F}]/u;
+                  {/* Description bullets */}
+                  {enriched.productDetails.description.length > 0 && (() => {
+                    const fullText = enriched.productDetails.description.join(" ").trim();
+                    const EMOJI_RE = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{27BF}\u{1F000}-\u{1F02F}\u{2700}-\u{27BF}]/u;
                     const segments: string[] = [];
                     let buf = "";
                     const chars = [...fullText];
                     for (let idx = 0; idx < chars.length; idx++) {
                       const ch = chars[idx];
-                      if (idx > 0 && EMOJI_LEAD.test(ch) && /[\s.]/.test(chars[idx - 1])) {
+                      if (idx > 0 && EMOJI_RE.test(ch)) {
                         const trimmed = buf.replace(/[.\s]+$/, "").trim();
                         if (trimmed) segments.push(trimmed);
                         buf = ch;
@@ -933,50 +992,36 @@ function NewProductPDP({
                     const last = buf.replace(/[.\s]+$/, "").trim();
                     if (last) segments.push(last);
 
-                    // Separate disclaimer sentences
                     const DISCLAIMER_RE = /medical advice|physician|dietician|nutritionist|consult a/i;
                     const bullets: { icon: string; text: string }[] = [];
                     let disclaimer = "";
 
                     for (const seg of segments) {
                       if (DISCLAIMER_RE.test(seg)) { disclaimer = seg; continue; }
-                      const m = seg.match(/^([\u{1F300}-\u{1F9FF}\u{2600}-\u{27BF}\u{1F000}-\u{1F02F}][\u{FE0F}]?)\s*/u);
-                      bullets.push(m ? { icon: m[1], text: seg.slice(m[0].length).trim() } : { icon: "", text: seg });
+                      const m = seg.match(/^([\u{1F300}-\u{1F9FF}\u{2600}-\u{27BF}\u{1F000}-\u{1F02F}\u{2700}-\u{27BF}][\u{FE0F}]?)\s*/u);
+                      if (m) {
+                        bullets.push({ icon: m[1], text: seg.slice(m[0].length).trim() });
+                      } else {
+                        seg.split(/\.\s+/).map(s => s.replace(/\.$/, "").trim()).filter(s => s.length > 8)
+                          .forEach(s => bullets.push({ icon: "", text: s }));
+                      }
                     }
 
-                    const hasBullets = bullets.some(b => b.icon);
-
                     return (
-                      <div className="mt-4">
-                        {hasBullets ? (
-                          <div className="space-y-2.5">
-                            {bullets.map((b, i) => (
-                              <div key={i} className="flex items-start gap-2.5">
-                                {b.icon ? (
-                                  <span className="text-base leading-none shrink-0 mt-0.5">{b.icon}</span>
-                                ) : (
-                                  <span className="w-1.5 h-1.5 rounded-full bg-on-surface-variant/30 shrink-0 mt-1.5" />
-                                )}
-                                <p className="text-[12px] text-on-surface leading-relaxed">{b.text}</p>
-                              </div>
-                            ))}
+                      <div className="space-y-2.5">
+                        {bullets.map((b, i) => (
+                          <div key={i} className="flex items-start gap-3.5 bg-[#f7fafa] rounded-2xl px-4 py-3.5 border border-[#e8f0f0]">
+                            {b.icon
+                              ? <span className="text-xl leading-none shrink-0 mt-0.5">{b.icon}</span>
+                              : <span className="w-2 h-2 rounded-full bg-[#004f54] shrink-0 mt-[7px]" />
+                            }
+                            <p className="text-[13.5px] font-[450] text-[#1a2e2e] leading-relaxed">{highlightIngredients(b.text)}</p>
                           </div>
-                        ) : (
-                          <div className="space-y-2">
-                            {bullets.flatMap((b) =>
-                              b.text.split('. ').map(s => s.trim()).filter(s => s.length > 8)
-                            ).map((sentence, i) => (
-                              <div key={i} className="flex items-start gap-2.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-on-surface-variant/30 shrink-0 mt-1.5" />
-                                <p className="text-[12px] text-on-surface-variant/70 leading-relaxed">{sentence}</p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        ))}
                         {disclaimer && (
-                          <div className="mt-3 flex gap-2.5 px-3 py-2.5 rounded-xl bg-blue-50 border border-blue-200/50">
-                            <span className="text-sm shrink-0 mt-0.5">👨‍⚕️</span>
-                            <p className="text-[11px] text-blue-800 leading-relaxed">{disclaimer}.</p>
+                          <div className="flex gap-3 px-4 py-3.5 rounded-2xl bg-blue-50 border border-blue-100">
+                            <span className="text-lg shrink-0 mt-0.5">👨‍⚕️</span>
+                            <p className="text-[12px] text-blue-700 leading-relaxed">{disclaimer}.</p>
                           </div>
                         )}
                       </div>
@@ -984,47 +1029,51 @@ function NewProductPDP({
                   })()}
                 </div>
               ) : (
-                <ul className="space-y-2.5">
+                /* How to Use */
+                <ol className="space-y-3">
                   {(() => {
-                    const raw = (enriched.howToUse || "Take as directed. Consistent daily use recommended for best results.")
-                      .split(/\.\s+/)
-                      .map((s) => s.replace(/\.$/, "").trim())
-                      .filter((s) => s.length > 10);
-                    // Remove near-duplicates: if a shorter step's words are mostly contained in a longer step, drop it
-                    const deduped = raw.reduce<string[]>((kept, s) => {
-                      const norm = (t: string) => t.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
-                      const dominated = kept.some((k) => {
-                        const kn = norm(k), sn = norm(s);
-                        if (kn === sn) return true;
-                        const shorter = kn.length < sn.length ? kn : sn;
-                        const longer = kn.length < sn.length ? sn : kn;
-                        const shortWords = shorter.split(" ").filter((w) => w.length > 3);
-                        const matches = shortWords.filter((w) => longer.includes(w));
-                        return shortWords.length > 0 && matches.length / shortWords.length > 0.7;
+                    const raw = enriched.howToUse || "Take as directed. Consistent daily use recommended for best results.";
+
+                    // Handle "1: Step.2: Step.3: Step" format (no space after period)
+                    const isNumbered = /^\d+[:.]/m.test(raw);
+                    let steps: string[];
+                    if (isNumbered) {
+                      steps = raw
+                        .split(/\.\s*\d+[:.]\s*/)
+                        .map(s => s.replace(/^\d+[:.]\s*/, "").replace(/\.$/, "").trim())
+                        .filter(s => s.length > 5);
+                    } else {
+                      steps = raw
+                        .split(/\.\s+/)
+                        .map(s => s.replace(/\.$/, "").trim())
+                        .filter(s => s.length > 10);
+                    }
+
+                    // Dedupe near-identical steps
+                    const norm = (t: string) => t.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+                    const deduped = steps.reduce<string[]>((kept, s) => {
+                      const dominated = kept.some(k => {
+                        if (norm(k) === norm(s)) return true;
+                        const a = norm(k), b = norm(s);
+                        const shorter = a.length < b.length ? a : b;
+                        const longer  = a.length < b.length ? b : a;
+                        const words = shorter.split(" ").filter(w => w.length > 3);
+                        return words.length > 0 && words.filter(w => longer.includes(w)).length / words.length > 0.7;
                       });
                       if (!dominated) kept.push(s);
                       return kept;
                     }, []);
-                    const emojiFor = (step: string) => {
-                      const s = step.toLowerCase();
-                      if (/gummy|gummies|capsule|tablet|pill|supplement/.test(s)) return "💊";
-                      if (/lunch|dinner|breakfast|meal|dessert|after/.test(s)) return "🍽️";
-                      if (/morning|night|evening|bedtime|sleep/.test(s)) return "🌙";
-                      if (/water|liquid|drink|juice/.test(s)) return "💧";
-                      if (/week|month|result|expect|continu/.test(s)) return "📅";
-                      if (/note|important|avoid|caution/.test(s)) return "⚠️";
-                      if (/recommend|suggest|tip|best/.test(s)) return "✨";
-                      if (/time|daily|day|regular/.test(s)) return "🕐";
-                      return "✅";
-                    };
+
                     return deduped.map((step, i) => (
-                      <li key={i} className="flex items-start gap-3 p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/8">
-                        <span className="text-lg leading-none shrink-0 mt-0.5">{emojiFor(step)}</span>
-                        <span className="text-sm text-on-surface leading-relaxed">{step}</span>
+                      <li key={i} className="flex items-start gap-4 bg-[#f7fafa] rounded-2xl px-4 py-3.5 border border-[#e8f0f0]">
+                        <span className="w-8 h-8 rounded-full bg-[#004f54] text-white text-[13px] font-700 flex items-center justify-center shrink-0">
+                          {i + 1}
+                        </span>
+                        <p className="text-[13.5px] font-500 text-[#1a2e2e] leading-relaxed pt-1">{step}</p>
                       </li>
                     ));
                   })()}
-                </ul>
+                </ol>
               )}
             </div>
           </div>
@@ -1098,36 +1147,46 @@ function NewProductPDP({
           </div>
         )}
 
-        {/* ── What to expect (timeline) ── */}
-        {enriched?.timeline && enriched.timeline.length > 0 && (
-          <div className="mt-8 bg-surface-container-lowest py-6">
-            <h2 className="text-lg font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] px-5 mb-5">📅 What to expect</h2>
-            <div className="px-5 space-y-0">
-              {enriched.timeline.map((step, i) => (
-                <div key={i} className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center shrink-0 z-10">
-                      <span className="text-xs font-bold text-white">{i + 1}</span>
+        {/* ── What to expect / Key ingredients (timeline) ── */}
+        {enriched?.timeline && enriched.timeline.length > 0 && (() => {
+          const isIngredientList = enriched.timeline.every(s => !s.period);
+          return (
+            <div className="mt-8 bg-surface-container-lowest py-6">
+              <h2 className="text-lg font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] px-5 mb-5">
+                {isIngredientList ? "🧪 Key ingredients" : "📅 What to expect"}
+              </h2>
+              <div className="px-5 space-y-0">
+                {enriched.timeline.map((step, i) => (
+                  <div key={i} className="flex gap-4">
+                    <div className="flex flex-col items-center">
+                      <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center shrink-0 z-10">
+                        <span className="text-xs font-bold text-white">{i + 1}</span>
+                      </div>
+                      {i < enriched.timeline.length - 1 && <div className="w-0.5 flex-1 bg-primary-container/20 my-1" />}
                     </div>
-                    {i < enriched.timeline.length - 1 && <div className="w-0.5 flex-1 bg-primary-container/20 my-1" />}
+                    <div className={`flex-1 ${i < enriched.timeline.length - 1 ? "pb-6" : "pb-0"}`}>
+                      {step.period ? (
+                        <span className="inline-block text-[11px] font-bold text-primary-container bg-primary-container/10 px-2.5 py-1 rounded-full mb-1.5">{step.period.trim()}</span>
+                      ) : null}
+                      {step.title.trim() && step.title.trim() !== step.period?.trim() && (
+                        <p className="text-sm font-semibold text-on-surface">{step.title.trim()}</p>
+                      )}
+                      {step.description?.trim() && (
+                        <p className="text-sm text-on-surface-variant mt-1 leading-relaxed">{
+                          (() => {
+                            const sentences = step.description.trim().match(/[^.!?]*(?:[.!?]+|$)/g)
+                              ?.map(s => s.trim()).filter(Boolean) ?? [];
+                            return sentences.slice(0, 2).join(' ').trim() || step.description.trim();
+                          })()
+                        }</p>
+                      )}
+                    </div>
                   </div>
-                  <div className={`flex-1 ${i < enriched.timeline.length - 1 ? "pb-6" : "pb-0"}`}>
-                    <span className="inline-block text-[11px] font-bold text-primary-container bg-primary-container/10 px-2.5 py-1 rounded-full mb-1.5">{step.period}</span>
-                    <p className="text-sm font-semibold text-on-surface">{step.title.replace(/After \d+ months?\s*[-–]\s*/i, "")}</p>
-                    <p className="text-sm text-on-surface-variant mt-1 leading-relaxed">{
-                      // Keep first 2 complete sentences — don't cut mid-sentence
-                      (() => {
-                        const sentences = step.description.match(/[^.!?]*(?:[.!?]+|$)/g)
-                          ?.map(s => s.trim()).filter(Boolean) ?? [];
-                        return sentences.slice(0, 2).join(' ').trim() || step.description;
-                      })()
-                    }</p>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
 
         {/* ── Complete your routine ── */}

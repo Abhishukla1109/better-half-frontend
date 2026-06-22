@@ -13,6 +13,7 @@ const QUERY = `
       handle
       title
       vendor
+      variants(first: 1) { edges { node { priceV2 { amount } } } }
       images(first: 10) { nodes { url } }
       metafields(identifiers: [
         { namespace: "custom", key: "bh_subtitle" }
@@ -69,11 +70,15 @@ export async function GET(req: NextRequest) {
 
     const mf: MFNode[] = (p.metafields ?? []).filter(Boolean);
 
+    const rawPrice = p.variants?.edges?.[0]?.node?.priceV2?.amount;
+    const price = rawPrice ? Math.round(parseFloat(rawPrice)) : undefined;
+
     const enriched: EnrichedPDP = {
       slug:            handle,
       sourceId:        "",
       brand:           p.vendor ?? "",
       name:            p.title ?? "",
+      price,
       subtitle:        text(mf, "bh_subtitle") ?? "",
       metaDescription: "",
       rating:          { average: null, count: null },

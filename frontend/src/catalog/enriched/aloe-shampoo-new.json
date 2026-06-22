@@ -152,6 +152,19 @@
     "with": "Amla, Neem & Shikakai"
   },
   "packs": [],
-  "badges": [],
+  "badges": [
+    {
+      "label": "Paraben Free",
+      "icon": "https://i.mscwlns.co/mosaic-wellness/image/upload/v1656402605/Little%20Joys/PDP/Safety/New/soap/1.png"
+    },
+    {
+      "label": "Non-Toxic",
+      "icon": "https://i.mscwlns.co/mosaic-wellness/image/upload/v1656402605/Little%20Joys/PDP/Safety/New/soap/2.png"
+    },
+    {
+      "label": "SLS Free",
+      "icon": "https://i.mscwlns.co/mosaic-wellness/image/upload/v1656402605/Little%20Joys/PDP/Safety/New/soap/3.png"
+    }
+  ],
   "timeline": []
 }
