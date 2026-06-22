@@ -1062,19 +1062,31 @@ function NewProductPDP({
                   {(() => {
                     const raw = enriched.howToUse || "Take as directed. Consistent daily use recommended for best results.";
 
-                    // Handle "1: Step.2: Step.3: Step" format (no space after period)
-                    const isNumbered = /^\d+[:.]/m.test(raw);
+                    // Strip section headers like "How to use (Product Name)\n"
+                    const cleaned = raw
+                      .replace(/^How to use[^\n]*\n+/i, "")
+                      .replace(/^How to Use\s*[:\-]?\s*\n+/i, "")
+                      .trim();
+
                     let steps: string[];
-                    if (isNumbered) {
-                      steps = raw
-                        .split(/\.\s*\d+[:.]\s*/)
-                        .map(s => s.replace(/^\d+[:.]\s*/, "").replace(/\.$/, "").trim())
+                    const hasStepMarker = /(?:Step\s*)?\d+\s*[:.]/i.test(cleaned);
+
+                    if (hasStepMarker) {
+                      // Split on step markers whether newline-separated or inline-concatenated.
+                      // Lookahead keeps the split clean; (?<![0-9-]) avoids splitting "2-3 minutes".
+                      steps = cleaned
+                        .split(/\n+\s*(?:Step\s*)?\d+\s*[:.]\s*/i)
+                        .flatMap(chunk =>
+                          // If a chunk still contains inline step markers (e.g. "week2: Rinse"),
+                          // split those too — but only when NOT preceded by digit or dash.
+                          chunk.split(/(?<![0-9\-])(?:Step\s*)?\d+\s*[:.]\s*/i)
+                        )
+                        .map(s => s.replace(/^(?:Step\s*)?\d+\s*[:.]\s*/i, "").replace(/\.$/, "").trim())
                         .filter(s => s.length > 5);
                     } else {
-                      steps = raw
-                        .split(/\.\s+/)
-                        .map(s => s.replace(/\.$/, "").trim())
-                        .filter(s => s.length > 10);
+                      // No step markers — split on newlines first, then sentences
+                      const byLine = cleaned.split(/\n+/).map(s => s.trim()).filter(s => s.length > 10);
+                      steps = byLine.length > 1 ? byLine : cleaned.split(/\.\s+/).map(s => s.trim()).filter(s => s.length > 10);
                     }
 
                     // Dedupe near-identical steps
