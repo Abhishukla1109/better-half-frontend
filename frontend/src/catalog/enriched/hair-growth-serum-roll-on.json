@@ -203,5 +203,18 @@
     "for": "Hair Thinning",
     "with": "Rosemary, Procapil, Baicapil"
   },
-  "recommendation": "96%"
+  "recommendation": "96%",
+  "shopifyHandle": "hair-growth-serum-roll-on-bw",
+  "variantTitle": "1 Month",
+  "variantId": 42892548800608,
+  "siblings": [
+    {
+      "slug": "hair-growth-serum-roll-on",
+      "label": "1 Month"
+    },
+    {
+      "slug": "hair-growth-serum-roll-on-2-months-xp",
+      "label": "2 Months"
+    }
+  ]
 }

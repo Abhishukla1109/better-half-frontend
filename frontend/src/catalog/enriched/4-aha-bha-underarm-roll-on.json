@@ -238,5 +238,26 @@
     "for": "Underarm Odour/ Pigmentation",
     "with": "1% Salicylic acid, Chamomile"
   },
-  "recommendation": "89%"
+  "recommendation": "89%",
+  "shopifyHandle": "aha-bha-underarm-roll-on-bw",
+  "variantTitle": "Flora 50ml",
+  "variantId": 42892549292128,
+  "siblings": [
+    {
+      "slug": "4-aha-bha-underarm-roll-on",
+      "label": "Flora 50ml"
+    },
+    {
+      "slug": "4-aha-bha-underarm-roll-on-no-fragrance",
+      "label": "No Fragrance 50ml"
+    },
+    {
+      "slug": "4-aha-bha-underarm-roll-on-watermelon",
+      "label": "Watermelon 50ml"
+    },
+    {
+      "slug": "4-aha-bha-underarm-rollon-frag-free-75",
+      "label": "Fragrance Free 75ml"
+    }
+  ]
 }

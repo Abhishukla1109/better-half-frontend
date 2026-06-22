@@ -248,6 +248,11 @@ export type EnrichedPDP = {
   benefits?: Array<{ title: string; description: string; icon: string }>;
   /** Little Joys: full ingredients as a plain text list */
   fullIngredientsList?: string;
+  /** Variant switcher — present when this product is part of a size/flavour/pack group */
+  shopifyHandle?: string;
+  variantTitle?: string;
+  variantId?: number;
+  siblings?: Array<{ slug: string; label: string }>;
 };
 
 const ENRICHED: Record<string, EnrichedPDP> = {

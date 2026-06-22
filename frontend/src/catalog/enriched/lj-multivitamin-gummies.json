@@ -218,5 +218,18 @@
   },
   "packs": [],
   "badges": [],
-  "timeline": []
+  "timeline": [],
+  "shopifyHandle": "lj-multivitamin-gummies-all",
+  "variantTitle": "2+ Years",
+  "variantId": 42892549226592,
+  "siblings": [
+    {
+      "slug": "lj-multivitamin-gummies",
+      "label": "2+ Years"
+    },
+    {
+      "slug": "multivitamin-gummies-13-18",
+      "label": "13-18 Years"
+    }
+  ]
 }

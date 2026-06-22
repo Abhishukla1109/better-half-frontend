@@ -1,6 +1,6 @@
 {
   "slug": "charcoal-body-wash-250-ml",
-  "shopifyHandle": "charcoal-body-wash-250-ml",
+  "shopifyHandle": "charcoal-body-wash",
   "sourceId": "26166769",
   "brand": "Man Matters",
   "name": "Charcoal Body Wash (250 ml)",
@@ -133,5 +133,21 @@
       "No impurities or side effects, only deeply cleansed, purified, and refreshed skin with Man Matters Charcoal Body Wash.🧴🧪5% Niacinamide: Enriched with 5% Niacinamide, it improves your skin's texture by making it smooth.◼️Charcoal Beads:The Charcoal Beads in this body wash deep cleanse the skin by removing impurities from the pores and exfoliating dead skin cells without causing micro-tears.🍀Menthol: Menthol in this body wash gives a cooling feeling post-application leaving your body squeaky clean."
     ],
     "details": []
-  }
+  },
+  "variantTitle": "250 ml",
+  "variantId": 42892548341856,
+  "siblings": [
+    {
+      "slug": "charcoal-body-wash-250-ml",
+      "label": "250 ml"
+    },
+    {
+      "slug": "charcoal-body-wash-500-ml",
+      "label": "500 ml"
+    },
+    {
+      "slug": "charcoal-body-wash-750-ml",
+      "label": "750 ml"
+    }
+  ]
 }

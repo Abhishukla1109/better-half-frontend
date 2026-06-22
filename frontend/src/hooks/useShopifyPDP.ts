@@ -75,7 +75,11 @@ export function useShopifyPDP(slug: string): { enriched: EnrichedPDP | null; pdp
     if (local) setEnriched(local);
 
     let cancelled = false;
-    fetch(`/api/shopify/pdp?handle=${encodeURIComponent(slug)}`)
+    const shopifyHandle = local?.shopifyHandle ?? slug;
+    const variantTitle  = local?.variantTitle;
+    const apiUrl = `/api/shopify/pdp?handle=${encodeURIComponent(shopifyHandle)}`
+      + (variantTitle ? `&variant=${encodeURIComponent(variantTitle)}` : "");
+    fetch(apiUrl)
       .then((r) => r.json())
       .then((data: EnrichedPDP | null) => {
         if (cancelled) return;

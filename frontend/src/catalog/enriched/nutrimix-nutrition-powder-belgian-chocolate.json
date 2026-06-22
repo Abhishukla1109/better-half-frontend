@@ -272,5 +272,26 @@
   },
   "packs": [],
   "badges": [],
-  "timeline": []
+  "timeline": [],
+  "shopifyHandle": "nutrimix-nutrition-powder-lj",
+  "variantTitle": "Belgian Chocolate",
+  "variantId": 42892548964448,
+  "siblings": [
+    {
+      "slug": "nutrimix-nutrition-powder",
+      "label": "Chocolate"
+    },
+    {
+      "slug": "nutrimix-nutrition-powder-vanilla",
+      "label": "Vanilla"
+    },
+    {
+      "slug": "nutrimix-nutrition-powder-strawberry",
+      "label": "Strawberry"
+    },
+    {
+      "slug": "nutrimix-nutrition-powder-belgian-chocolate",
+      "label": "Belgian Chocolate"
+    }
+  ]
 }

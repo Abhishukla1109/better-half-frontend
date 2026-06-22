@@ -1,6 +1,6 @@
 {
   "slug": "biotin-hair-gummies-60n",
-  "shopifyHandle": "biotin-hair-gummies-60n",
+  "shopifyHandle": "biotin-hair-gummies",
   "sourceId": "6102393",
   "brand": "Man Matters",
   "name": "Biotin Hair Gummies (60N) No Added Sugar",
@@ -180,5 +180,21 @@
       "Complete your hair nutrition"
     ],
     "details": []
-  }
+  },
+  "variantTitle": "60N",
+  "variantId": 42892548472928,
+  "siblings": [
+    {
+      "slug": "biotin-hair-gummies-30n",
+      "label": "30N"
+    },
+    {
+      "slug": "biotin-hair-gummies-60n",
+      "label": "60N"
+    },
+    {
+      "slug": "biotin-hair-gummies-90n",
+      "label": "90N"
+    }
+  ]
 }

@@ -250,5 +250,18 @@
       "icon": "https://i.mscwlns.co/mosaic-wellness/image/upload/v1656330148/Little%20Joys/PDP/Safety/New/8.png"
     }
   ],
-  "timeline": []
+  "timeline": [],
+  "shopifyHandle": "lj-multivitamin-gummies-all",
+  "variantTitle": "13-18 Years",
+  "variantId": 42892549259360,
+  "siblings": [
+    {
+      "slug": "lj-multivitamin-gummies",
+      "label": "2+ Years"
+    },
+    {
+      "slug": "multivitamin-gummies-13-18",
+      "label": "13-18 Years"
+    }
+  ]
 }

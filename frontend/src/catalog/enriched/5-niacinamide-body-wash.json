@@ -219,5 +219,18 @@
     "for": "Glow & Pollution Protection",
     "with": "5% Niacinamide, Aloe Vera"
   },
-  "recommendation": "89%"
+  "recommendation": "89%",
+  "shopifyHandle": "niacinamide-body-wash-bw",
+  "variantTitle": "1 Month",
+  "variantId": 42892548735072,
+  "siblings": [
+    {
+      "slug": "5-niacinamide-body-wash",
+      "label": "1 Month"
+    },
+    {
+      "slug": "5-niacinamide-body-wash-pack-of-2",
+      "label": "2 Months"
+    }
+  ]
 }

@@ -1,6 +1,6 @@
 {
   "slug": "anti-hair-fall-shampoo-200ml",
-  "shopifyHandle": "anti-hair-fall-shampoo-200ml",
+  "shopifyHandle": "anti-hair-fall-shampoo",
   "sourceId": "1596",
   "brand": "Man Matters",
   "name": "DHT Blocking Shampoo (200ml)",
@@ -162,5 +162,17 @@
       "Suited for all Stage 1.Man Matters Anti Hair Thinning Shampoo is 2-in-1 DHT blocking shampoo powered with ingredients like caffeine, biotin and argan oil that helps reduce hair thinning and strengthens hair follicles.Use consistently for at least 3 months for best results.➡️ Reduces & prevents hair thinning➡️ Strengthens and nourishes hair➡️ Repairs dry, dull & damaged hair ⚠️ Note: Hair thinning at forehead corners or volume reduction overall, especially crown (shown in Image 2)? Use our Stage 2 Kit"
     ],
     "details": []
-  }
+  },
+  "variantTitle": "200 ml",
+  "variantId": 42892548538464,
+  "siblings": [
+    {
+      "slug": "anti-hair-fall-shampoo-200ml",
+      "label": "200 ml"
+    },
+    {
+      "slug": "anti-hair-fall-shampoo-300ml",
+      "label": "300 ml"
+    }
+  ]
 }

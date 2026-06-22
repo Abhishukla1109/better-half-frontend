@@ -1,6 +1,6 @@
 {
   "slug": "hair-activator-derma-roller-1mm",
-  "shopifyHandle": "hair-activator-derma-roller-1mm",
+  "shopifyHandle": "hair-activator-derma-roller-mm",
   "sourceId": "2023223",
   "brand": "Man Matters",
   "name": "1 MM Dermaroller for Hair",
@@ -138,5 +138,17 @@
       "Gently roll the dermaroller vertically, horizontally, and diagonally over each section of your scalp"
     ],
     "details": []
-  }
+  },
+  "variantTitle": "1 mm",
+  "variantId": 42892549554272,
+  "siblings": [
+    {
+      "slug": "hair-activator-derma-roller",
+      "label": "0.5 mm"
+    },
+    {
+      "slug": "hair-activator-derma-roller-1mm",
+      "label": "1 mm"
+    }
+  ]
 }

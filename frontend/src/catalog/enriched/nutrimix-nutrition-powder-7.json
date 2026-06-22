@@ -271,5 +271,18 @@
       "icon": "https://i.mscwlns.co/mosaic-wellness/image/upload/v1656330148/Little%20Joys/PDP/Safety/New/8.png"
     }
   ],
-  "timeline": []
+  "timeline": [],
+  "shopifyHandle": "nutrimix-7-nutrition-powder-lj",
+  "variantTitle": "Original",
+  "variantId": 42892549455968,
+  "siblings": [
+    {
+      "slug": "nutrimix-nutrition-powder-7",
+      "label": "Original"
+    },
+    {
+      "slug": "unsweetened-nutrimix-nutrition-powder-7",
+      "label": "Unsweetened"
+    }
+  ]
 }

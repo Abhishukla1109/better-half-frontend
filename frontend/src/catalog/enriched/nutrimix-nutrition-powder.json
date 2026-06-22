@@ -294,5 +294,26 @@
       "icon": "https://i.mscwlns.co/mosaic-wellness/image/upload/v1656330148/Little%20Joys/PDP/Safety/New/8.png"
     }
   ],
-  "timeline": []
+  "timeline": [],
+  "shopifyHandle": "nutrimix-nutrition-powder-lj",
+  "variantTitle": "Chocolate",
+  "variantId": 42892548866144,
+  "siblings": [
+    {
+      "slug": "nutrimix-nutrition-powder",
+      "label": "Chocolate"
+    },
+    {
+      "slug": "nutrimix-nutrition-powder-vanilla",
+      "label": "Vanilla"
+    },
+    {
+      "slug": "nutrimix-nutrition-powder-strawberry",
+      "label": "Strawberry"
+    },
+    {
+      "slug": "nutrimix-nutrition-powder-belgian-chocolate",
+      "label": "Belgian Chocolate"
+    }
+  ]
 }

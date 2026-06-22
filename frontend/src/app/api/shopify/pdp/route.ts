@@ -13,7 +13,7 @@ const QUERY = `
       handle
       title
       vendor
-      variants(first: 1) { edges { node { priceV2 { amount } } } }
+      variants(first: 20) { edges { node { title priceV2 { amount } } } }
       images(first: 10) { nodes { url } }
       metafields(identifiers: [
         { namespace: "custom", key: "bh_subtitle" }
@@ -51,7 +51,8 @@ function text(nodes: MFNode[], key: string): string | null {
 }
 
 export async function GET(req: NextRequest) {
-  const handle = req.nextUrl.searchParams.get("handle");
+  const handle       = req.nextUrl.searchParams.get("handle");
+  const variantTitle = req.nextUrl.searchParams.get("variant"); // e.g. "60N", "Vanilla"
   if (!handle) return NextResponse.json(null, { status: 400 });
 
   try {
@@ -70,7 +71,11 @@ export async function GET(req: NextRequest) {
 
     const mf: MFNode[] = (p.metafields ?? []).filter(Boolean);
 
-    const rawPrice = p.variants?.edges?.[0]?.node?.priceV2?.amount;
+    const allVariants = p.variants?.edges ?? [];
+    const matchedVariant = variantTitle
+      ? allVariants.find((e: { node: { title: string } }) => e.node.title === variantTitle)
+      : allVariants[0];
+    const rawPrice = matchedVariant?.node?.priceV2?.amount ?? allVariants[0]?.node?.priceV2?.amount;
     const price = rawPrice ? Math.round(parseFloat(rawPrice)) : undefined;
 
     const enriched: EnrichedPDP = {

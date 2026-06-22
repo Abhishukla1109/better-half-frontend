@@ -223,5 +223,18 @@
       "icon": "https://i.mscwlns.co/mosaic-wellness/image/upload/v1656330148/Little%20Joys/PDP/Safety/New/8.png"
     }
   ],
-  "timeline": []
+  "timeline": [],
+  "shopifyHandle": "mamamix-nutrition-powder-lj",
+  "variantTitle": "Vanilla",
+  "variantId": 42892549029984,
+  "siblings": [
+    {
+      "slug": "mamamix-nutrition-powder",
+      "label": "Chocolate"
+    },
+    {
+      "slug": "mamamix-nutrition-powder-vanilla",
+      "label": "Vanilla"
+    }
+  ]
 }

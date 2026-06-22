@@ -197,5 +197,22 @@
       "icon": "https://i.mscwlns.co/mosaic-wellness/image/upload/v1656330148/Little%20Joys/PDP/Safety/New/8.png"
     }
   ],
-  "timeline": []
+  "timeline": [],
+  "shopifyHandle": "calcium-gummies-strawberry-lj",
+  "variantTitle": "13+ Years",
+  "variantId": 42892549193824,
+  "siblings": [
+    {
+      "slug": "calcium-gummies-strawberry",
+      "label": "3-7 Years"
+    },
+    {
+      "slug": "calcium-gummies-strawberry-7",
+      "label": "7-13 Years"
+    },
+    {
+      "slug": "calcium-gummies-strawberry-13",
+      "label": "13+ Years"
+    }
+  ]
 }

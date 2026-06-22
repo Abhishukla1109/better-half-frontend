@@ -172,5 +172,18 @@
     "for": "Controlling Body Acne & Bumps",
     "with": "1% Salicylic acid, Chamomile"
   },
-  "recommendation": "89%"
+  "recommendation": "89%",
+  "shopifyHandle": "salicylic-acid-body-wash-bw",
+  "variantTitle": "100 ml",
+  "variantId": 42892548669536,
+  "siblings": [
+    {
+      "slug": "1-salicylic-acid-body-wash-100ml",
+      "label": "100 ml"
+    },
+    {
+      "slug": "1-salicylic-acid-body-wash",
+      "label": "250 ml"
+    }
+  ]
 }

@@ -235,5 +235,18 @@
     "for": "Hair Thinning",
     "with": "Redensyl, Procapil, Baicapil"
   },
-  "recommendation": "96%"
+  "recommendation": "96%",
+  "shopifyHandle": "hair-growth-serum-roll-on-bw",
+  "variantTitle": "2 Months",
+  "variantId": 42892548833376,
+  "siblings": [
+    {
+      "slug": "hair-growth-serum-roll-on",
+      "label": "1 Month"
+    },
+    {
+      "slug": "hair-growth-serum-roll-on-2-months-xp",
+      "label": "2 Months"
+    }
+  ]
 }

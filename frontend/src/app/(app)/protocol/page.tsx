@@ -23,6 +23,7 @@ import { resolveVariantId } from "@/lib/shopify/variant-resolver";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import { supabase } from "@/lib/supabase/client";
 import { getProductRating } from "@/data/ratingsLookup";
+import { getEnrichedPDP } from "@/data/enrichedProducts";
 import { track } from "@/lib/mixpanel";
 
 /* ── Emoji per question key (for the AI question popup) ──── */
@@ -250,7 +251,10 @@ function skipTiming(name: string): boolean {
     n.includes("scalp oil") || n.includes("gel") || n.includes("scrub") ||
     n.includes("cleanser") || n.includes("toner") || n.includes("sunscreen") ||
     n.includes("roll on") || n.includes("roll-on") || n.includes("patch") ||
-    n.includes("wash") || n.includes("mask")
+    n.includes("wash") || n.includes("mask") || n.includes("derma roller") ||
+    n.includes("dermaroller") || n.includes("activator") || n.includes("minoxidil") ||
+    n.includes("oil") || n.includes("balm") || n.includes("mist") || n.includes("drops") ||
+    n.includes("solution") || n.includes("topical") || n.includes("device")
   ) return true;
   // Kits and combos contain multiple items — a single timing label is misleading
   if (
@@ -605,6 +609,7 @@ export default function ProtocolPage() {
   // Stepped intro animation for the depth bar
   const [displayDepth, setDisplayDepth] = useState(0);
   const introPlayed = useRef(false);
+  const [selectedVariants, setSelectedVariants] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     let stored: UserProfile | null = null;
@@ -737,6 +742,21 @@ export default function ProtocolPage() {
       }
     } catch { /* non-critical */ }
 
+    // If returning from a PDP opened via the sheet, use cached protocol and reopen sheet
+    try {
+      if (sessionStorage.getItem("bh_return_sheet")) {
+        sessionStorage.removeItem("bh_return_sheet");
+        const cached = sessionStorage.getItem("bh_protocol_cache");
+        if (cached) {
+          const data = JSON.parse(cached) as GeneratedProtocol;
+          setProtocol(data);
+          setLoading(false);
+          setShowProtocolCart(true);
+          return;
+        }
+      }
+    } catch { /* non-critical */ }
+
     fetch("/api/protocol", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -746,6 +766,7 @@ export default function ProtocolPage() {
       .then((data: GeneratedProtocol) => {
         setProtocol(data);
         setLoading(false);
+        try { sessionStorage.setItem("bh_protocol_cache", JSON.stringify(data)); } catch {}
         track("Protocol Generated", {
           products_count: data.supplements?.length ?? 0,
           model: data.model ?? "mock",
@@ -1229,7 +1250,10 @@ export default function ProtocolPage() {
           const ratingData = getProductRating(id);
 
           return (
-            <div className="flex-none w-40 snap-start rounded-2xl border border-outline-variant/12 bg-surface-container-lowest overflow-hidden shadow-sm">
+            <div
+              className="flex-none w-40 snap-start rounded-2xl border border-outline-variant/12 bg-surface-container-lowest overflow-hidden shadow-sm cursor-pointer active:scale-[0.98] transition-transform"
+              onClick={() => { try { sessionStorage.setItem("bh_return_sheet", "1"); } catch {} setShowProtocolCart(false); router.push(`/product/${id}`); }}
+            >
               {/* Image with badge overlays */}
               <div className="relative w-full h-[110px] bg-surface-container overflow-hidden">
                 {image
@@ -1274,7 +1298,7 @@ export default function ProtocolPage() {
 
                 {/* Add to Cart button */}
                 <button
-                  onClick={() => handleAddToCart(id)}
+                  onClick={(e) => { e.stopPropagation(); void handleAddToCart(id); }}
                   disabled={isAdded || !!isLoading}
                   className={`w-full py-2 rounded-xl text-[10px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer disabled:cursor-default active:scale-[0.98] ${
                     isAdded
@@ -1773,11 +1797,15 @@ export default function ProtocolPage() {
                         const reviewLabel = ratingData?.count ? (ratingData.count >= 1000 ? `${(ratingData.count / 1000).toFixed(1)}k` : `${ratingData.count}`) : null;
                         const trustBadge = getTrustBadge(s);
                         const displayScore = displayScoreMap.get(s.id) ?? s.matchScore;
+                        const activeSlug = selectedVariants.get(s.id) ?? s.id;
+                        const activeEnriched = getEnrichedPDP(activeSlug);
+                        const siblings = getEnrichedPDP(s.id)?.siblings;
+                        const displayName = activeEnriched?.name ?? s.name;
                         return (
                           <div
                             key={s.id}
-                            onClick={() => { track("Product Card Tapped", { product_id: s.id, product_name: s.name, brand: s.brand, source: "protocol" }); router.push(`/product/${s.id}`); }}
-                            className="flex-shrink-0 w-[52vw] max-w-[200px] min-w-[160px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 overflow-hidden cursor-pointer hover:border-primary-container/30 transition-all duration-200 active:scale-[0.98]"
+                            onClick={() => { track("Product Card Tapped", { product_id: s.id, product_name: s.name, brand: s.brand, source: "protocol" }); router.push(`/product/${activeSlug}`); }}
+                            className="flex flex-col flex-shrink-0 w-[52vw] max-w-[200px] min-w-[160px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 overflow-hidden cursor-pointer hover:border-primary-container/30 transition-all duration-200 active:scale-[0.98]"
                           >
                             <div className="relative w-full h-[164px] bg-surface-container-low">
                               {s.image ? (
@@ -1798,9 +1826,25 @@ export default function ProtocolPage() {
                                 </div>
                               )}
                             </div>
-                            <div className="p-3">
+                            <div className="p-3 flex flex-col flex-1">
                               <p className="text-[11px] font-bold text-primary-container/70 uppercase tracking-wider mb-0.5">{s.brand}</p>
-                              <p className="text-[15px] font-bold text-on-surface leading-snug line-clamp-2 mb-1.5">{s.name}</p>
+                              <p className="text-[15px] font-bold text-on-surface leading-snug line-clamp-2 mb-1.5">{displayName}</p>
+                              {siblings && siblings.length > 1 && (
+                                <div className="flex flex-wrap gap-1 mb-2" onClick={e => e.stopPropagation()}>
+                                  {siblings.map(sib => {
+                                    const isActive = activeSlug === sib.slug;
+                                    return (
+                                      <button
+                                        key={sib.slug}
+                                        onClick={() => setSelectedVariants(prev => new Map(prev).set(s.id, sib.slug))}
+                                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border leading-none transition-all ${isActive ? "bg-[#004f54] text-white border-[#004f54]" : "text-on-surface-variant/70 border-outline-variant/30 hover:border-[#004f54]/40"}`}
+                                      >
+                                        {sib.label}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
                               {s.reasonTags && s.reasonTags.length > 0 && (
                                 <div className="flex flex-wrap gap-1 mb-2">
                                   {s.reasonTags.slice(0, 2).map((tag, i) => (
@@ -1813,7 +1857,7 @@ export default function ProtocolPage() {
                               {trustBadge && (
                                 <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-1.5 leading-none ${trustBadge.style}`}>{trustBadge.label}</span>
                               )}
-                              {s.timing && !skipTiming(s.name) && (
+                              {s.timing && !skipTiming(displayName) && (
                                 <p className="text-[10px] font-semibold text-on-surface-variant/55 mb-1.5 leading-none">
                                   {formatTiming(s.timing)}
                                 </p>
@@ -1827,17 +1871,17 @@ export default function ProtocolPage() {
                                   {reviewLabel && <span className="text-[10px] text-on-surface-variant/40">({reviewLabel})</span>}
                                 </div>
                               )}
-                              <div>
+                              <div className="mt-auto">
                                 <p className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
                                 {s.mrp && s.mrp > s.price && <p className="text-[9px] text-on-surface-variant/35 line-through mt-0.5">₹{s.mrp}</p>}
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); void handleAddToCart(s.id); }}
-                                  disabled={addingId === s.id || addedIds.has(s.id)}
-                                  className={`mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-[12px] font-bold transition-all duration-200 cursor-pointer active:scale-[0.98] text-white disabled:opacity-60 ${addedIds.has(s.id) ? "bg-primary-container" : ""}`}
-                                  style={!addedIds.has(s.id) ? { background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)" } : undefined}
-                                  aria-label={addedIds.has(s.id) ? "Added" : "Add to cart"}
+                                  onClick={(e) => { e.stopPropagation(); void handleAddToCart(activeSlug); }}
+                                  disabled={addingId === activeSlug || addedIds.has(activeSlug)}
+                                  className={`mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-[12px] font-bold transition-all duration-200 cursor-pointer active:scale-[0.98] text-white disabled:opacity-60 ${addedIds.has(activeSlug) ? "bg-primary-container" : ""}`}
+                                  style={!addedIds.has(activeSlug) ? { background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)" } : undefined}
+                                  aria-label={addedIds.has(activeSlug) ? "Added" : "Add to cart"}
                                 >
-                                  {addingId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : addedIds.has(s.id) ? <><Check className="w-3.5 h-3.5" strokeWidth={2.5} /><span>Added</span></> : <><ShoppingBag className="w-3.5 h-3.5" strokeWidth={2} /><span>Add</span></>}
+                                  {addingId === activeSlug ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : addedIds.has(activeSlug) ? <><Check className="w-3.5 h-3.5" strokeWidth={2.5} /><span>Added</span></> : <><ShoppingBag className="w-3.5 h-3.5" strokeWidth={2} /><span>Add</span></>}
                                 </button>
                               </div>
                             </div>
@@ -1879,11 +1923,15 @@ export default function ProtocolPage() {
                   const reviewLabel = ratingData?.count ? (ratingData.count >= 1000 ? `${(ratingData.count / 1000).toFixed(1)}k` : `${ratingData.count}`) : null;
                   const trustBadge = getTrustBadge(s);
                   const displayScore = displayScoreMap.get(s.id) ?? s.matchScore;
+                  const activeSlug = selectedVariants.get(s.id) ?? s.id;
+                  const activeEnriched = getEnrichedPDP(activeSlug);
+                  const siblings = getEnrichedPDP(s.id)?.siblings;
+                  const displayName = activeEnriched?.name ?? s.name;
                   return (
                     <div
                       key={s.id}
-                      onClick={() => { track("Product Card Tapped", { product_id: s.id, product_name: s.name, brand: s.brand, source: "protocol" }); router.push(`/product/${s.id}`); }}
-                      className="flex-shrink-0 w-[52vw] max-w-[200px] min-w-[160px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 overflow-hidden cursor-pointer hover:border-primary-container/30 transition-all duration-200 active:scale-[0.98]"
+                      onClick={() => { track("Product Card Tapped", { product_id: s.id, product_name: s.name, brand: s.brand, source: "protocol" }); router.push(`/product/${activeSlug}`); }}
+                      className="flex flex-col flex-shrink-0 w-[52vw] max-w-[200px] min-w-[160px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 overflow-hidden cursor-pointer hover:border-primary-container/30 transition-all duration-200 active:scale-[0.98]"
                     >
                       <div className="relative w-full h-[164px] bg-surface-container-low">
                         {s.image ? (
@@ -1904,9 +1952,25 @@ export default function ProtocolPage() {
                           </div>
                         )}
                       </div>
-                      <div className="p-3">
+                      <div className="p-3 flex flex-col flex-1">
                         <p className="text-[11px] font-bold text-primary-container/70 uppercase tracking-wider mb-0.5">{s.brand}</p>
-                        <p className="text-[15px] font-bold text-on-surface leading-snug line-clamp-2 mb-1.5">{s.name}</p>
+                        <p className="text-[15px] font-bold text-on-surface leading-snug line-clamp-2 mb-1.5">{displayName}</p>
+                        {siblings && siblings.length > 1 && (
+                          <div className="flex flex-wrap gap-1 mb-2" onClick={e => e.stopPropagation()}>
+                            {siblings.map(sib => {
+                              const isActive = activeSlug === sib.slug;
+                              return (
+                                <button
+                                  key={sib.slug}
+                                  onClick={() => setSelectedVariants(prev => new Map(prev).set(s.id, sib.slug))}
+                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full border leading-none transition-all ${isActive ? "bg-[#004f54] text-white border-[#004f54]" : "text-on-surface-variant/70 border-outline-variant/30 hover:border-[#004f54]/40"}`}
+                                >
+                                  {sib.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                         {s.reasonTags && s.reasonTags.length > 0 && (
                           <div className="flex flex-wrap gap-1 mb-2">
                             {s.reasonTags.slice(0, 2).map((tag, i) => (
@@ -1919,7 +1983,7 @@ export default function ProtocolPage() {
                         {trustBadge && (
                           <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-1.5 leading-none ${trustBadge.style}`}>{trustBadge.label}</span>
                         )}
-                        {s.timing && !skipTiming(s.name) && (
+                        {s.timing && !skipTiming(displayName) && (
                           <p className="text-[10px] font-semibold text-on-surface-variant/55 mb-1.5 leading-none">
                             {formatTiming(s.timing)}
                           </p>
@@ -1933,17 +1997,17 @@ export default function ProtocolPage() {
                             {reviewLabel && <span className="text-[10px] text-on-surface-variant/40">({reviewLabel})</span>}
                           </div>
                         )}
-                        <div>
+                        <div className="mt-auto">
                           <p className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
                           {s.mrp && s.mrp > s.price && <p className="text-[9px] text-on-surface-variant/35 line-through mt-0.5">₹{s.mrp}</p>}
                           <button
-                            onClick={(e) => { e.stopPropagation(); void handleAddToCart(s.id); }}
-                            disabled={addingId === s.id || addedIds.has(s.id)}
-                            className={`mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-[12px] font-bold transition-all duration-200 cursor-pointer active:scale-[0.98] text-white disabled:opacity-60 ${addedIds.has(s.id) ? "bg-primary-container" : ""}`}
-                            style={!addedIds.has(s.id) ? { background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)" } : undefined}
-                            aria-label={addedIds.has(s.id) ? "Added" : "Add to cart"}
+                            onClick={(e) => { e.stopPropagation(); void handleAddToCart(activeSlug); }}
+                            disabled={addingId === activeSlug || addedIds.has(activeSlug)}
+                            className={`mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-[12px] font-bold transition-all duration-200 cursor-pointer active:scale-[0.98] text-white disabled:opacity-60 ${addedIds.has(activeSlug) ? "bg-primary-container" : ""}`}
+                            style={!addedIds.has(activeSlug) ? { background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)" } : undefined}
+                            aria-label={addedIds.has(activeSlug) ? "Added" : "Add to cart"}
                           >
-                            {addingId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : addedIds.has(s.id) ? <><Check className="w-3.5 h-3.5" strokeWidth={2.5} /><span>Added</span></> : <><ShoppingBag className="w-3.5 h-3.5" strokeWidth={2} /><span>Add</span></>}
+                            {addingId === activeSlug ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : addedIds.has(activeSlug) ? <><Check className="w-3.5 h-3.5" strokeWidth={2.5} /><span>Added</span></> : <><ShoppingBag className="w-3.5 h-3.5" strokeWidth={2} /><span>Add</span></>}
                           </button>
                         </div>
                       </div>

@@ -1,6 +1,6 @@
 {
   "slug": "tostero-120-capsules",
-  "shopifyHandle": "tostero-120-capsules",
+  "shopifyHandle": "tostero-capsules",
   "sourceId": "11038613",
   "brand": "Man Matters",
   "name": "TOSTERO 120 Capsules",
@@ -147,5 +147,17 @@
       "•To be used everyday for a minimum 6 months for visible results."
     ],
     "details": []
-  }
+  },
+  "variantTitle": "120N",
+  "variantId": 42892548636768,
+  "siblings": [
+    {
+      "slug": "tostero-capsules-60n",
+      "label": "60N"
+    },
+    {
+      "slug": "tostero-120-capsules",
+      "label": "120N"
+    }
+  ]
 }

@@ -695,6 +695,34 @@ function NewProductPDP({
             <p className="text-sm text-on-surface-variant mt-1 leading-relaxed">{enriched.subtitle}</p>
           )}
 
+          {/* Variant picker — shown when siblings exist (size / flavour / pack / age) */}
+          {enriched?.siblings && enriched.siblings.length > 1 && (
+            <div className="mt-3">
+              <p className="text-[11px] font-semibold text-on-surface-variant/60 uppercase tracking-wide mb-1.5">
+                {enriched.siblings.length > 2 ? "Choose variant" : "Choose size"}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {enriched.siblings.map(s => {
+                  const isCurrent = s.slug === enriched.slug;
+                  return (
+                    <button
+                      key={s.slug}
+                      onClick={() => !isCurrent && router.push(`/product/${s.slug}`)}
+                      className={[
+                        "px-3.5 py-1.5 rounded-full text-[12.5px] font-semibold border transition-all",
+                        isCurrent
+                          ? "bg-[#004f54] text-white border-[#004f54] shadow-sm"
+                          : "bg-white text-[#1a2e2e] border-[#c8d8d8] hover:border-[#004f54]",
+                      ].join(" ")}
+                    >
+                      {s.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* For / With callout (Be Bodywise) */}
           {enriched?.forWith && (
             <div className="flex flex-wrap gap-2 mt-2.5">

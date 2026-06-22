@@ -4,20 +4,28 @@
 // Server-side only — called from /api/catalog route.
 
 import type { Product } from "@/lib/protocolEngine";
+import { getEnrichedPDP } from "@/data/enrichedProducts";
 
 const SHOP = (process.env.NEXT_PUBLIC_SHOPIFY_STORE_URL ?? "").replace(/\/$/, "").replace("https://", "");
 const CLIENT_ID = process.env.SHOPIFY_ADMIN_CLIENT_ID ?? "";
 const CLIENT_SECRET = process.env.SHOPIFY_ADMIN_CLIENT_SECRET ?? "";
 const ADMIN_API = `https://${SHOP}/admin/api/2024-01/graphql.json`;
 
+// Cache the token for 23 hours — avoids exchanging on every catalog fetch
+let _cachedToken: string | null = null;
+let _tokenExpiry = 0;
+
 async function getAdminToken(): Promise<string> {
+  if (_cachedToken && Date.now() < _tokenExpiry) return _cachedToken;
   const res = await fetch(`https://${SHOP}/admin/oauth/access_token`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET, grant_type: "client_credentials" }),
   });
   const data = await res.json();
-  return data.access_token;
+  _cachedToken = data.access_token;
+  _tokenExpiry = Date.now() + 23 * 60 * 60 * 1000; // 23 hours
+  return _cachedToken!;
 }
 
 async function adminGql<T>(token: string, query: string, variables?: Record<string, unknown>): Promise<T> {
@@ -156,5 +164,11 @@ export async function fetchCatalogProducts(): Promise<Product[]> {
     cursor = page.products.pageInfo.hasNextPage ? page.products.pageInfo.endCursor : null;
   } while (cursor);
 
-  return results;
+  // Deduplicate sibling products — only keep the primary variant (first in siblings array).
+  // Size switching is handled by pills on the card; no need to show 30N, 60N, 90N separately.
+  return results.filter((p) => {
+    const siblings = getEnrichedPDP(p.id)?.siblings;
+    if (!siblings || siblings.length <= 1) return true;
+    return siblings[0].slug === p.id;
+  });
 }
