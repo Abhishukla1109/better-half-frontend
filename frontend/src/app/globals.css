@@ -102,6 +102,8 @@
 html {
   /* overflow-x: clip works on iOS Safari; overflow-x: hidden does not */
   overflow-x: clip;
+  /* Prevents white flash between page transitions */
+  background-color: #fbf9f5;
 }
 
 body {

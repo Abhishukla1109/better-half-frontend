@@ -103,19 +103,13 @@ export default function LandingPage() {
     router.push("/home");
   };
 
-  // Product ticker — mix of all 3 brands, duplicated for seamless loop
-  const tickerItems = [
-    { img: "https://i.mscwlns.co/media/misc/pdp_rcl/26166752/1.2_d9def6.jpg?tr=w-200", name: "Biotin Gummies", brand: "Man Matters" },
-    { img: "https://i.mscwlns.co/media/misc/pdp_rcl/multivitamin-gummies/Slide%201_cn16xu.jpg?tr=w-200", name: "Multivitamin", brand: "Be Bodywise" },
-    { img: "https://i.mscwlns.co/media/misc/pdp/multivitamin-gummies/mvg%202%20-%2030_buso8t.png?tr=w-200", name: "Multivitamin 2+", brand: "Little Joys" },
-    { img: "https://i.mscwlns.co/media/misc/pdp_rcl/magnesium-glycinate-gummies-60n/Artboard%201%20%28100%29_lt9fr4.jpg?tr=w-200", name: "Magnesium", brand: "Man Matters" },
-    { img: "https://i.mscwlns.co/media/misc/pdp_rcl/1-peptide-ceramide-moisturizer/Product_Hero_4dxycu.jpg?tr=w-200", name: "Peptide Moisturizer", brand: "Be Bodywise" },
-    { img: "https://i.mscwlns.co/media/misc/pdp/multivitamin-gummies/MVG%20Immunity%20PDP_cwmlqf.png?tr=w-200", name: "Immunity Gummies", brand: "Little Joys" },
-    { img: "https://i.mscwlns.co/mosaic-wellness/image/upload/v1631867343/Man%20Matters/Ashwagandha%20Gummies/Product%20images/Nutrition-matters-1-_1600X1200.jpg?tr=w-200", name: "Ashwagandha", brand: "Man Matters" },
-    { img: "https://i.mscwlns.co/media/misc/pdp_rcl/1-salicylic-acid-body-wash/250ml%20-%20Hero_iihi7g.jpg?tr=w-200", name: "Salicylic Wash", brand: "Be Bodywise" },
-    { img: "https://i.mscwlns.co/media/misc/pdp_rcl/10-aha-body-scrub/IntroPage%20copy%20%281%29_34ugqb.jpg?tr=w-200", name: "AHA Body Scrub", brand: "Be Bodywise" },
-    { img: "https://i.mscwlns.co/media/misc/pdp/multivitamin-gummies/3_1czs5i.jpg?tr=w-200", name: "Kids Gummies", brand: "Little Joys" },
+  // Brand logos — repeated 5 times each so the ticker loop looks seamless
+  const brandLogos = [
+    { img: "/logos/man-matters.png", name: "Man Matters" },
+    { img: "/logos/be-bodywise.png", name: "Be Bodywise" },
+    { img: "/logos/little-joys.png", name: "Little Joys" },
   ];
+  const tickerItems = [...Array(5)].flatMap(() => brandLogos);
 
   const steps = [
     { number: "01", title: "Answer 5 questions", desc: "Tell us your health goals, lifestyle, diet and existing routines. Takes under 60 seconds.", emoji: "📋" },
@@ -226,32 +220,33 @@ export default function LandingPage() {
           <span className="text-xl">→</span>
         </motion.button>
 
-        {/* ── Product ticker ── */}
+        {/* ── Brand logo ticker — edge to edge ── */}
         <motion.div
-          className="w-full relative"
+          className="w-full relative -mx-6 lg:-mx-16 mt-2"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.6 }}
         >
           {/* Fade edges */}
-          <div className="absolute left-0 top-0 bottom-0 w-16 lg:w-24 z-10 pointer-events-none"
-            style={{ background: "linear-gradient(to right, var(--color-surface), transparent)" }} />
-          <div className="absolute right-0 top-0 bottom-0 w-16 lg:w-24 z-10 pointer-events-none"
-            style={{ background: "linear-gradient(to left, var(--color-surface), transparent)" }} />
+          <div className="absolute left-0 top-0 bottom-0 w-20 z-10 pointer-events-none"
+            style={{ background: "linear-gradient(to right, #fbf9f5, transparent)" }} />
+          <div className="absolute right-0 top-0 bottom-0 w-20 z-10 pointer-events-none"
+            style={{ background: "linear-gradient(to left, #fbf9f5, transparent)" }} />
 
-          <div className="overflow-hidden">
+          <div className="overflow-hidden py-3">
             <motion.div
-              className="flex gap-3"
+              className="flex gap-5"
               animate={{ x: ["0%", "-50%"] }}
-              transition={{ duration: 28, repeat: Infinity, ease: "linear" }}
+              transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
             >
               {[...tickerItems, ...tickerItems].map((item, i) => (
-                <div key={i} className="shrink-0 flex flex-col items-center gap-2">
-                  <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-2xl bg-white border border-outline-variant/10 shadow-sm overflow-hidden flex items-center justify-center p-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={item.img} alt={item.name} className="w-full h-full object-contain" />
-                  </div>
-                  <p className="text-[10px] lg:text-[11px] font-bold text-on-surface-variant/65 whitespace-nowrap">{item.brand}</p>
+                <div
+                  key={i}
+                  className="shrink-0 flex items-center justify-center bg-white rounded-2xl border border-outline-variant/10 shadow-sm px-6 py-3"
+                  style={{ minWidth: 140 }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={item.img} alt={item.name} className="h-7 w-auto object-contain" />
                 </div>
               ))}
             </motion.div>
