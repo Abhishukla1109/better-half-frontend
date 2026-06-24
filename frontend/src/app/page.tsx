@@ -151,7 +151,7 @@ export default function LandingPage() {
   ];
 
   const stats = [
-    { to: 50, suffix: "+", label: "Products" },
+    { to: 100, suffix: "+", label: "Products" },
     { to: 3, suffix: "", label: "Brands" },
     { to: 8, suffix: "", label: "Health concerns" },
     { to: 60, suffix: "s", label: "To build your protocol" },
@@ -185,7 +185,7 @@ export default function LandingPage() {
         />
 
         <motion.p
-          className="text-[11px] font-bold text-primary-container uppercase tracking-widest mb-5"
+          className="text-[12px] font-bold text-primary-container uppercase tracking-widest mb-5"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.05 }}
@@ -205,7 +205,7 @@ export default function LandingPage() {
         </motion.h1>
 
         <motion.p
-          className="text-[14px] lg:text-[18px] text-on-surface-variant/60 leading-relaxed mb-8 max-w-md"
+          className="text-[15px] lg:text-[18px] text-on-surface-variant/75 leading-relaxed mb-8 max-w-md"
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.32 }}
@@ -246,12 +246,12 @@ export default function LandingPage() {
               transition={{ duration: 28, repeat: Infinity, ease: "linear" }}
             >
               {[...tickerItems, ...tickerItems].map((item, i) => (
-                <div key={i} className="shrink-0 flex flex-col items-center gap-1.5">
-                  <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-2xl bg-white border border-outline-variant/10 shadow-sm overflow-hidden flex items-center justify-center p-1">
+                <div key={i} className="shrink-0 flex flex-col items-center gap-2">
+                  <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-2xl bg-white border border-outline-variant/10 shadow-sm overflow-hidden flex items-center justify-center p-2">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={item.img} alt={item.name} className="w-full h-full object-contain" />
                   </div>
-                  <p className="text-[8px] lg:text-[9px] font-semibold text-on-surface-variant/40 whitespace-nowrap">{item.brand}</p>
+                  <p className="text-[10px] lg:text-[11px] font-bold text-on-surface-variant/65 whitespace-nowrap">{item.brand}</p>
                 </div>
               ))}
             </motion.div>
@@ -267,13 +267,13 @@ export default function LandingPage() {
         >
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container border border-outline-variant/15">
             <span className="text-[11px]">✦</span>
-            <span className="text-[11px] font-semibold text-on-surface-variant/70">50+ products · 3 brands · 8 concerns</span>
+            <span className="text-[12px] font-semibold text-on-surface-variant/80">100+ products · 3 brands · 8 concerns</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded-md overflow-hidden bg-primary-container/10 flex items-center justify-center shrink-0">
               <Sparkles className="w-2.5 h-2.5 text-primary-container" strokeWidth={1.5} />
             </div>
-            <p className="text-[11px] text-on-surface-variant/40">By <span className="font-semibold text-on-surface-variant/55">Mosaic Wellness</span> — makers of Man Matters &amp; Be Bodywise</p>
+            <p className="text-[12px] text-on-surface-variant/60">By <span className="font-semibold text-on-surface-variant/75">Mosaic Wellness</span> — makers of Man Matters &amp; Be Bodywise</p>
           </div>
         </motion.div>
 
@@ -299,7 +299,7 @@ export default function LandingPage() {
       <section className="px-4 lg:px-16 py-16 lg:py-20 border-t border-outline-variant/10">
         <div className="max-w-4xl mx-auto">
           <motion.p
-            className="text-[11px] font-bold text-primary-container uppercase tracking-widest mb-3 text-center"
+            className="text-[12px] font-bold text-primary-container uppercase tracking-widest mb-3 text-center"
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false, margin: "-60px" }}
@@ -460,7 +460,7 @@ export default function LandingPage() {
       <section className="px-6 lg:px-16 py-16 lg:py-24 border-t border-outline-variant/10">
         <div className="max-w-2xl mx-auto lg:max-w-4xl">
           <motion.p
-            className="text-[11px] font-bold text-primary-container uppercase tracking-widest mb-3 text-center"
+            className="text-[12px] font-bold text-primary-container uppercase tracking-widest mb-3 text-center"
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false, margin: "-60px" }}
@@ -494,7 +494,7 @@ export default function LandingPage() {
                 <div>
                   <p className="text-[10px] font-bold text-primary-container uppercase tracking-wider mb-1">{step.number}</p>
                   <p className="text-[15px] lg:text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-1.5">{step.title}</p>
-                  <p className="text-[13px] text-on-surface-variant/60 leading-relaxed">{step.desc}</p>
+                  <p className="text-[14px] text-on-surface-variant/75 leading-relaxed">{step.desc}</p>
                 </div>
               </motion.div>
             ))}
@@ -506,7 +506,7 @@ export default function LandingPage() {
       <section className="px-6 lg:px-16 py-16 lg:py-24 border-t border-outline-variant/10" style={{ background: "linear-gradient(180deg, rgba(21,89,74,0.04) 0%, transparent 100%)" }}>
         <div className="max-w-2xl mx-auto lg:max-w-4xl">
           <motion.p
-            className="text-[11px] font-bold text-primary-container uppercase tracking-widest mb-3 text-center"
+            className="text-[12px] font-bold text-primary-container uppercase tracking-widest mb-3 text-center"
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false, margin: "-60px" }}
@@ -524,7 +524,7 @@ export default function LandingPage() {
             What goes into your protocol
           </motion.h2>
           <motion.p
-            className="text-[14px] text-on-surface-variant/55 text-center mb-10 leading-relaxed"
+            className="text-[15px] text-on-surface-variant/70 text-center mb-10 leading-relaxed"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: false, margin: "-60px" }}
@@ -532,6 +532,7 @@ export default function LandingPage() {
           >
             Every product matched to your specific profile. Not generic, not random.
           </motion.p>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {products.map((p, i) => (
               <motion.div
@@ -561,7 +562,7 @@ export default function LandingPage() {
                 <div className="p-4 lg:p-5">
                   <p className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-wider mb-1">{p.brand}</p>
                   <p className="text-[15px] lg:text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-1">{p.name}</p>
-                  <p className="text-[12px] text-on-surface-variant/50">{p.concern}</p>
+                  <p className="text-[13px] text-on-surface-variant/65">{p.concern}</p>
                 </div>
               </motion.div>
             ))}
@@ -594,7 +595,7 @@ export default function LandingPage() {
                 <p className="text-[42px] lg:text-[52px] font-extrabold text-primary-container font-[family-name:var(--font-manrope)] leading-none mb-2">
                   <CountUp to={s.to} suffix={s.suffix} />
                 </p>
-                <p className="text-[13px] text-on-surface-variant/55 font-medium">{s.label}</p>
+                <p className="text-[14px] text-on-surface-variant/70 font-semibold">{s.label}</p>
               </motion.div>
             ))}
           </div>
@@ -630,13 +631,14 @@ export default function LandingPage() {
             Ready to build your<br />health protocol?
           </motion.h2>
           <motion.p
-            className="text-[14px] text-white/60 mb-8 max-w-sm mx-auto leading-relaxed"
+            className="text-[15px] text-white/75 mb-8 max-w-sm mx-auto leading-relaxed"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: false, margin: "-60px" }}
             transition={{ duration: 0.4, delay: 0.28 }}
           >
             Join thousands building smarter health habits with BetterHalf.
+
           </motion.p>
           <motion.button
             onClick={handleDemo}
@@ -652,7 +654,7 @@ export default function LandingPage() {
             <span className="text-xl">→</span>
           </motion.button>
           <motion.p
-            className="mt-5 text-[12px] text-white/35"
+            className="mt-5 text-[13px] text-white/55"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: false, margin: "-60px" }}
