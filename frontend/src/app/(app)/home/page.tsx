@@ -642,36 +642,40 @@ export default function HomePage() {
 
     return (
       <div
-        className="fixed inset-0 z-[80] flex flex-col items-center justify-center px-6"
-        style={{ background: "linear-gradient(160deg, rgba(21,89,74,0.09) 0%, rgba(255,255,255,1) 62%)" }}
+        className="fixed inset-0 z-[100] flex flex-col items-center justify-center px-6"
+        style={{ background: "#004034" }}
       >
 
         {/* Generating phase */}
         {generatingPhase === "generating" && (
           <div className="flex flex-col items-center text-center animate-fade-in-up w-full max-w-xs">
-            <div className="relative flex items-center justify-center w-24 h-24 mb-7">
-              <div className="absolute inset-0 rounded-full bg-primary-container/15 animate-ping" style={{ animationDuration: "1.4s" }} />
-              <div className="absolute inset-2 rounded-full bg-primary-container/10" />
+            {/* Radar rings */}
+            <div className="relative flex items-center justify-center w-24 h-24 mb-8">
+              <div className="absolute inset-0 rounded-full border border-white/20 animate-ping" style={{ animationDuration: "2s" }} />
+              <div className="absolute inset-0 rounded-full border border-white/12 animate-ping" style={{ animationDuration: "2s", animationDelay: "0.65s" }} />
+              <div className="absolute inset-0 rounded-full border border-white/07 animate-ping" style={{ animationDuration: "2s", animationDelay: "1.3s" }} />
+              <div className="absolute inset-0 rounded-full" style={{ background: "rgba(147,211,192,0.18)" }} />
+              <div className="absolute inset-2.5 rounded-full" style={{ background: "rgba(147,211,192,0.12)" }} />
               {isKids
                 ? <span className="relative text-4xl leading-none">🧒</span>
-                : <Sparkles className="relative w-9 h-9 text-primary-container" strokeWidth={1.5} />}
+                : <Sparkles className="relative w-9 h-9 text-white" strokeWidth={1.5} />}
             </div>
 
-            <h2 className="text-[26px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-2 leading-tight">
+            <h2 className="text-[28px] font-extrabold text-white font-[family-name:var(--font-manrope)] mb-2 leading-tight">
               {isKids ? "Finding their picks…" : `Building ${name ? `${name}'s` : "your"} protocol…`}
             </h2>
-            <p className="text-sm text-on-surface-variant/60 max-w-xs leading-relaxed mb-5">
+            <p className="text-sm leading-relaxed mb-6" style={{ color: "rgba(255,255,255,0.6)" }}>
               {isKids
-                ? "Curating age-appropriate products from Little Joys for your child."
-                : "Scanning your profile and matching the right products for you."}
+                ? "Curating age-appropriate products from Little Joys."
+                : "Scanning your profile and matching the right products."}
             </p>
 
             {!isKids && selectedConcerns.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 justify-center mb-5">
+              <div className="flex flex-wrap gap-1.5 justify-center mb-6">
                 {selectedConcerns.map((c) => {
                   const m = CONCERN_META[c];
                   return m ? (
-                    <span key={c} className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${m.style}`}>
+                    <span key={c} className="text-[11px] font-semibold px-2.5 py-1 rounded-full border" style={{ background: "rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.85)", borderColor: "rgba(255,255,255,0.18)" }}>
                       {m.emoji} {m.label}
                     </span>
                   ) : null;
@@ -679,19 +683,19 @@ export default function HomePage() {
               </div>
             )}
 
-            <div className="flex gap-2 mb-5">
+            <div className="flex gap-2 mb-6">
               {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="w-2 h-2 rounded-full bg-primary-container/40 animate-pulse" style={{ animationDelay: `${i * 250}ms` }} />
+                <div key={i} className="w-2 h-2 rounded-full animate-pulse" style={{ background: "rgba(255,255,255,0.35)", animationDelay: `${i * 250}ms` }} />
               ))}
             </div>
 
-            <div className="space-y-2 text-left w-full">
+            <div className="space-y-2.5 text-left w-full">
               {loadingSteps.map((step, i) => (
                 <div key={i} className="flex items-center gap-2.5 animate-fade-in-up" style={{ animationDelay: `${i * 600 + 200}ms` }}>
-                  <div className="w-4 h-4 rounded-full bg-primary-container/15 flex items-center justify-center shrink-0">
-                    <Check className="w-2.5 h-2.5 text-primary-container" strokeWidth={2.5} />
+                  <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.12)" }}>
+                    <Check className="w-2.5 h-2.5 text-white" strokeWidth={2.5} />
                   </div>
-                  <span className="text-xs text-on-surface-variant/60">{step}</span>
+                  <span className="text-xs" style={{ color: "rgba(255,255,255,0.55)" }}>{step}</span>
                 </div>
               ))}
             </div>
@@ -702,29 +706,30 @@ export default function HomePage() {
         {generatingPhase === "ready" && (
           <div className="flex flex-col items-center text-center animate-fade-in-up w-full max-w-xs">
             <div className="relative flex items-center justify-center w-20 h-20 mb-6">
-              <div className="absolute inset-0 rounded-full bg-primary-container/15" />
+              <div className="absolute inset-0 rounded-full" style={{ background: "rgba(147,211,192,0.22)" }} />
+              <div className="absolute inset-2 rounded-full" style={{ background: "rgba(147,211,192,0.14)" }} />
               {isKids
                 ? <span className="relative text-4xl leading-none">🧒</span>
-                : <Sparkles className="relative w-9 h-9 text-primary-container" strokeWidth={1.5} />}
+                : <Check className="relative w-9 h-9 text-white" strokeWidth={2.5} />}
             </div>
 
-            <h2 className="text-[26px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-2 leading-tight">
+            <h2 className="text-[28px] font-extrabold text-white font-[family-name:var(--font-manrope)] mb-2 leading-tight">
               {isKids
                 ? `${childName ? `${childName}'s` : "Their"} picks are ready!`
                 : `${name ? `${name}, your` : "Your"} protocol is ready`}
             </h2>
-            <p className="text-sm text-on-surface-variant/60 leading-relaxed mb-5">
+            <p className="text-sm leading-relaxed mb-6" style={{ color: "rgba(255,255,255,0.6)" }}>
               {isKids
-                ? "We've curated age-matched products from Little Joys for your child."
+                ? "Age-matched products from Little Joys, curated for your child."
                 : "Your supplements, habits and daily routine — personalized for you."}
             </p>
 
             {!isKids && selectedConcerns.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 justify-center mb-6">
+              <div className="flex flex-wrap gap-1.5 justify-center mb-7">
                 {selectedConcerns.map((c) => {
                   const m = CONCERN_META[c];
                   return m ? (
-                    <span key={c} className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${m.style}`}>
+                    <span key={c} className="text-[11px] font-semibold px-2.5 py-1 rounded-full border" style={{ background: "rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.85)", borderColor: "rgba(255,255,255,0.18)" }}>
                       {m.emoji} {m.label}
                     </span>
                   ) : null;
@@ -734,7 +739,8 @@ export default function HomePage() {
 
             <button
               onClick={() => router.replace(isKids ? "/kids" : "/protocol")}
-              className="w-full py-4 rounded-2xl bg-primary-container text-white font-bold text-base hover:bg-primary transition-colors duration-200 cursor-pointer mb-3"
+              className="w-full py-4 rounded-2xl font-bold text-base cursor-pointer mb-3 transition-opacity duration-200 hover:opacity-90"
+              style={{ background: "#ffffff", color: "#004034" }}
             >
               {isKids
                 ? `Set up ${childName ? `${childName}'s` : "their"} wellness →`
@@ -743,7 +749,7 @@ export default function HomePage() {
                   : "View my protocol →"}
             </button>
             {!isKids && (
-              <p className="text-[11px] text-on-surface-variant/40">Free · Personalized · Updates as you share more</p>
+              <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>Free · Personalized · Updates as you share more</p>
             )}
           </div>
         )}

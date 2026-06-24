@@ -76,26 +76,24 @@ export default function LandingPage() {
     else setShowSplash(false);
   };
 
-  if (showSplash) {
-    return (
-      <div
-        className="fixed inset-0 z-[70] flex flex-col items-center justify-center bg-surface splash-exit"
-        onAnimationEnd={handleSplashEnd}
-      >
-        <div className="absolute w-72 h-72 rounded-full bg-primary-container/10 splash-glow" />
-        <div className="relative flex items-center justify-center w-16 h-16 rounded-2xl bg-primary-container/15 mb-8 splash-text-1">
-          <Sparkles className="w-7 h-7 text-primary-container" strokeWidth={1.5} />
-        </div>
-        <h1 className="text-2xl font-extrabold text-primary text-center leading-snug tracking-tight font-[family-name:var(--font-manrope)] splash-text-1 px-8">
-          {isReturning ? `Welcome back${returningName ? `, ${returningName}` : ""}.` : "Welcome."}
-        </h1>
-        <p className="text-base text-on-surface-variant text-center mt-3 max-w-xs leading-relaxed splash-text-2 px-8">
-          {isReturning ? "Taking you to your protocol." : "Let's build your personalised health journey."}
-        </p>
-        <p className="absolute bottom-8 text-[10px] text-on-surface-variant/30 uppercase tracking-widest splash-text-2">BetterHalf</p>
+  const splashOverlay = showSplash ? (
+    <div
+      className="fixed inset-0 z-[70] flex flex-col items-center justify-center bg-surface splash-exit"
+      onAnimationEnd={handleSplashEnd}
+    >
+      <div className="absolute w-72 h-72 rounded-full bg-primary-container/10 splash-glow" />
+      <div className="relative flex items-center justify-center w-16 h-16 rounded-2xl bg-primary-container/15 mb-8 splash-text-1">
+        <Sparkles className="w-7 h-7 text-primary-container" strokeWidth={1.5} />
       </div>
-    );
-  }
+      <h1 className="text-2xl font-extrabold text-primary text-center leading-snug tracking-tight font-[family-name:var(--font-manrope)] splash-text-1 px-8">
+        {isReturning ? `Welcome back${returningName ? `, ${returningName}` : ""}.` : "Welcome."}
+      </h1>
+      <p className="text-base text-on-surface-variant text-center mt-3 max-w-xs leading-relaxed splash-text-2 px-8">
+        {isReturning ? "Taking you to your protocol." : "Let's build your personalised health journey."}
+      </p>
+      <p className="absolute bottom-8 text-[10px] text-on-surface-variant/30 uppercase tracking-widest splash-text-2">BetterHalf</p>
+    </div>
+  ) : null;
 
   const handleDemo = () => {
     localStorage.removeItem("bh_profile");
@@ -152,7 +150,9 @@ export default function LandingPage() {
   ];
 
   return (
-    <main className="w-full min-h-dvh bg-surface flex flex-col">
+    <>
+      {splashOverlay}
+      <main className="w-full min-h-dvh bg-surface flex flex-col">
 
       {/* ── Nav ── */}
       <header className="flex items-center justify-between px-6 lg:px-12 py-4 border-b border-outline-variant/10 shrink-0">
@@ -661,5 +661,6 @@ export default function LandingPage() {
       </section>
 
     </main>
+    </>
   );
 }
