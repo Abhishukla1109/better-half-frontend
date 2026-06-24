@@ -16,6 +16,7 @@ interface AddToCartMeta {
 
 interface CartContextValue {
   cart: Cart | null;
+  cartReady: boolean;
   isOpen: boolean;
   isLoading: boolean;
   openCart: () => void;
@@ -43,6 +44,7 @@ async function cartApi(action: string, params: Record<string, unknown>): Promise
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<Cart | null>(null);
+  const [cartReady, setCartReady] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -52,7 +54,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const stored = localStorage.getItem(CART_ID_KEY);
-    if (!stored) return;
+    if (!stored) { setCartReady(true); return; }
     cartIdRef.current = stored;
     cartApi('get', { cartId: stored })
       .then(c => {
@@ -64,7 +66,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           cartIdRef.current = null;
         }
       })
-      .catch(() => { localStorage.removeItem(CART_ID_KEY); cartIdRef.current = null; });
+      .catch(() => { localStorage.removeItem(CART_ID_KEY); cartIdRef.current = null; })
+      .finally(() => setCartReady(true));
   }, []);
 
   const openCart = useCallback(() => setIsOpen(true), []);
@@ -150,6 +153,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   return (
     <CartContext.Provider value={{
       cart,
+      cartReady,
       isOpen,
       isLoading,
       openCart,
