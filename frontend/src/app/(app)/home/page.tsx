@@ -184,6 +184,14 @@ const AGE_OPTIONS = [
   { label: "45+",     value: "45+"   },
 ];
 
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h >= 5  && h < 12) return "Good morning ☀️";
+  if (h >= 12 && h < 17) return "Good afternoon 🌤️";
+  if (h >= 17 && h < 21) return "Good evening 🌙";
+  return "Good night 🌙";
+}
+
 function heroImg(step: FlowStep, sex?: string, firstConcern?: string): string {
   const f = sex === "female";
   switch (step) {
@@ -200,9 +208,9 @@ function heroImg(step: FlowStep, sex?: string, firstConcern?: string): string {
 }
 
 const slideVariants = {
-  enter: (dir: number) => ({ x: dir > 0 ? 24 : -24, opacity: 0 }),
-  center: { x: 0, opacity: 1 },
-  exit:  (dir: number) => ({ x: dir > 0 ? -24 : 24, opacity: 0 }),
+  enter:  { opacity: 0 },
+  center: { opacity: 1 },
+  exit:   { opacity: 0 },
 };
 
 function ProgressDots({ current, total }: { current: number; total: number }) {
@@ -243,8 +251,6 @@ export default function HomePage() {
   const [childAge, setChildAge] = useState<"2-5" | "6-12" | "13+" | null>(null);
   const [childConcern, setChildConcern] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<FlowStep>("entry");
-  const [direction, setDirection] = useState(1);
-
   const { addMember, members, activeMember, updateMemberProfile } = useActiveProfile();
   const router = useRouter();
 
@@ -265,12 +271,10 @@ export default function HomePage() {
   };
 
   const advance = useCallback((next: FlowStep) => {
-    setDirection(1);
     setCurrentStep(next);
   }, []);
 
   const goBack = useCallback(() => {
-    setDirection(-1);
     const qualifierShown =
       selectedConcerns.length > 1 ||
       (selectedConcerns.length === 1 && !!CONCERN_QUALIFIERS[selectedConcerns[0]]);
@@ -416,37 +420,37 @@ export default function HomePage() {
     const isMulti = selectedConcerns.length > 1;
     const hasSingleQualifier = !isMulti && selectedConcerns[0] && CONCERN_QUALIFIERS[selectedConcerns[0]];
     if (isMulti || hasSingleQualifier) {
-      setDirection(1); setCurrentStep("qualifier");
+      setCurrentStep("qualifier");
     } else {
       setLevel("L1");
-      setDirection(1); setCurrentStep("diet");
+      setCurrentStep("diet");
     }
   }, [selectedConcerns]);
 
   const handleQualifierAnswer = useCallback((key: string, value: string) => {
     if (key) setProfile((p) => ({ ...p, [key]: value }));
     setLevel("L1");
-    setDirection(1); setCurrentStep("diet");
+    setCurrentStep("diet");
   }, []);
 
   const handleNameSubmit = useCallback(() => {
     const trimmed = nameText.trim();
     if (trimmed) { setName(trimmed); setProfile((p) => ({ ...p, name: trimmed })); }
     track("Onboarding Step Completed", { step: "name" });
-    setDirection(1); setCurrentStep("gender");
+    setCurrentStep("gender");
   }, [nameText]);
 
   const handleSexSelect = useCallback((sex: string) => {
     setProfile((p) => ({ ...p, sex }));
     applyTheme(sex === "female" ? "female" : "male");
     track("Onboarding Step Completed", { step: "gender", value: sex });
-    setDirection(1); setCurrentStep("age");
+    setCurrentStep("age");
   }, []);
 
   const handleAgeSelect = useCallback((age: string) => {
     setProfile((p) => ({ ...p, age }));
     track("Onboarding Step Completed", { step: "age", value: age });
-    setDirection(1); setCurrentStep("concern");
+    setCurrentStep("concern");
   }, []);
 
   const handleDietSelect = useCallback((diet: string) => {
@@ -738,6 +742,14 @@ export default function HomePage() {
       <>
         <NavBar showBack onSkip={() => { setNameText(""); handleNameSubmit(); }} />
         <HeroImage />
+        <div className="px-5 pt-4 pb-1">
+          <p className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">{getGreeting()}</p>
+          <p className="text-[13px] text-on-surface-variant/60 mt-0.5">
+            {memberFlow === "partner"
+              ? "Now let's personalise things for your partner too."
+              : "Welcome to BetterHalf — your personalised health journey starts here."}
+          </p>
+        </div>
         <QuestionBlock q={memberFlow === "partner" ? "What's your partner's name?" : "What should we call you?"} />
         <div className="px-4 mt-4">
           <div className="bg-white rounded-2xl px-5 py-4 shadow-[0_2px_16px_rgba(0,58,45,0.08)]">
@@ -760,7 +772,10 @@ export default function HomePage() {
       <>
         <NavBar onSkip={() => handleSexSelect("undisclosed")} />
         <HeroImage />
-        <QuestionBlock q={name ? `Tell me about ${memberFlow === "partner" ? name : "yourself"}, ${name}` : memberFlow === "partner" ? "Tell me about your partner" : "Who are we building this for?"} />
+        <QuestionBlock
+          q={name ? `Tell me about ${memberFlow === "partner" ? name : "yourself"}, ${name}` : memberFlow === "partner" ? "Tell me about your partner" : "Who are we building this for?"}
+          sub="This helps us personalise supplement picks, brands and daily habits."
+        />
         <div className="px-4 grid grid-cols-2 gap-3 mt-3">
           {[{ sex: "male", emoji: "👨", label: "A man" }, { sex: "female", emoji: "👩", label: "A woman" }].map((opt) => (
             <button key={opt.sex} onClick={() => handleSexSelect(opt.sex)}
@@ -996,18 +1011,16 @@ export default function HomePage() {
   return (
     <>
       {/* Full-screen scrollable overlay — fixed wrapper outside AnimatePresence avoids position:fixed + transform conflict */}
-      <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "#fbf9f5", WebkitTransform: "translateZ(0)", transform: "translateZ(0)" }}>
-        <AnimatePresence mode="wait" custom={direction}>
+      <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "#fbf9f5" }}>
+        <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
-            custom={direction}
             variants={slideVariants}
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+            transition={{ duration: 0.15, ease: "easeInOut" }}
             className="min-h-full pb-28 max-w-[420px] mx-auto"
-            style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden", willChange: "transform, opacity" }}
           >
             {renderScreen()}
           </motion.div>
