@@ -200,9 +200,9 @@ function heroImg(step: FlowStep, sex?: string, firstConcern?: string): string {
 }
 
 const slideVariants = {
-  enter: (dir: number) => ({ x: dir > 0 ? 40 : -40, opacity: 0 }),
+  enter: (dir: number) => ({ x: dir > 0 ? 24 : -24, opacity: 0 }),
   center: { x: 0, opacity: 1 },
-  exit:  (dir: number) => ({ x: dir > 0 ? -40 : 40, opacity: 0 }),
+  exit:  (dir: number) => ({ x: dir > 0 ? -24 : 24, opacity: 0 }),
 };
 
 function ProgressDots({ current, total }: { current: number; total: number }) {
@@ -996,7 +996,7 @@ export default function HomePage() {
   return (
     <>
       {/* Full-screen scrollable overlay — fixed wrapper outside AnimatePresence avoids position:fixed + transform conflict */}
-      <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "#fbf9f5" }}>
+      <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "#fbf9f5", WebkitTransform: "translateZ(0)", transform: "translateZ(0)" }}>
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={currentStep}
@@ -1005,8 +1005,9 @@ export default function HomePage() {
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
             className="min-h-full pb-28 max-w-[420px] mx-auto"
+            style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden", willChange: "transform, opacity" }}
           >
             {renderScreen()}
           </motion.div>
