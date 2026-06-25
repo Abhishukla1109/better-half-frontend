@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
-// Routes that are freely browseable without any auth
 function isBrowsePath(pathname: string) {
   return ["/home", "/explore", "/product/"].some(
     (p) => pathname === p || pathname.startsWith(p)
@@ -13,25 +12,15 @@ function isBrowsePath(pathname: string) {
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  // Synchronously mark browse-paths ready so they never flash a blank screen
-  const [ready, setReady] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return isBrowsePath(window.location.pathname);
-  });
 
   useEffect(() => {
     async function check() {
-      // Browse routes — freely accessible without auth
-      if (isBrowsePath(window.location.pathname)) { setReady(true); return; }
+      if (isBrowsePath(window.location.pathname)) return;
 
-      // Real Supabase session
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) { setReady(true); return; }
+      if (session) return;
 
-      // Demo / localStorage fallback
-      try {
-        if (localStorage.getItem("bh_auth")) { setReady(true); return; }
-      } catch {}
+      try { if (localStorage.getItem("bh_auth")) return; } catch {}
 
       router.replace("/auth");
     }
@@ -39,13 +28,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     check();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) setReady(true);
-      else if (event === "SIGNED_OUT" && !isBrowsePath(window.location.pathname)) router.replace("/auth");
+      if (session) return;
+      if (event === "SIGNED_OUT" && !isBrowsePath(window.location.pathname)) router.replace("/auth");
     });
 
     return () => subscription.unsubscribe();
   }, [router]);
 
-  if (!ready) return null;
   return <>{children}</>;
 }

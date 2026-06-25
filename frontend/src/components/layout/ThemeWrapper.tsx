@@ -74,7 +74,7 @@ export default function ThemeWrapper({ children }: { children: React.ReactNode }
   }, [pathname]);
 
   return (
-    <div data-theme={theme} className="contents">
+    <div data-theme={theme} className="contents" suppressHydrationWarning>
       {children}
     </div>
   );
