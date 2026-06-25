@@ -547,8 +547,8 @@ function ExplorePageContent() {
     searchParams.get("brand") ?? activeBrand,
   );
 
-  // Kids UI triggers when profile is a child OR user explicitly browses Little Joys brand
-  const showKidsFilters = isKid || selectedBrand === "Little Joys";
+  // Kids UI triggers when browsing Little Joys, or child profile active with no explicit brand override
+  const showKidsFilters = selectedBrand === "Little Joys" || (isKid && !selectedBrand);
 
   const switchBrand = useCallback((brand: string | null) => {
     setSelectedBrand(brand);
@@ -601,7 +601,17 @@ function ExplorePageContent() {
 
   // Sync brand from profile only when no explicit URL brand param is set
   useEffect(() => {
-    if (!searchParams.get("brand") && activeBrand) setSelectedBrand(activeBrand);
+    if (searchParams.get("brand")) return;
+    if (!activeBrand) return;
+    setSelectedBrand(activeBrand);
+    if (activeBrand === "Little Joys") {
+      setLjMode("kids");
+      // Move to lj-kids tab unless already on a valid kids tab
+      setActiveCategory((prev) => {
+        const validKidsTabs = ["lj-kids", "lj-mom", "bestsellers", "all", ...KIDS_CATEGORY_KEYS, ...KIDS_CONCERN_KEYS];
+        return validKidsTabs.includes(prev) ? prev : "lj-kids";
+      });
+    }
   }, [activeBrand, searchParams]);
 
   // Restore scroll position after returning from a product PDP

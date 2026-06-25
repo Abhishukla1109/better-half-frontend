@@ -2,7 +2,7 @@
 
 import { useMemo, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShoppingBag, ArrowLeft, X } from "lucide-react";
+import { ShoppingBag, X } from "lucide-react";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import type { Product } from "@/lib/protocolEngine";
@@ -357,69 +357,56 @@ export default function KidsHomePage() {
 
   return (
     <>
-    <div className="min-h-dvh pb-28 lg:pb-10" style={{ background: "#fffbf5" }}>
-      <div className="pt-8 lg:pt-12 space-y-5">
+    <div className="min-h-dvh pb-28 lg:pb-10 bg-[#fffbf5]">
+      <div className="pt-4 lg:pt-8 space-y-4">
 
-        {/* ── Edit profile ── */}
-        <div className="px-5">
-          <button
-            onClick={openEdit}
-            className="flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" strokeWidth={1.5} />
-            <span>Edit profile</span>
-          </button>
-        </div>
+        {/* ── Hero ── */}
+        <div className="mx-4 rounded-3xl overflow-hidden relative" style={{ background: "linear-gradient(145deg, #fff3e0 0%, #ffe0b2 55%, #fff8f0 100%)", border: "1px solid #fed7aa" }}>
+          {/* Decorative blobs */}
+          <div className="absolute -right-10 -top-10 w-44 h-44 rounded-full opacity-20 pointer-events-none" style={{ background: "#f97316" }} />
+          <div className="absolute right-0 bottom-0 w-24 h-24 rounded-full opacity-10 pointer-events-none" style={{ background: "#fb923c" }} />
 
-        {/* ── Hero banner ── */}
-        <div
-          className="mx-5 rounded-3xl p-5 relative overflow-hidden"
-          style={{ background: "linear-gradient(135deg, #fff3e0 0%, #ffe8cc 60%, #fff8f0 100%)", border: "1px solid #fed7aa" }}
-        >
-          {/* Decorative circles */}
-          <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full opacity-20" style={{ background: "#f97316" }} />
-          <div className="absolute -right-2 -bottom-8 w-20 h-20 rounded-full opacity-10" style={{ background: "#fb923c" }} />
-
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-3">
-                <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#ea580c" }}>Little Joys</span>
-                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ color: "#c2410c", background: "rgba(255,255,255,0.7)", border: "1px solid #fed7aa" }}>
-                  {ageLabel}
-                </span>
-              </div>
-
-            <h1 className="text-[26px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-tight tracking-tight mb-1">
-              {childName ? `${childName}'s Wellness` : "Your Child's Wellness"}
-            </h1>
-            <p className="text-[13px] font-semibold mb-3" style={{ color: "#c2410c" }}>
-              {headline} {childName ? `for ${childName}` : ""}
-            </p>
-
-            <span
-              className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full"
-              style={{ color: "#c2410c", background: "rgba(255,255,255,0.75)", border: "1px solid #fed7aa" }}
+          {/* Top row: brand label + edit button */}
+          <div className="relative z-10 flex items-center justify-between px-5 pt-5 mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: "#ea580c" }}>Little Joys</span>
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ color: "#c2410c", background: "rgba(255,255,255,0.75)", border: "1px solid #fed7aa" }}>
+                {ageLabel}
+              </span>
+            </div>
+            <button
+              onClick={openEdit}
+              className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-opacity hover:opacity-70"
+              style={{ background: "rgba(255,255,255,0.75)", border: "1px solid #fed7aa" }}
             >
-              <span>🎯</span> Focus: {CONCERN_LABEL[concern] ?? concern}
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="#c2410c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
+              </svg>
+            </button>
+          </div>
+
+          {/* Child name + headline */}
+          <div className="relative z-10 px-5 pb-5">
+            <h1 className="text-[34px] font-black text-on-surface font-[family-name:var(--font-manrope)] leading-[1.0] tracking-tight mb-2">
+              {childName ? `${childName}'s` : "Your child's"}<br />wellness
+            </h1>
+            <p className="text-[14px] font-semibold mb-4" style={{ color: "#c2410c" }}>{headline}</p>
+            <span className="inline-flex items-center gap-1.5 text-[12px] font-bold px-3.5 py-1.5 rounded-full" style={{ color: "#c2410c", background: "rgba(255,255,255,0.82)", border: "1px solid #fed7aa" }}>
+              🎯 {CONCERN_LABEL[concern] ?? concern}
             </span>
           </div>
 
-          {/* Habits merged into hero card */}
+          {/* Habits grid */}
           {habits.length > 0 && (
             <>
-              <div className="mx-0 mt-4 mb-0 h-px" style={{ background: "rgba(249,115,22,0.2)" }} />
-              <div className="pt-3.5">
-                <p className="text-[10px] font-bold uppercase tracking-widest mb-2.5" style={{ color: "#c2410c", opacity: 0.6 }}>
-                  Today&apos;s parent habits
-                </p>
-                <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-5 px-5" style={{ scrollbarWidth: "none" }}>
+              <div className="mx-4 h-px" style={{ background: "rgba(249,115,22,0.18)" }} />
+              <div className="px-4 pt-4 pb-5">
+                <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: "#c2410c", opacity: 0.6 }}>Today&apos;s habits</p>
+                <div className="grid grid-cols-3 gap-2">
                   {habits.map((h, i) => (
-                    <div
-                      key={i}
-                      className="shrink-0 flex items-start gap-2 px-3.5 py-3 rounded-2xl"
-                      style={{ background: "rgba(255,255,255,0.7)", border: "1px solid #fed7aa", minWidth: 160, maxWidth: 200 }}
-                    >
-                      <span className="text-[18px] leading-none shrink-0 mt-0.5">{h.emoji}</span>
-                      <p className="text-[11px] font-semibold text-on-surface leading-snug">{h.text}</p>
+                    <div key={i} className="flex flex-col items-center gap-1.5 px-2 py-3 rounded-2xl text-center" style={{ background: "rgba(255,255,255,0.72)", border: "1px solid #fed7aa" }}>
+                      <span className="text-[22px] leading-none">{h.emoji}</span>
+                      <p className="text-[9.5px] font-semibold text-on-surface leading-snug">{h.text}</p>
                     </div>
                   ))}
                 </div>
@@ -430,37 +417,26 @@ export default function KidsHomePage() {
 
         {/* ── Progressive nudge card ── */}
         {currentNudge && (
-          <div
-            className="mx-5 rounded-3xl p-4 animate-fade-in-up"
-            style={{ background: "linear-gradient(135deg, #fff8f0, #fff3e0)", border: "1px solid #fed7aa" }}
-          >
+          <div className="mx-4 rounded-3xl p-4 animate-fade-in-up" style={{ background: "linear-gradient(135deg, #fff8f0, #fff3e0)", border: "1px solid #fed7aa" }}>
             <div className="flex items-start justify-between gap-2 mb-3">
               <div className="flex items-start gap-2.5">
                 <span className="text-[22px] leading-none mt-0.5">{currentNudge.emoji}</span>
                 <div>
-                  <p className="text-[9px] font-bold uppercase tracking-widest mb-0.5" style={{ color: "#f97316" }}>
-                    Quick question
-                  </p>
+                  <p className="text-[9px] font-bold uppercase tracking-widest mb-0.5" style={{ color: "#f97316" }}>Quick question</p>
                   <p className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug">
                     {currentNudge.question.replace("[name]", childName ?? "your child")}
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => handleNudgeDismiss(currentNudge.id)}
-                className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer hover:bg-orange-100 transition-colors mt-0.5"
-              >
+              <button onClick={() => handleNudgeDismiss(currentNudge.id)} className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer hover:bg-orange-100 transition-colors mt-0.5">
                 <X className="w-3.5 h-3.5" style={{ color: "#c2410c", opacity: 0.5 }} />
               </button>
             </div>
             <div className="flex flex-wrap gap-2">
               {currentNudge.options.map(opt => (
-                <button
-                  key={opt}
-                  onClick={() => handleNudgeAnswer(currentNudge.id, opt)}
+                <button key={opt} onClick={() => handleNudgeAnswer(currentNudge.id, opt)}
                   className="px-3 py-1.5 rounded-full text-[12px] font-semibold cursor-pointer transition-all active:scale-95"
-                  style={{ background: "rgba(255,255,255,0.85)", border: "1px solid #fed7aa", color: "#c2410c" }}
-                >
+                  style={{ background: "rgba(255,255,255,0.85)", border: "1px solid #fed7aa", color: "#c2410c" }}>
                   {opt}
                 </button>
               ))}
@@ -468,143 +444,121 @@ export default function KidsHomePage() {
           </div>
         )}
 
-        {/* ── Unified picks card: top picks + complete the kit ── */}
-        <div
-          className="mx-5 rounded-3xl overflow-hidden"
-          style={{ border: "1px solid #fed7aa", background: "linear-gradient(175deg, rgba(249,115,22,0.07) 0%, rgba(249,115,22,0.03) 50%, rgba(255,255,255,0.8) 100%)" }}
-        >
-          {/* Card header */}
-          <div className="px-5 pt-5 pb-4">
-            <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: "#f97316" }}>
-              Little Joys · AI-matched picks
-            </p>
-            <p className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-tight">
+        {/* ── Primary picks section header ── */}
+        <div className="px-4 flex items-center justify-between pt-1">
+          <div>
+            <p className="text-[19px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-tight">
               {displayName === "your child" ? "Top picks" : `${displayName}'s picks`}
             </p>
-            <p className="text-[11px] mt-0.5" style={{ color: "#c2410c", opacity: 0.7 }}>
-              Matched for {CONCERN_LABEL[concern] ?? concern} · {ageLabel}
+            <p className="text-[11px] mt-0.5" style={{ color: "#c2410c", opacity: 0.65 }}>
+              Little Joys · AI-matched · {ageLabel}
             </p>
           </div>
-
-          {/* Hairline divider */}
-          <div className="mx-5 h-px mb-4" style={{ background: "rgba(249,115,22,0.15)" }} />
-
-          {/* Top picks — horizontal scroll */}
-          <div className="flex gap-3 overflow-x-auto pb-4 px-5" style={{ scrollbarWidth: "none" }}>
-            {primary.map(p => {
-              const sty = getStyle(p.category);
-              return (
-                <div
-                  key={p.id}
-                  className="shrink-0 w-[160px] rounded-2xl overflow-hidden flex flex-col"
-                  style={{ background: `linear-gradient(160deg, ${sty.bgFrom}, white)`, border: `1px solid ${sty.border}` }}
-                >
-                  <div className="h-36 flex items-center justify-center px-2 pt-2">
-                    {p.image && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.image} alt={p.name} className="w-32 h-32 object-contain" />
-                    )}
-                  </div>
-                  <div className="px-3 pb-3.5 flex flex-col flex-1">
-                    <p className="text-[8px] font-bold uppercase tracking-widest mb-0.5" style={{ color: sty.accent }}>Little Joys</p>
-                    <p className="text-[12px] font-extrabold text-on-surface leading-snug font-[family-name:var(--font-manrope)] flex-1">{p.name}</p>
-                    <p className="text-[10px] text-on-surface-variant/45 mt-1 leading-snug">{getBenefit(p)}</p>
-                    <div className="flex items-center justify-between mt-2.5">
-                      <div>
-                        <p className="text-[13px] font-extrabold text-on-surface">₹{p.price}</p>
-                        {p.mrp > p.price && <p className="text-[9px] text-on-surface-variant/40 line-through">₹{p.mrp}</p>}
-                      </div>
-                      {p.url && (
-                        <a href={p.url} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[10px] font-bold"
-                          style={{ color: "white", background: sty.accent }}>
-                          <ShoppingBag className="w-2.5 h-2.5" strokeWidth={2.5} /> Shop
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Complete the kit — horizontal scroll inside the same card */}
-          {rest.length > 0 && (
-            <>
-              <div className="mx-5 h-px mt-5 mb-4" style={{ background: "rgba(249,115,22,0.15)" }} />
-              <div className="px-5 pb-1 flex items-baseline justify-between">
-                <p className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
-                  Complete {childName ? `${childName}'s` : "the"} kit
-                </p>
-                <span className="text-[11px] font-semibold" style={{ color: "#f97316" }}>{rest.length} more</span>
-              </div>
-              <div className="flex gap-3 overflow-x-auto pb-5 pt-3 px-5" style={{ scrollbarWidth: "none" }}>
-                {rest.map(p => {
-                  const sty = getStyle(p.category);
-                  return (
-                    <div
-                      key={p.id}
-                      className="shrink-0 w-[140px] rounded-2xl overflow-hidden flex flex-col"
-                      style={{ background: `linear-gradient(160deg, ${sty.bgFrom}, white)`, border: `1px solid ${sty.border}` }}
-                    >
-                      <div className="h-32 flex items-center justify-center px-2 pt-2">
-                        {p.image && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={p.image} alt={p.name} className="w-28 h-28 object-contain" />
-                        )}
-                      </div>
-                      <div className="px-3 pb-3.5 flex flex-col flex-1">
-                        <p className="text-[8px] font-bold uppercase tracking-widest mb-0.5" style={{ color: sty.accent }}>Little Joys</p>
-                        <p className="text-[11px] font-extrabold text-on-surface leading-snug font-[family-name:var(--font-manrope)] flex-1">{p.name}</p>
-                        <p className="text-[10px] text-on-surface-variant/45 mt-1 leading-snug">{getBenefit(p)}</p>
-                        <div className="flex items-center justify-between mt-2.5">
-                          <p className="text-[13px] font-extrabold text-on-surface">₹{p.price}</p>
-                          {p.url && (
-                            <a href={p.url} target="_blank" rel="noopener noreferrer"
-                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[10px] font-bold"
-                              style={{ color: sty.accent, background: sty.bgFrom, border: `1px solid ${sty.border}` }}>
-                              <ShoppingBag className="w-2.5 h-2.5" strokeWidth={2.5} /> Shop
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
-
-          {/* Bottom padding when no kit section */}
-          {rest.length === 0 && <div className="pb-5" />}
+          <span className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full" style={{ color: "#f97316", background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.18)" }}>
+            ✦ AI-matched
+          </span>
         </div>
 
+        {/* ── Primary picks — 2-column grid ── */}
+        <div className="px-4 grid grid-cols-2 gap-3">
+          {primary.map(p => {
+            const sty = getStyle(p.category);
+            return (
+              <div key={p.id} className="rounded-2xl overflow-hidden flex flex-col" style={{ background: `linear-gradient(160deg, ${sty.bgFrom}, #ffffff)`, border: `1px solid ${sty.border}` }}>
+                <div className="h-44 flex items-center justify-center p-3 bg-white/40">
+                  {p.image && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.image} alt={p.name} className="w-full h-full object-contain" />
+                  )}
+                </div>
+                <div className="px-3 pb-4 pt-2.5 flex flex-col flex-1">
+                  <p className="text-[8px] font-black uppercase tracking-widest mb-0.5" style={{ color: sty.accent }}>Little Joys</p>
+                  <p className="text-[12.5px] font-extrabold text-on-surface leading-snug font-[family-name:var(--font-manrope)] flex-1 mb-1">{p.name}</p>
+                  <p className="text-[10px] text-on-surface-variant/40 leading-snug mb-3">{getBenefit(p)}</p>
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <p className="text-[16px] font-extrabold text-on-surface leading-none">₹{p.price}</p>
+                      {p.mrp > p.price && <p className="text-[9px] text-on-surface-variant/35 line-through mt-0.5">₹{p.mrp}</p>}
+                    </div>
+                    {p.url && (
+                      <a href={p.url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[10px] font-bold"
+                        style={{ color: "white", background: sty.accent }}>
+                        <ShoppingBag className="w-2.5 h-2.5" strokeWidth={2.5} /> Shop
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── Complete the kit ── */}
+        {rest.length > 0 && (
+          <div className="px-4">
+            <div className="flex items-baseline justify-between mb-3">
+              <p className="text-[15px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
+                Complete {childName ? `${childName}'s` : "the"} kit
+              </p>
+              <span className="text-[11px] font-semibold" style={{ color: "#f97316" }}>{rest.length} more</span>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4" style={{ scrollbarWidth: "none" }}>
+              {rest.map(p => {
+                const sty = getStyle(p.category);
+                return (
+                  <div key={p.id} className="shrink-0 w-[148px] rounded-2xl overflow-hidden flex flex-col" style={{ background: `linear-gradient(160deg, ${sty.bgFrom}, white)`, border: `1px solid ${sty.border}` }}>
+                    <div className="h-36 flex items-center justify-center p-2.5 bg-white/40">
+                      {p.image && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.image} alt={p.name} className="w-full h-full object-contain" />
+                      )}
+                    </div>
+                    <div className="px-3 pb-3.5 pt-2 flex flex-col flex-1">
+                      <p className="text-[8px] font-black uppercase tracking-widest mb-0.5" style={{ color: sty.accent }}>Little Joys</p>
+                      <p className="text-[11px] font-extrabold text-on-surface leading-snug font-[family-name:var(--font-manrope)] flex-1 mb-1">{p.name}</p>
+                      <div className="flex items-center justify-between mt-1">
+                        <p className="text-[13px] font-extrabold text-on-surface">₹{p.price}</p>
+                        {p.url && (
+                          <a href={p.url} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-bold"
+                            style={{ color: sty.accent, background: sty.bgFrom, border: `1px solid ${sty.border}` }}>
+                            <ShoppingBag className="w-2 h-2" strokeWidth={2.5} /> Shop
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* ── Educational tip ── */}
-        <div className="mx-5 rounded-3xl p-5"
-          style={{ background: "linear-gradient(135deg, #fff8f0, #fff3e0)", border: "1px solid #fed7aa" }}>
-          <div className="flex items-start gap-3.5">
-            <span className="text-[30px] leading-none shrink-0 mt-0.5">{tip.emoji}</span>
+        <div className="mx-4 rounded-3xl p-5" style={{ background: "linear-gradient(135deg, #fff8f0, #fff3e0)", border: "1px solid #fed7aa" }}>
+          <div className="flex items-start gap-4">
+            <span className="text-[32px] leading-none shrink-0 mt-0.5">{tip.emoji}</span>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#f97316" }}>Good to know</p>
               <p className="text-[14px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-2">{tip.title}</p>
-              <p className="text-[12px] text-on-surface-variant/60 leading-relaxed">{tip.body}</p>
+              <p className="text-[12px] text-on-surface-variant/55 leading-relaxed">{tip.body}</p>
             </div>
           </div>
         </div>
 
         {/* ── Browse all CTA ── */}
-        <div className="mx-5 rounded-3xl p-5 flex items-center justify-between"
-          style={{ background: "white", border: "1px solid #fed7aa" }}>
-          <div>
-            <p className="text-[14px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">Browse all Little Joys</p>
-            <p className="text-[11px] text-on-surface-variant/45 mt-0.5">Gummies, nutrition, personal care & more</p>
-          </div>
+        <div className="mx-4 mb-2">
           <button
             onClick={() => router.push("/explore")}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-[12px] font-bold text-white cursor-pointer hover:opacity-90 transition-opacity"
+            className="w-full flex items-center justify-between px-5 py-4 rounded-2xl cursor-pointer hover:opacity-90 transition-opacity"
             style={{ background: "#f97316" }}
           >
-            <ShoppingBag className="w-3.5 h-3.5" strokeWidth={2.5} /> Shop all
+            <div className="text-left">
+              <p className="text-[14px] font-extrabold text-white font-[family-name:var(--font-manrope)]">Browse all Little Joys</p>
+              <p className="text-[11px] text-white/70 mt-0.5">Gummies, nutrition, personal care &amp; more</p>
+            </div>
+            <ShoppingBag className="w-5 h-5 text-white/80 shrink-0" strokeWidth={2} />
           </button>
         </div>
 
