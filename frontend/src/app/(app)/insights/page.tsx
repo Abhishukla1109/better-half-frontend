@@ -299,6 +299,7 @@ const ACTIVE_SECONDARY = SECONDARY_DIMS[new Date().getDay() % SECONDARY_DIMS.len
 
 /* ── Signal computation & storage ── */
 function computeAvg7(storageKey: string, scoreMap: Record<string, number>): number | null {
+  if (typeof window === "undefined") return null;
   const scores = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() - i);
     const v = localStorage.getItem(`${storageKey}_${d.toDateString()}`);
@@ -308,6 +309,7 @@ function computeAvg7(storageKey: string, scoreMap: Record<string, number>): numb
 }
 
 function computeAvgPrev7(storageKey: string, scoreMap: Record<string, number>): number | null {
+  if (typeof window === "undefined") return null;
   const scores = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() - i - 7);
     const v = localStorage.getItem(`${storageKey}_${d.toDateString()}`);
