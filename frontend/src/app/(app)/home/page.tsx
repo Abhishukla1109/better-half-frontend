@@ -6,7 +6,6 @@ import { Sparkles, ChevronRight, ChevronLeft, Check, ArrowLeft } from "lucide-re
 import { supabase } from "@/lib/supabase/client";
 import { track } from "@/lib/mixpanel";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
-import { motion, AnimatePresence } from "framer-motion";
 
 type ProfileLevel = "L0" | "L1" | "L2" | "L3";
 
@@ -207,11 +206,6 @@ function heroImg(step: FlowStep, sex?: string, firstConcern?: string): string {
   }
 }
 
-const slideVariants = {
-  enter:  { opacity: 0 },
-  center: { opacity: 1 },
-  exit:   { opacity: 0 },
-};
 
 function ProgressDots({ current, total }: { current: number; total: number }) {
   return (
@@ -1012,19 +1006,9 @@ export default function HomePage() {
     <>
       {/* Full-screen scrollable overlay — fixed wrapper outside AnimatePresence avoids position:fixed + transform conflict */}
       <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "#fbf9f5" }}>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentStep}
-            variants={slideVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.15, ease: "easeInOut" }}
-            className="min-h-full pb-28 max-w-[420px] mx-auto"
-          >
-            {renderScreen()}
-          </motion.div>
-        </AnimatePresence>
+        <div className="min-h-full pb-28 max-w-[420px] mx-auto">
+          {renderScreen()}
+        </div>
       </div>
 
       {/* Frosted bottom bar — z-[51] so it sits above the overlay */}
