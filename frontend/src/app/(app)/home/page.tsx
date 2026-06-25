@@ -1006,7 +1006,7 @@ export default function HomePage() {
             animate="center"
             exit="exit"
             transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-            className="min-h-full pb-28"
+            className="min-h-full pb-28 max-w-[420px] mx-auto"
           >
             {renderScreen()}
           </motion.div>
@@ -1015,7 +1015,7 @@ export default function HomePage() {
 
       {/* Frosted bottom bar — z-[51] so it sits above the overlay */}
       <div
-        className="fixed bottom-0 left-0 right-0 z-[51] flex items-center justify-between px-5 py-4"
+        className="fixed bottom-0 left-0 right-0 z-[51]"
         style={{
           background: "rgba(251,249,245,0.92)",
           backdropFilter: "blur(16px)",
@@ -1023,6 +1023,7 @@ export default function HomePage() {
           borderTop: "1px solid rgba(0,0,0,0.06)",
         }}
       >
+        <div className="max-w-[420px] mx-auto flex items-center justify-between px-5 py-4">
         <button
           onClick={goBack}
           className="flex items-center gap-1 text-[13px] font-bold cursor-pointer transition-opacity hover:opacity-70"
@@ -1041,6 +1042,7 @@ export default function HomePage() {
             Continue <ChevronRight className="w-4 h-4" />
           </button>
         )}
+        </div>
       </div>
     </>
   );
