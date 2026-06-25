@@ -162,7 +162,7 @@ const KIDS_FOLLOW_UPS: Record<string, { q: string; opts: { emoji: string; label:
 };
 
 const CONCERN_OPTIONS = [
-  { label: "Hair / beard", emoji: "💇", desc: "Fall, thinning & growth"   },
+  { label: "Hair / beard", femaleLabel: "Hair",   emoji: "💇", desc: "Fall, thinning & growth",   femaleDesc: "Fall, thinning & damage"  },
   { label: "Skin / acne",  emoji: "✨", desc: "Acne, glow & texture"       },
   { label: "Weight",       emoji: "🏋️", desc: "Fat loss, muscle & fitness" },
   { label: "Energy / gut", emoji: "⚡", desc: "Fatigue, bloating & fog"    },
@@ -809,6 +809,9 @@ export default function HomePage() {
         <div className="px-4 grid grid-cols-2 gap-3 mt-3">
           {CONCERN_OPTIONS.map((opt) => {
             const sel = selectedConcerns.includes(opt.label);
+            const isFemale = profile.sex === "female";
+            const displayLabel = isFemale && opt.femaleLabel ? opt.femaleLabel : opt.label;
+            const displayDesc  = isFemale && opt.femaleDesc  ? opt.femaleDesc  : opt.desc;
             return (
               <button key={opt.label} onClick={() => handleToggleConcern(opt.label)}
                 className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl transition-all duration-200 cursor-pointer active:scale-[0.97] min-h-[90px] ${sel ? "bg-primary-container/10 shadow-[0_2px_16px_rgba(0,58,45,0.14)] ring-2 ring-primary-container/40" : "bg-white shadow-[0_2px_16px_rgba(0,58,45,0.08)] hover:shadow-[0_4px_24px_rgba(0,58,45,0.12)]"}`}
@@ -820,8 +823,8 @@ export default function HomePage() {
                   {sel && <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary-container flex items-center justify-center"><Check className="w-2.5 h-2.5 text-white" strokeWidth={3} /></div>}
                 </div>
                 <div className="text-center">
-                  <p className="text-[13px] font-extrabold text-on-surface leading-snug">{opt.label}</p>
-                  <p className="text-[10px] text-on-surface-variant/50 mt-0.5">{opt.desc}</p>
+                  <p className="text-[13px] font-extrabold text-on-surface leading-snug">{displayLabel}</p>
+                  <p className="text-[10px] text-on-surface-variant/50 mt-0.5">{displayDesc}</p>
                 </div>
               </button>
             );
