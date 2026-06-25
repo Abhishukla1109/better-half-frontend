@@ -616,7 +616,7 @@ export default function HomePage() {
           </div>
         )}
         {!isAddMode && (
-          <div className="relative overflow-hidden" style={{ height: "38vh", minHeight: "220px", background: "#1a5243" }}>
+          <div className="relative overflow-hidden" style={{ height: "30vh", minHeight: "200px", background: "#1a5243" }}>
             <img src="/onboarding/entry.png" alt="" className="w-full h-full object-cover" style={{ objectPosition: "center 20%" }} />
             <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t from-[#fbf9f5] to-transparent pointer-events-none" />
           </div>
@@ -701,7 +701,7 @@ export default function HomePage() {
   const heroSrc = heroImg(currentStep, profile.sex, selectedConcerns[0]);
 
   const HeroImage = () => (
-    <div className="overflow-hidden relative" style={{ height: "38vh", minHeight: "220px", background: "#1a5243" }}>
+    <div className="overflow-hidden relative" style={{ height: "30vh", minHeight: "200px", background: "#1a5243" }}>
       <img src={heroSrc} alt="" className="w-full h-full object-cover" style={{ objectPosition: "center 20%" }} />
       <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t from-[#fbf9f5] to-transparent pointer-events-none" />
     </div>
@@ -725,9 +725,9 @@ export default function HomePage() {
   );
 
   const QuestionBlock = ({ q, sub }: { q: string; sub?: string }) => (
-    <div className="px-5 pt-5 pb-1">
-      <h2 className="text-[26px] font-extrabold text-on-surface leading-tight font-[family-name:var(--font-manrope)]">{q}</h2>
-      {sub && <p className="text-[13px] text-on-surface-variant/55 mt-1.5 leading-relaxed">{sub}</p>}
+    <div className="px-5 pt-3 pb-1">
+      <h2 className="text-[22px] font-extrabold text-on-surface leading-tight font-[family-name:var(--font-manrope)]">{q}</h2>
+      {sub && <p className="text-[12px] text-on-surface-variant/55 mt-1 leading-relaxed">{sub}</p>}
     </div>
   );
 
@@ -811,11 +811,11 @@ export default function HomePage() {
             const sel = selectedConcerns.includes(opt.label);
             return (
               <button key={opt.label} onClick={() => handleToggleConcern(opt.label)}
-                className={`flex flex-col items-center justify-center gap-2.5 p-5 rounded-2xl transition-all duration-200 cursor-pointer active:scale-[0.97] min-h-[110px] ${sel ? "bg-primary-container/10 shadow-[0_2px_16px_rgba(0,58,45,0.14)] ring-2 ring-primary-container/40" : "bg-white shadow-[0_2px_16px_rgba(0,58,45,0.08)] hover:shadow-[0_4px_24px_rgba(0,58,45,0.12)]"}`}
+                className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl transition-all duration-200 cursor-pointer active:scale-[0.97] min-h-[90px] ${sel ? "bg-primary-container/10 shadow-[0_2px_16px_rgba(0,58,45,0.14)] ring-2 ring-primary-container/40" : "bg-white shadow-[0_2px_16px_rgba(0,58,45,0.08)] hover:shadow-[0_4px_24px_rgba(0,58,45,0.12)]"}`}
               >
                 <div className="relative">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${sel ? "bg-primary-container/20" : "bg-surface-container"}`}>
-                    <span className="text-2xl leading-none">{opt.emoji}</span>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${sel ? "bg-primary-container/20" : "bg-surface-container"}`}>
+                    <span className="text-xl leading-none">{opt.emoji}</span>
                   </div>
                   {sel && <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary-container flex items-center justify-center"><Check className="w-2.5 h-2.5 text-white" strokeWidth={3} /></div>}
                 </div>
@@ -866,12 +866,12 @@ export default function HomePage() {
         <div className="px-4 grid grid-cols-2 gap-3 mt-3">
           {DIET_OPTIONS.map((opt) => (
             <button key={opt.value} onClick={() => handleDietSelect(opt.value)}
-              className="flex flex-col items-center gap-3 py-8 rounded-2xl bg-white shadow-[0_2px_16px_rgba(0,58,45,0.08)] hover:shadow-[0_4px_24px_rgba(0,58,45,0.13)] transition-all duration-200 cursor-pointer active:scale-[0.97]"
+              className="flex flex-col items-center gap-2 py-5 rounded-2xl bg-white shadow-[0_2px_16px_rgba(0,58,45,0.08)] hover:shadow-[0_4px_24px_rgba(0,58,45,0.13)] transition-all duration-200 cursor-pointer active:scale-[0.97]"
             >
-              <div className="w-14 h-14 rounded-2xl bg-surface-container flex items-center justify-center">
-                <span className="text-3xl leading-none">{opt.emoji}</span>
+              <div className="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center">
+                <span className="text-2xl leading-none">{opt.emoji}</span>
               </div>
-              <p className="text-[16px] font-extrabold text-on-surface">{opt.label}</p>
+              <p className="text-[15px] font-extrabold text-on-surface">{opt.label}</p>
             </button>
           ))}
         </div>

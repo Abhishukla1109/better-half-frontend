@@ -13,7 +13,11 @@ function isBrowsePath(pathname: string) {
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  // Synchronously mark browse-paths ready so they never flash a blank screen
+  const [ready, setReady] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return isBrowsePath(window.location.pathname);
+  });
 
   useEffect(() => {
     async function check() {

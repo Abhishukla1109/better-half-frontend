@@ -41,8 +41,12 @@ function readActiveTheme(pathname: string): MemberType {
 }
 
 export default function ThemeWrapper({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<MemberType>("male");
   const pathname = usePathname();
+  // Read synchronously on first client render so the correct theme is set before paint
+  const [theme, setTheme] = useState<MemberType>(() => {
+    if (typeof window === "undefined") return "male";
+    return readActiveTheme(window.location.pathname);
+  });
 
   // Re-read on every route change (covers onboarding → protocol navigation)
   useEffect(() => {
