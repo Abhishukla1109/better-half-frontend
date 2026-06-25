@@ -64,9 +64,35 @@ function dispatchProfilesChange() {
 
 // ── Hook ───────────────────────────────────────────────────────────────────
 
+function initMembers(): FamilyMember[] {
+  const stored = readProfiles();
+  if (stored.length > 0) return stored;
+  // Migrate legacy single-profile on first run
+  const legacy = readLegacyProfile();
+  if (legacy && legacy.diet) {
+    const type: MemberType = legacy.sex === "female" ? "female" : "male";
+    const migrated: FamilyMember = { id: `me-${Date.now()}`, type, name: legacy.name, profile: legacy };
+    persistProfiles([migrated]);
+    persistActiveId(migrated.id);
+    return [migrated];
+  }
+  return [];
+}
+
+function initActiveId(members: FamilyMember[]): string | null {
+  if (members.length === 0) return null;
+  return readActiveId() ?? members[0].id;
+}
+
 export function useActiveProfile() {
-  const [members, setMembers] = useState<FamilyMember[]>([]);
-  const [activeId, setActiveIdState] = useState<string | null>(null);
+  const [members, setMembers] = useState<FamilyMember[]>(() => {
+    if (typeof window === "undefined") return [];
+    return initMembers();
+  });
+  const [activeId, setActiveIdState] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return initActiveId(initMembers());
+  });
 
   // Sync across hook instances on the same page (e.g. sidebar + home page)
   useEffect(() => {
@@ -83,34 +109,6 @@ export function useActiveProfile() {
     }
     window.addEventListener("bh-profiles-change", onProfilesChange);
     return () => window.removeEventListener("bh-profiles-change", onProfilesChange);
-  }, []);
-
-  // Hydrate from localStorage on mount
-  useEffect(() => {
-    const stored = readProfiles();
-
-    if (stored.length > 0) {
-      setMembers(stored);
-      const aid = readActiveId() ?? stored[0].id;
-      setActiveIdState(aid);
-      return;
-    }
-
-    // Backward-compat: migrate a legacy single bh_profile into the new structure
-    const legacy = readLegacyProfile();
-    if (legacy && legacy.diet) {
-      const type: MemberType = legacy.sex === "female" ? "female" : "male";
-      const migrated: FamilyMember = {
-        id: `me-${Date.now()}`,
-        type,
-        name: legacy.name,
-        profile: legacy,
-      };
-      persistProfiles([migrated]);
-      persistActiveId(migrated.id);
-      setMembers([migrated]);
-      setActiveIdState(migrated.id);
-    }
   }, []);
 
   // Active member derived from state
