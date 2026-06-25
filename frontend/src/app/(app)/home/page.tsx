@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, ChevronRight, ChevronLeft, Check, ArrowLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
-import { track } from "@/lib/mixpanel";
+import { track, identifyUser } from "@/lib/mixpanel";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 
 type ProfileLevel = "L0" | "L1" | "L2" | "L3";
@@ -410,7 +410,7 @@ export default function HomePage() {
   }, []);
 
   const handleConcernContinue = useCallback(() => {
-    track("Onboarding Step Completed", { step: "concern", concerns: selectedConcerns.join(",") });
+    track("Onboarding Concern Selected", { concerns: selectedConcerns.join(","), concern_count: selectedConcerns.length, member_flow: memberFlow });
     const isMulti = selectedConcerns.length > 1;
     const hasSingleQualifier = !isMulti && selectedConcerns[0] && CONCERN_QUALIFIERS[selectedConcerns[0]];
     if (isMulti || hasSingleQualifier) {
@@ -424,26 +424,27 @@ export default function HomePage() {
   const handleQualifierAnswer = useCallback((key: string, value: string) => {
     if (key) setProfile((p) => ({ ...p, [key]: value }));
     setLevel("L1");
+    track("Onboarding Qualifier Answered", { qualifier_key: key, answer: value, member_flow: memberFlow });
     setCurrentStep("diet");
-  }, []);
+  }, [memberFlow]);
 
   const handleNameSubmit = useCallback(() => {
     const trimmed = nameText.trim();
     if (trimmed) { setName(trimmed); setProfile((p) => ({ ...p, name: trimmed })); }
-    track("Onboarding Step Completed", { step: "name" });
+    track("Onboarding Name Entered", { member_flow: memberFlow });
     setCurrentStep("gender");
   }, [nameText]);
 
   const handleSexSelect = useCallback((sex: string) => {
     setProfile((p) => ({ ...p, sex }));
     applyTheme(sex === "female" ? "female" : "male");
-    track("Onboarding Step Completed", { step: "gender", value: sex });
+    track("Onboarding Gender Selected", { gender: sex, member_flow: memberFlow });
     setCurrentStep("age");
   }, []);
 
   const handleAgeSelect = useCallback((age: string) => {
     setProfile((p) => ({ ...p, age }));
-    track("Onboarding Step Completed", { step: "age", value: age });
+    track("Onboarding Age Selected", { age, member_flow: memberFlow });
     setCurrentStep("concern");
   }, []);
 
@@ -451,7 +452,15 @@ export default function HomePage() {
     const fullProfile = { ...profile, diet, concerns: selectedConcerns.join(","), name: name || undefined };
     setProfile((p) => ({ ...p, diet }));
     setLevel("L3");
-    track("Onboarding Step Completed", { step: "diet", concern: selectedConcerns.join(","), diet });
+    track("Onboarding Diet Selected", { diet, concerns: selectedConcerns.join(","), member_flow: memberFlow });
+    track("Onboarding Completed", { member_flow: memberFlow, gender: fullProfile.sex, age: fullProfile.age, concerns: selectedConcerns.join(","), diet });
+    identifyUser(memberFlow === "me" ? `anon-${Date.now()}` : `partner-${Date.now()}`, {
+      gender: fullProfile.sex,
+      age_range: fullProfile.age,
+      primary_concern: selectedConcerns[0],
+      diet,
+      member_flow: memberFlow,
+    });
     localStorage.setItem("bh_profile", JSON.stringify(fullProfile));
 
     if (isEditMode && activeMember) {
@@ -483,6 +492,7 @@ export default function HomePage() {
       kidsOnboardingDone: "true",
     } as Parameters<typeof addMember>[0]["profile"];
     localStorage.setItem("bh_profile", JSON.stringify(childProfile));
+    track("Onboarding Completed", { member_flow: "kids", child_age: childAge, child_concern: childConcern });
     addMember({ id: `kid-${Date.now()}`, type: "child", name: childName || undefined, childAge: (childAge ?? undefined) as "2-5" | "6-12" | "13+" | undefined, profile: childProfile });
     setGeneratingPhase("generating");
     setShowGenerating(true);
@@ -642,7 +652,7 @@ export default function HomePage() {
 
         <div className="flex flex-col gap-3 flex-1 px-5">
           <button
-            onClick={() => { if (!meDisabled) { applyTheme("male"); setMemberFlow("me"); advance("name"); } }}
+            onClick={() => { if (!meDisabled) { applyTheme("male"); setMemberFlow("me"); track("Onboarding Started", { member_flow: "me" }); advance("name"); } }}
             disabled={meDisabled}
             className={`w-full flex items-center gap-4 py-4 px-5 rounded-2xl transition-all duration-150 ${meDisabled ? "bg-surface-container border border-outline-variant/10 cursor-not-allowed opacity-40" : "bg-primary-container shadow-sm cursor-pointer hover:opacity-90 active:scale-[0.99]"}`}
           >
@@ -655,7 +665,7 @@ export default function HomePage() {
           </button>
 
           <button
-            onClick={() => { if (!partnerDisabled) { applyTheme("male"); setMemberFlow("partner"); advance("name"); } }}
+            onClick={() => { if (!partnerDisabled) { applyTheme("male"); setMemberFlow("partner"); track("Onboarding Started", { member_flow: "partner" }); advance("name"); } }}
             disabled={partnerDisabled}
             className={`w-full flex items-center gap-4 py-4 px-5 rounded-2xl border transition-all duration-150 ${partnerDisabled ? "bg-surface-container border-outline-variant/10 cursor-not-allowed opacity-40" : "border-outline-variant/15 bg-surface-container-lowest shadow-sm cursor-pointer hover:bg-surface-container-low active:scale-[0.99]"}`}
           >
@@ -668,7 +678,7 @@ export default function HomePage() {
           </button>
 
           <button
-            onClick={() => { applyTheme("child"); setMemberFlow("kids"); advance("child-name"); }}
+            onClick={() => { applyTheme("child"); setMemberFlow("kids"); track("Onboarding Started", { member_flow: "kids" }); advance("child-name"); }}
             className="w-full flex items-center gap-4 py-4 px-5 rounded-2xl border border-outline-variant/15 bg-surface-container-lowest shadow-sm cursor-pointer hover:bg-surface-container-low transition-all duration-150 active:scale-[0.99]"
           >
             <div className="w-10 h-10 rounded-xl bg-primary-container/10 flex items-center justify-center text-xl shrink-0">🧒</div>
