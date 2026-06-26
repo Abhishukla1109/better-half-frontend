@@ -30,7 +30,10 @@ function CountUp({ to, suffix = "" }: { to: number; suffix?: string }) {
 
 export default function LandingPage() {
   const router = useRouter();
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return !sessionStorage.getItem("bh_splash_done");
+  });
   const [isReturning, setIsReturning] = useState(false);
   const [returningName, setReturningName] = useState<string | null>(null);
 
@@ -72,6 +75,7 @@ export default function LandingPage() {
 
   const handleSplashEnd = (e: React.AnimationEvent) => {
     if (e.animationName !== "splashExit") return;
+    sessionStorage.setItem("bh_splash_done", "1");
     if (isReturning) router.replace("/protocol");
     else setShowSplash(false);
   };
@@ -661,6 +665,23 @@ export default function LandingPage() {
       </section>
 
     </main>
+
+    <footer className="border-t border-outline-variant/10 px-6 py-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+      {[
+        { label: "Privacy Policy",        href: "/privacy" },
+        { label: "Terms & Conditions",    href: "/terms"   },
+        { label: "Returns & Refunds",     href: "/returns" },
+        { label: "Contact Us",            href: "/contact" },
+        { label: "About Us",              href: "/about"   },
+      ].map((link) => (
+        <a key={link.href} href={link.href} className="text-[12px] text-on-surface-variant/40 hover:text-on-surface-variant transition-colors">
+          {link.label}
+        </a>
+      ))}
+      <span className="w-full text-center text-[11px] text-on-surface-variant/25 mt-1">
+        © {new Date().getFullYear()} Mosaic Wellness Pvt. Ltd. All rights reserved.
+      </span>
+    </footer>
     </>
   );
 }

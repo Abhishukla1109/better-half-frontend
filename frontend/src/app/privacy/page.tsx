@@ -10,7 +10,7 @@ export default function PrivacyPage() {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => window.history.length > 1 ? router.back() : router.replace("/home")}
+            onClick={() => window.history.length > 1 ? router.back() : router.replace("/")}
             className="text-[13px] text-on-surface-variant/60 hover:text-on-surface-variant mb-6 inline-block cursor-pointer"
           >
             ← Back

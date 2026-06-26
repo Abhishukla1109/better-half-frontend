@@ -42,12 +42,19 @@ export default function ProfilePage() {
       </div>
 
       {/* Legal links */}
-      <div className="mt-10 pb-8 flex items-center justify-center gap-4">
-        <Link href="/privacy" className="text-[12px] text-on-surface-variant/40 hover:text-on-surface-variant transition-colors">
-          Privacy Policy
-        </Link>
-        <span className="text-on-surface-variant/20 text-[10px]">·</span>
-        <span className="text-[12px] text-on-surface-variant/30">v1.0</span>
+      <div className="mt-10 pb-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+        {[
+          { label: "Privacy Policy",  href: "/privacy" },
+          { label: "Terms & Conditions", href: "/terms" },
+          { label: "Returns & Refunds",  href: "/returns" },
+          { label: "Contact Us",      href: "/contact" },
+          { label: "About Us",        href: "/about" },
+        ].map((link) => (
+          <Link key={link.href} href={link.href} className="text-[12px] text-on-surface-variant/40 hover:text-on-surface-variant transition-colors">
+            {link.label}
+          </Link>
+        ))}
+        <span className="w-full text-center text-[11px] text-on-surface-variant/25 mt-1">v1.0</span>
       </div>
     </div>
   );
