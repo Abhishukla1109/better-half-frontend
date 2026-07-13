@@ -3,9 +3,9 @@
 import { useState, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, ShoppingBag, Heart } from 'lucide-react';
-import { localProducts } from '@/lib/localProducts';
-import type { LocalProduct } from '@/lib/localProducts';
+import { ChevronLeft, ChevronRight, Heart } from 'lucide-react';
+import { useCatalogProducts } from '@/hooks/useCatalogProducts';
+import type { Product } from '@/lib/protocolEngine';
 
 // ── Hero Carousel ─────────────────────────────────────────────
 
@@ -108,10 +108,10 @@ export function SpotlightSection() {
   const [tab, setTab] = useState('hair');
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { products: allProducts, loading } = useCatalogProducts();
 
-  const products = localProducts
-    .filter(p => p.concern === tab || p.tags.some(t => t.toLowerCase() === tab))
-    .filter(p => p.image)
+  const products = allProducts
+    .filter(p => p.concern.includes(tab) && p.image)
     .slice(0, 8);
 
   return (
@@ -135,12 +135,15 @@ export function SpotlightSection() {
 
       {/* Horizontal scroll */}
       <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x">
-        {products.map(p => (
+        {loading && [...Array(4)].map((_, i) => (
+          <div key={i} className="flex-shrink-0 w-40 h-56 rounded-2xl bg-white border border-[#e2e8e8] animate-pulse" />
+        ))}
+        {!loading && products.map(p => (
           <SpotlightCard key={p.id} product={p}
             wishlisted={wishlist.has(p.id)}
             onWishlist={() => setWishlist(prev => { const n = new Set(prev); n.has(p.id) ? n.delete(p.id) : n.add(p.id); return n; })} />
         ))}
-        {products.length === 0 && (
+        {!loading && products.length === 0 && (
           <p className="text-sm text-[#9ca3af] py-4">No products in this category yet.</p>
         )}
       </div>
@@ -148,15 +151,15 @@ export function SpotlightSection() {
   );
 }
 
-function SpotlightCard({ product: p, wishlisted, onWishlist }: { product: LocalProduct; wishlisted: boolean; onWishlist: () => void }) {
-  const [added, setAdded] = useState(false);
+function SpotlightCard({ product: p, wishlisted, onWishlist }: { product: Product; wishlisted: boolean; onWishlist: () => void }) {
+  const discountPct = p.mrp > p.price ? Math.round((1 - p.price / p.mrp) * 100) : 0;
 
   return (
     <div className="flex-shrink-0 w-40 snap-start bg-white rounded-2xl border border-[#e2e8e8] overflow-hidden group hover:shadow-md transition-shadow">
-      <Link href={`/product/${p.handle}`} className="relative block aspect-square bg-[#f7fafa] overflow-hidden">
-        {p.discountPct > 0 && (
+      <Link href={`/product/${p.id}`} className="relative block aspect-square bg-[#f7fafa] overflow-hidden">
+        {discountPct > 0 && (
           <span className="absolute top-1.5 left-1.5 z-10 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
-            {p.discountPct}% off
+            {discountPct}% off
           </span>
         )}
         <button onClick={e => { e.preventDefault(); onWishlist(); }}
@@ -165,27 +168,25 @@ function SpotlightCard({ product: p, wishlisted, onWishlist }: { product: LocalP
           <Heart size={11} fill={wishlisted ? 'currentColor' : 'none'} />
         </button>
         {p.image && (
-          <Image src={p.image} alt={p.title} fill unoptimized sizes="160px"
+          <Image src={p.image} alt={p.name} fill unoptimized sizes="160px"
             className="object-cover group-hover:scale-105 transition-transform duration-300" />
         )}
       </Link>
       <div className="p-3">
         <p className="text-[10px] font-bold text-[#004f54] uppercase tracking-wide">{p.brand}</p>
-        <Link href={`/product/${p.handle}`}>
-          <p className="text-[11px] font-semibold text-[#1a2e2e] line-clamp-2 leading-snug mt-0.5 mb-2">{p.title}</p>
+        <Link href={`/product/${p.id}`}>
+          <p className="text-[11px] font-semibold text-[#1a2e2e] line-clamp-2 leading-snug mt-0.5 mb-2">{p.name}</p>
         </Link>
         <div className="flex items-center gap-1 mb-2">
           <span className="text-sm font-extrabold text-[#004f54]">₹{p.price.toLocaleString('en-IN')}</span>
-          {p.compareAtPrice && (
-            <span className="text-[10px] text-[#9ca3af] line-through">₹{p.compareAtPrice.toLocaleString('en-IN')}</span>
+          {p.mrp > p.price && (
+            <span className="text-[10px] text-[#9ca3af] line-through">₹{p.mrp.toLocaleString('en-IN')}</span>
           )}
         </div>
-        <button onClick={() => { setAdded(true); setTimeout(() => setAdded(false), 2000); }}
-          className={`w-full flex items-center justify-center gap-1 py-1.5 rounded-xl text-[11px] font-bold transition-all
-            ${added ? 'bg-green-600 text-white' : 'bg-[#004f54] text-white hover:bg-[#01696f] active:scale-95'}`}>
-          <ShoppingBag size={10} />
-          {added ? 'Added!' : 'Add'}
-        </button>
+        <Link href={`/product/${p.id}`}
+          className="w-full flex items-center justify-center gap-1 py-1.5 rounded-xl text-[11px] font-bold bg-[#004f54] text-white hover:bg-[#01696f] active:scale-95 transition-all">
+          View
+        </Link>
       </div>
     </div>
   );
@@ -193,10 +194,10 @@ function SpotlightCard({ product: p, wishlisted, onWishlist }: { product: LocalP
 
 // ── Bestsellers ───────────────────────────────────────────────
 
-const BESTSELLERS = localProducts.filter(p => p.image && p.available && p.discountPct > 0).slice(0, 10);
-
 export function BestSellersStrip() {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { products, loading } = useCatalogProducts();
+  const bestsellers = products.filter(p => p.image && p.mrp > p.price).slice(0, 10);
 
   return (
     <div className="px-4">
@@ -205,8 +206,11 @@ export function BestSellersStrip() {
         <Link href="/explore" className="text-xs font-semibold text-[#004f54]">View all →</Link>
       </div>
       <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x">
-        {BESTSELLERS.map((p, i) => (
-          <Link key={p.id} href={`/product/${p.handle}`}
+        {loading && [...Array(5)].map((_, i) => (
+          <div key={i} className="flex-shrink-0 w-36 h-48 rounded-2xl bg-white border border-[#e2e8e8] animate-pulse" />
+        ))}
+        {bestsellers.map((p, i) => (
+          <Link key={p.id} href={`/product/${p.id}`}
             className="flex-shrink-0 w-36 snap-start bg-white rounded-2xl border border-[#e2e8e8] overflow-hidden hover:shadow-md transition-shadow group">
             <div className="relative aspect-square bg-[#f7fafa]">
               {i < 3 && (
@@ -215,17 +219,17 @@ export function BestSellersStrip() {
                 </span>
               )}
               {p.image && (
-                <Image src={p.image} alt={p.title} fill unoptimized sizes="144px"
+                <Image src={p.image} alt={p.name} fill unoptimized sizes="144px"
                   className="object-cover group-hover:scale-105 transition-transform duration-300" />
               )}
             </div>
             <div className="p-2.5">
               <p className="text-[10px] font-bold text-[#004f54] uppercase">{p.brand}</p>
-              <p className="text-[11px] font-semibold text-[#1a2e2e] line-clamp-2 leading-snug mt-0.5">{p.title}</p>
+              <p className="text-[11px] font-semibold text-[#1a2e2e] line-clamp-2 leading-snug mt-0.5">{p.name}</p>
               <div className="flex items-center gap-1 mt-1.5">
                 <span className="text-xs font-extrabold text-[#004f54]">₹{p.price.toLocaleString('en-IN')}</span>
-                {p.compareAtPrice && (
-                  <span className="text-[10px] text-[#9ca3af] line-through">₹{p.compareAtPrice.toLocaleString('en-IN')}</span>
+                {p.mrp > p.price && (
+                  <span className="text-[10px] text-[#9ca3af] line-through">₹{p.mrp.toLocaleString('en-IN')}</span>
                 )}
               </div>
             </div>

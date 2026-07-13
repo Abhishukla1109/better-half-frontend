@@ -4,15 +4,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { useRef } from 'react';
-import { localProducts } from '@/lib/localProducts';
-
-// Pick top products with images as "bestsellers"
-const BESTSELLERS = localProducts
-  .filter(p => p.image && p.available && p.discountPct > 0)
-  .slice(0, 12);
+import { useCatalogProducts } from '@/hooks/useCatalogProducts';
 
 export default function BestSellers() {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { products, loading } = useCatalogProducts();
+  const bestsellers = products.filter(p => p.image && p.mrp > p.price).slice(0, 12);
 
   function scroll(dir: 'left' | 'right') {
     if (!scrollRef.current) return;
@@ -49,10 +46,17 @@ export default function BestSellers() {
           ref={scrollRef}
           className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide snap-x snap-mandatory"
         >
-          {BESTSELLERS.map((p, i) => (
+          {loading && (
+            <div className="flex gap-4">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="flex-shrink-0 w-48 h-64 bg-white rounded-2xl border border-[#e2e8e8] animate-pulse" />
+              ))}
+            </div>
+          )}
+          {bestsellers.map((p, i) => (
             <Link
               key={p.id}
-              href={`/product/${p.handle}`}
+              href={`/product/${p.id}`}
               className="flex-shrink-0 w-48 snap-start group"
             >
               <div className="bg-white rounded-2xl border border-[#e2e8e8] overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
@@ -65,7 +69,7 @@ export default function BestSellers() {
                   {p.image && (
                     <Image
                       src={p.image}
-                      alt={p.title}
+                      alt={p.name}
                       fill
                       unoptimized
                       sizes="192px"
@@ -75,7 +79,7 @@ export default function BestSellers() {
                 </div>
                 <div className="p-3">
                   <p className="text-[10px] font-bold text-[#004f54] uppercase tracking-wide">{p.brand}</p>
-                  <p className="text-xs font-semibold text-[#1a2e2e] line-clamp-2 leading-snug mt-0.5">{p.title}</p>
+                  <p className="text-xs font-semibold text-[#1a2e2e] line-clamp-2 leading-snug mt-0.5">{p.name}</p>
                   <div className="flex items-center gap-1 mt-1.5">
                     <div className="flex">
                       {[1,2,3,4,5].map(s => (
@@ -86,8 +90,8 @@ export default function BestSellers() {
                   </div>
                   <div className="flex items-center gap-1.5 mt-2">
                     <span className="text-sm font-extrabold text-[#004f54]">₹{p.price.toLocaleString('en-IN')}</span>
-                    {p.compareAtPrice && (
-                      <span className="text-[10px] text-[#9ca3af] line-through">₹{p.compareAtPrice.toLocaleString('en-IN')}</span>
+                    {p.mrp > p.price && (
+                      <span className="text-[10px] text-[#9ca3af] line-through">₹{p.mrp.toLocaleString('en-IN')}</span>
                     )}
                   </div>
                 </div>

@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ShoppingBag, Heart, ChevronRight } from 'lucide-react';
-import { localProducts } from '@/lib/localProducts';
-import type { LocalProduct } from '@/lib/localProducts';
+import { Heart, ChevronRight } from 'lucide-react';
+import { useCatalogProducts } from '@/hooks/useCatalogProducts';
+import type { Product } from '@/lib/protocolEngine';
 
 const TABS = [
   { key: 'hair', label: '💇 Hair' },
@@ -18,9 +18,10 @@ const TABS = [
 export default function TodaySpotlight() {
   const [activeTab, setActiveTab] = useState('hair');
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
+  const { products: allProducts, loading } = useCatalogProducts();
 
-  const products = localProducts
-    .filter(p => p.concern === activeTab || p.tags.some(t => t.toLowerCase() === activeTab))
+  const products = allProducts
+    .filter(p => p.concern.includes(activeTab))
     .slice(0, 6);
 
   function toggleWishlist(id: string) {
@@ -60,7 +61,13 @@ export default function TodaySpotlight() {
         </div>
 
         {/* Product row */}
-        {products.length === 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="rounded-2xl bg-[#f9fafb] border border-[#e2e8e8] aspect-[3/4] animate-pulse" />
+            ))}
+          </div>
+        ) : products.length === 0 ? (
           <p className="text-[#9ca3af] text-sm py-8 text-center">No products in this category yet.</p>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -84,25 +91,19 @@ function SpotlightCard({
   wishlisted,
   onWishlist,
 }: {
-  product: LocalProduct;
+  product: Product;
   wishlisted: boolean;
   onWishlist: () => void;
 }) {
-  const [added, setAdded] = useState(false);
-
-  function handleAdd(e: React.MouseEvent) {
-    e.preventDefault();
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
-  }
+  const discountPct = p.mrp > p.price ? Math.round((1 - p.price / p.mrp) * 100) : 0;
 
   return (
     <div className="group relative bg-[#f9fafb] rounded-2xl overflow-hidden border border-[#e2e8e8] hover:border-[#004f54]/30 hover:shadow-md transition-all duration-200">
-      <Link href={`/product/${p.handle}`}>
+      <Link href={`/product/${p.id}`}>
         <div className="relative aspect-square bg-white overflow-hidden">
-          {p.discountPct > 0 && (
+          {discountPct > 0 && (
             <span className="absolute top-2 left-2 z-10 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-              {p.discountPct}% off
+              {discountPct}% off
             </span>
           )}
           <button
@@ -116,7 +117,7 @@ function SpotlightCard({
           {p.image ? (
             <Image
               src={p.image}
-              alt={p.title}
+              alt={p.name}
               fill
               unoptimized
               sizes="(max-width: 640px) 50vw, 16vw"
@@ -130,25 +131,23 @@ function SpotlightCard({
 
       <div className="p-3">
         <p className="text-[10px] font-bold text-[#004f54] uppercase tracking-wide mb-0.5">{p.brand}</p>
-        <Link href={`/product/${p.handle}`}>
+        <Link href={`/product/${p.id}`}>
           <p className="text-xs font-semibold text-[#1a2e2e] line-clamp-2 leading-snug mb-2 hover:text-[#004f54]">
-            {p.title}
+            {p.name}
           </p>
         </Link>
         <div className="flex items-center gap-1.5 mb-3">
           <span className="text-sm font-extrabold text-[#004f54]">₹{p.price.toLocaleString('en-IN')}</span>
-          {p.compareAtPrice && (
-            <span className="text-[10px] text-[#9ca3af] line-through">₹{p.compareAtPrice.toLocaleString('en-IN')}</span>
+          {p.mrp > p.price && (
+            <span className="text-[10px] text-[#9ca3af] line-through">₹{p.mrp.toLocaleString('en-IN')}</span>
           )}
         </div>
-        <button
-          onClick={handleAdd}
-          className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all
-            ${added ? 'bg-green-600 text-white' : 'bg-[#004f54] text-white hover:bg-[#01696f] active:scale-95'}`}
+        <Link
+          href={`/product/${p.id}`}
+          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold bg-[#004f54] text-white hover:bg-[#01696f] active:scale-95 transition-all"
         >
-          <ShoppingBag size={12} />
-          {added ? 'Added!' : 'Add'}
-        </button>
+          View Product
+        </Link>
       </div>
     </div>
   );
