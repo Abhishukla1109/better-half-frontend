@@ -81,6 +81,7 @@ function normalizeStateCode(provinceCode: string): string {
 // ── Route ────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  console.log("[order-webhook] received POST from", req.headers.get("x-shopify-topic") ?? "unknown");
   let order: ShopifyOrder;
   try {
     order = await req.json() as ShopifyOrder;
