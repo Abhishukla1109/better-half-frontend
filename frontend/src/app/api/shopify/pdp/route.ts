@@ -4,7 +4,7 @@ import type { EnrichedPDP } from "@/data/enrichedProducts";
 export const revalidate = 3600;
 
 const SHOP = (process.env.NEXT_PUBLIC_SHOPIFY_STORE_URL ?? "").replace(/\/$/, "").replace("https://", "");
-const SF_TOKEN = process.env.SHOPIFY_STOREFRONT_PRIVATE_TOKEN ?? "";
+const SF_TOKEN = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN ?? "";
 const SF_ENDPOINT = `https://${SHOP}/api/2024-01/graphql.json`;
 
 const QUERY = `
@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Shopify-Storefront-Private-Token": SF_TOKEN,
+        "X-Shopify-Storefront-Access-Token": SF_TOKEN,
       },
       body: JSON.stringify({ query: QUERY, variables: { handle } }),
     });
