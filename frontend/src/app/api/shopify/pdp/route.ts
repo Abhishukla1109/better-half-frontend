@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Shopify-Storefront-Access-Token": SF_TOKEN,
+        "Shopify-Storefront-Private-Token": SF_TOKEN,
       },
       body: JSON.stringify({ query: QUERY, variables: { handle } }),
     });
