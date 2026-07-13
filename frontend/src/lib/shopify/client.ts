@@ -2,7 +2,7 @@
 // All calls go through Next.js API routes — this file never runs in the browser.
 
 const storeUrl = (process.env.NEXT_PUBLIC_SHOPIFY_STORE_URL ?? "").replace(/\/$/, "");
-const storefrontToken = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN ?? "";
+const storefrontToken = process.env.SHOPIFY_STOREFRONT_PRIVATE_TOKEN ?? "";
 const API_VERSION = "2025-01";
 
 /** True when both the store URL and private Storefront token are set. */
@@ -14,7 +14,7 @@ export class ShopifyNotConfiguredError extends Error {
   constructor() {
     super(
       "Shopify Storefront API not configured. " +
-        "Add NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN to .env.local.",
+        "Add SHOPIFY_STOREFRONT_PRIVATE_TOKEN to .env.local.",
     );
     this.name = "ShopifyNotConfiguredError";
   }
