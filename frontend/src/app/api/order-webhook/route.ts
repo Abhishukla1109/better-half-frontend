@@ -88,8 +88,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  // Only process paid orders
-  if (order.financial_status !== "paid") {
+  // Process paid and pending (COD) orders — skip cancelled/refunded
+  const validStatuses = ["paid", "pending", "partially_paid"];
+  if (!validStatuses.includes(order.financial_status)) {
     return NextResponse.json({ ok: true, skipped: `status=${order.financial_status}` });
   }
 
