@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope, Public_Sans } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 import CartDrawer from "@/components/cart/CartDrawer";
@@ -56,6 +57,17 @@ export default function RootLayout({
         <link
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=block"
           rel="stylesheet"
+        />
+        <Script
+          id="gokwik-init"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `window.merchantInfo = { mid: "19k4npza24j4", environment: "production", type: "merchantInfo", storeId: 66931097696 };`,
+          }}
+        />
+        <Script
+          src="https://pdp.gokwik.co/merchant-integration/build/merchant.integration.js?v4"
+          strategy="afterInteractive"
         />
       </head>
       <body className="min-h-dvh bg-surface text-on-surface" suppressHydrationWarning>

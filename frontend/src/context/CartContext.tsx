@@ -139,13 +139,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const checkout = useCallback(() => {
-    if (cart?.checkoutUrl) {
-      const hasProtocol = !!localStorage.getItem("bh_protocol_picks");
-      track("Checkout Started", {
-        item_count: cart.totalQuantity,
-        cart_value: parseFloat(cart.subtotal?.amount ?? "0"),
-        has_protocol: hasProtocol,
-      });
+    if (!cart) return;
+    const hasProtocol = !!localStorage.getItem("bh_protocol_picks");
+    track("Checkout Started", {
+      item_count: cart.totalQuantity,
+      cart_value: parseFloat(cart.subtotal?.amount ?? "0"),
+      has_protocol: hasProtocol,
+    });
+    const w = window as Window & {
+      merchantInfo?: { mid: string; environment: string; type: string; storeId: number; cart?: { id: string } };
+      triggerGokwikCustomCheckout?: () => void;
+    };
+    if (w.triggerGokwikCustomCheckout && w.merchantInfo) {
+      w.merchantInfo.cart = { id: cart.id };
+      w.triggerGokwikCustomCheckout();
+    } else if (cart.checkoutUrl) {
       window.location.href = cart.checkoutUrl;
     }
   }, [cart]); // cart state is fine here — checkout is always user-triggered after a render

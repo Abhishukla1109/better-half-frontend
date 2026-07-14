@@ -184,8 +184,8 @@ const CART_FRAGMENT = `
 
 export const CREATE_CART = `
   ${CART_FRAGMENT}
-  mutation CreateCart($lines: [CartLineInput!]) {
-    cartCreate(input: { lines: $lines }) {
+  mutation CreateCart($lines: [CartLineInput!], $attributes: [AttributeInput!]) {
+    cartCreate(input: { lines: $lines, attributes: $attributes }) {
       cart { ...CartFragment }
       userErrors { field message }
     }

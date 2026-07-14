@@ -39,6 +39,7 @@ interface ShopifyOrder {
   financial_status: string;
   shipping_address: ShopifyAddress;
   line_items:       ShopifyLineItem[];
+  note_attributes:  Array<{ name: string; value: string }>;
 }
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -103,6 +104,9 @@ export async function POST(req: NextRequest) {
 
     const shipping = order.shipping_address;
 
+    const sourceAttr = (order.note_attributes ?? []).find(a => a.name === "source");
+    const source = sourceAttr?.value ?? "betterhalf";
+
     const body = {
       contact_no:   normalizePhone(shipping.phone ?? order.phone),
       first_name:   shipping.first_name || order.first_name,
@@ -115,7 +119,7 @@ export async function POST(req: NextRequest) {
       state:        normalizeStateCode(shipping.province_code),
       postcode:     shipping.zip,
       payment_method: "juspay",
-      source:       "betterhalf",
+      source,
       order: order.line_items.map(item => ({
         product_id: handleMap[item.product_id] ?? item.sku ?? String(item.product_id),
         quantity:   item.quantity,

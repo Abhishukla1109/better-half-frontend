@@ -118,6 +118,7 @@ export async function createCart(variantId: string, quantity = 1): Promise<Cart>
     cartCreate: { cart: ShopifyCart; userErrors: { message: string }[] };
   }>(CREATE_CART, {
     lines: [{ merchandiseId: variantId, quantity }],
+    attributes: [{ key: "source", value: "betterhalf" }],
   });
   if (data.cartCreate.userErrors.length > 0) {
     throw new Error(data.cartCreate.userErrors[0].message);
