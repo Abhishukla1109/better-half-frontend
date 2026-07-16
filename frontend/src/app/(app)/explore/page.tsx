@@ -660,14 +660,14 @@ function ExplorePageContent() {
         .filter((p) => p.segment.some((s) => s.startsWith("female")))
         .sort((a, b) => b.baseScore - a.baseScore);
 
-      // Kids pool: if child profile active, filter by child age; else show all child segments
+      // Kids pool: if child profile active, filter by child age; else show all kids segments
       const kidsPool = (() => {
         if (isKid) {
           const childAge = activeMember?.childAge ?? "6-12";
-          const seg = childAge === "2-5" ? "child-2-6" : childAge === "6-12" ? "child-7-12" : "child-13-18";
+          const seg = childAge === "2-5" ? "kids-2-5" : childAge === "6-12" ? "kids-6-12" : "kids-13-plus";
           return ljAll.filter((p) => p.segment.includes(seg)).sort((a, b) => b.baseScore - a.baseScore);
         }
-        return ljAll.filter((p) => p.segment.some((s) => s.startsWith("child"))).sort((a, b) => b.baseScore - a.baseScore);
+        return ljAll.filter((p) => p.segment.some((s) => s.startsWith("kids-"))).sort((a, b) => b.baseScore - a.baseScore);
       })();
 
       if (ljMode === "mom") {
