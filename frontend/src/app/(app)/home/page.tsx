@@ -822,8 +822,12 @@ export default function HomePage() {
         <NavBar />
         <HeroImage />
         <QuestionBlock
-          q={name ? `What's on your mind, ${name}?` : "What's your main health goal?"}
-          sub="Pick one or more — we'll tailor everything to your concerns."
+          q={memberFlow === "partner"
+            ? (name ? `What's on ${name}'s mind?` : "What are their main health goals?")
+            : (name ? `What's on your mind, ${name}?` : "What's your main health goal?")}
+          sub={memberFlow === "partner"
+            ? "Pick one or more — we'll tailor everything to their concerns."
+            : "Pick one or more — we'll tailor everything to your concerns."}
         />
         <div className="px-4 grid grid-cols-2 gap-3 mt-3">
           {CONCERN_OPTIONS.map((opt) => {
@@ -865,7 +869,9 @@ export default function HomePage() {
         <>
           <NavBar onSkip={() => handleQualifierAnswer("", "")} />
           <HeroImage />
-          <QuestionBlock q={qualifier.question} />
+          <QuestionBlock q={memberFlow === "partner"
+            ? qualifier.question.replace(/\byour\b/gi, "their").replace(/\byou\b/gi, "they")
+            : qualifier.question} />
           <div className="px-4 grid grid-cols-2 gap-3 mt-3">
             {qualifier.options.map((opt) => (
               <button key={opt.value} onClick={() => handleQualifierAnswer(qualifier!.key, opt.value)}
@@ -884,7 +890,12 @@ export default function HomePage() {
       <>
         <NavBar onSkip={() => handleDietSelect("unknown")} />
         <HeroImage />
-        <QuestionBlock q="What does your diet look like?" sub="Diet type directly affects which nutrients you might be missing." />
+        <QuestionBlock
+          q={memberFlow === "partner"
+            ? `What does ${name || "their"} diet look like?`
+            : "What does your diet look like?"}
+          sub="Diet type directly affects which nutrients you might be missing."
+        />
         <div className="px-4 grid grid-cols-2 gap-3 mt-3">
           {DIET_OPTIONS.map((opt) => (
             <button key={opt.value} onClick={() => handleDietSelect(opt.value)}
