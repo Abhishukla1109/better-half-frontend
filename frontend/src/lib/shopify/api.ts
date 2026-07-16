@@ -9,6 +9,7 @@ import {
   ADD_TO_CART,
   UPDATE_CART_LINES,
   REMOVE_FROM_CART,
+  UPDATE_CART_ATTRIBUTES,
 } from './queries';
 import type {
   ShopifyProduct,
@@ -163,6 +164,16 @@ export async function removeCartLine(cartId: string, lineId: string): Promise<Ca
     throw new Error(data.cartLinesRemove.userErrors[0].message);
   }
   return normalizeCart(data.cartLinesRemove.cart);
+}
+
+export async function updateCartAttributes(cartId: string, attributes: Array<{ key: string; value: string }>): Promise<Cart | null> {
+  const data = await shopifyFetch<{
+    cartAttributesUpdate: { cart: ShopifyCart; userErrors: { message: string }[] };
+  }>(UPDATE_CART_ATTRIBUTES, { cartId, attributes });
+  if (data.cartAttributesUpdate.userErrors.length > 0) {
+    throw new Error(data.cartAttributesUpdate.userErrors[0].message);
+  }
+  return data.cartAttributesUpdate.cart ? normalizeCart(data.cartAttributesUpdate.cart) : null;
 }
 
 export async function getCart(cartId: string): Promise<Cart | null> {

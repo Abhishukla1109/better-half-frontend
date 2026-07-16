@@ -6,6 +6,7 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { initMixpanel, track } from "@/lib/mixpanel";
+import { captureUTMs } from "@/lib/utm";
 
 export default function MixpanelProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -13,6 +14,7 @@ export default function MixpanelProvider({ children }: { children: React.ReactNo
   // Runs once when the app first loads — starts Mixpanel
   useEffect(() => {
     initMixpanel();
+    captureUTMs();
   }, []);
 
   // Runs every time the URL changes — tracks which pages users visit

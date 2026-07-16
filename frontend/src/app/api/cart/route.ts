@@ -5,6 +5,7 @@ import {
   updateCartLine,
   removeCartLine,
   getCart,
+  updateCartAttributes,
 } from "@/lib/shopify/api";
 
 export async function POST(req: NextRequest) {
@@ -42,6 +43,11 @@ export async function POST(req: NextRequest) {
       case "get": {
         const { cartId } = body as { cartId: string };
         const cart = await getCart(cartId);
+        return NextResponse.json(cart ?? null);
+      }
+      case "attributes": {
+        const { cartId, attributes } = body as { cartId: string; attributes: Array<{ key: string; value: string }> };
+        const cart = await updateCartAttributes(cartId, attributes);
         return NextResponse.json(cart ?? null);
       }
       default:

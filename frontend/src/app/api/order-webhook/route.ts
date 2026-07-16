@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const MOSAIC_SECRET = process.env.MOSAIC_SERVICE_SECRET ?? "fce45aff64536ec8ecea7ab6ce80";
+const MOSAIC_SECRET     = process.env.MOSAIC_SERVICE_SECRET ?? "fce45aff64536ec8ecea7ab6ce80";
+const AFFLUENCE_URL     = process.env.AFFLUENCE_EARNINGS_URL ?? "https://stg.api.myaffluence.app/affluence/social/earnings/";
+const BRAND_CODE: Record<string, string> = { "Man Matters": "MM", "Be Bodywise": "BW", "Little Joys": "LJ" };
 
 const BRAND_ORDER_URL: Record<string, string> = {
   "Man Matters": process.env.MOSAIC_MM_ORDER_URL ?? "https://stg.api.manmatters.com/portal/utility/create-simple-order",
@@ -36,6 +38,7 @@ interface ShopifyAddress {
 
 interface ShopifyOrder {
   id:               number;
+  customer_id:      number | null;
   email:            string;
   phone:            string | null;
   first_name:       string;
@@ -44,6 +47,15 @@ interface ShopifyOrder {
   shipping_address: ShopifyAddress;
   line_items:       ShopifyLineItem[];
   note_attributes:  Array<{ name: string; value: string }>;
+}
+
+interface AffluenceUTMs {
+  utmSource:    string;
+  utmMedium:    string;
+  utmCampaign:  string;
+  ref:          string;
+  dmId:         string;
+  influencerId: string;
 }
 
 interface ProductInfo {
@@ -140,6 +152,69 @@ async function callMosaicBrand(brand: string, payload: object): Promise<string |
   return result.order_id ?? null;
 }
 
+// ── Affluence ────────────────────────────────────────────────
+
+function getUTMsFromOrder(order: ShopifyOrder): AffluenceUTMs | null {
+  const attrs = order.note_attributes ?? [];
+  const get = (key: string) => attrs.find(a => a.name === key)?.value ?? "";
+  const utmSource = get("utmSource");
+  if (!utmSource) return null;
+  return {
+    utmSource,
+    utmMedium:    get("utmMedium"),
+    utmCampaign:  get("utmCampaign"),
+    ref:          get("ref"),
+    dmId:         get("dmId"),
+    influencerId: get("influencerId"),
+  };
+}
+
+async function callAffluenceEarnings(
+  order: ShopifyOrder,
+  brand: string,
+  items: ShopifyLineItem[],
+  mosaicOrderId: string,
+  utms: AffluenceUTMs,
+): Promise<void> {
+  const total = items.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
+  const payload = {
+    utmSource:    utms.utmSource,
+    utmMedium:    utms.utmMedium,
+    utmCampaign:  utms.utmCampaign,
+    ref:          utms.ref,
+    dmId:         utms.dmId,
+    influencerId: utms.influencerId,
+    metaData: { paymentMode: "juspay" },
+    order: {
+      status:        "confirmed",
+      netTotal:      total,
+      orderId:       mosaicOrderId,
+      grandTotal:    total,
+      subTotal:      total,
+      isSimpleOrder: false,
+      coupons:       [],
+    },
+    user: {
+      type:   "NEW",
+      userId: String(order.customer_id ?? order.id),
+      brand:  BRAND_CODE[brand] ?? brand,
+      phone:  normalizePhone(order.shipping_address?.phone ?? order.phone),
+      email:  order.email,
+    },
+  };
+  const res = await fetch(AFFLUENCE_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    console.error(`[order-webhook] Affluence ${brand} error:`, res.status, text);
+  } else {
+    console.log(`[order-webhook] Affluence notified: ${brand} → ${mosaicOrderId}`);
+  }
+}
+
 // ── Route ────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -198,6 +273,16 @@ export async function POST(req: NextRequest) {
         .filter(r => r.mosaicOrderId && metafieldKey[r.brand])
         .map(r => writeOrderMetafield(order.id, metafieldKey[r.brand], r.mosaicOrderId!, adminToken))
     );
+
+    // Notify Affluence for orders that came from influencer links
+    const utms = getUTMsFromOrder(order);
+    if (utms) {
+      await Promise.all(
+        results
+          .filter(r => r.mosaicOrderId)
+          .map(r => callAffluenceEarnings(order, r.brand, byBrand[r.brand], r.mosaicOrderId!, utms))
+      );
+    }
 
     console.log(`[order-webhook] Done for Shopify order ${order.id}:`, results);
     return NextResponse.json({ ok: true, results });

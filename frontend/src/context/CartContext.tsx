@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import type { Cart } from '@/lib/shopify/types';
 import { track } from '@/lib/mixpanel';
+import { getStoredUTMs } from '@/lib/utm';
 
 const CART_ID_KEY = 'bh_cart_id';
 
@@ -138,8 +139,27 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const checkout = useCallback(() => {
-    if (!cart) return;
+  const checkout = useCallback(async () => {
+    if (!cart || !cartIdRef.current) return;
+    setIsLoading(true);
+    try {
+      const utms = getStoredUTMs();
+      if (utms) {
+        await cartApi('attributes', {
+          cartId: cartIdRef.current,
+          attributes: [
+            { key: "source",       value: "betterhalf" },
+            { key: "utmSource",    value: utms.utmSource },
+            { key: "utmMedium",    value: utms.utmMedium },
+            { key: "utmCampaign",  value: utms.utmCampaign },
+            { key: "ref",          value: utms.ref },
+            { key: "dmId",         value: utms.dmId },
+            { key: "influencerId", value: utms.influencerId },
+          ],
+        });
+      }
+    } catch { /* non-critical — proceed to checkout anyway */ }
+
     const hasProtocol = !!localStorage.getItem("bh_protocol_picks");
     track("Checkout Started", {
       item_count: cart.totalQuantity,
@@ -156,6 +176,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     } else if (cart.checkoutUrl) {
       window.location.href = cart.checkoutUrl;
     }
+    setIsLoading(false);
   }, [cart]); // cart state is fine here — checkout is always user-triggered after a render
 
   return (
