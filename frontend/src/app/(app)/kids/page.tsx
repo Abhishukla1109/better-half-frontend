@@ -44,13 +44,14 @@ const CONCERN_FOLLOWUP: Record<string, string[]> = {
   nutrition: ["nutrition","protein","vitamins"],
 };
 
-function getKidsRecs(childAge: string, concern: string, ljProducts: Product[], nudgeAnswers: Record<string, string> = {}) {
+function getKidsRecs(childAge: string, concerns: string[], ljProducts: Product[], nudgeAnswers: Record<string, string> = {}) {
   const seg =
     childAge === "2-5"  ? "kids-2-5"    :
     childAge === "6-12" ? "kids-6-12"   : "kids-13-plus";
 
-  const followUps     = CONCERN_FOLLOWUP[concern] ?? [];
-  const directConcern = ["sleep","skin","hair"].includes(concern);
+  const directConcerns = concerns.filter(c => ["sleep","skin","hair"].includes(c));
+  const indirectConcerns = concerns.filter(c => !["sleep","skin","hair"].includes(c));
+  const allFollowUps = indirectConcerns.flatMap(c => CONCERN_FOLLOWUP[c] ?? []);
 
   // Nudge-based score bonus — applied before slicing so the right products surface to primary
   function nudgeBonus(p: Product): number {
@@ -67,9 +68,9 @@ function getKidsRecs(childAge: string, concern: string, ljProducts: Product[], n
 
   let primary = ljProducts.filter(p => {
     if (!p.segment.includes(seg)) return false;
-    if (directConcern) return p.concern.includes(concern);
-    if (followUps.length === 0)   return p.concern.includes("energy");
-    return p.followUp.some(f => followUps.some(t => f.toLowerCase().includes(t)));
+    if (directConcerns.some(c => p.concern.includes(c))) return true;
+    if (allFollowUps.length === 0) return indirectConcerns.some(c => p.concern.includes(c)) || p.concern.includes("energy");
+    return p.followUp.some(f => allFollowUps.some(t => f.toLowerCase().includes(t)));
   }).sort((a, b) => (b.baseScore + nudgeBonus(b)) - (a.baseScore + nudgeBonus(a))).slice(0, 3);
 
   // Pad to 3 with highest-scored same-segment products when catalog is thin
@@ -255,7 +256,9 @@ export default function KidsHomePage() {
   const childName   = activeMember?.name;
   const displayName = childName ?? "your child";
   const profile     = activeProfile as Record<string, unknown>;
-  const concern     = (profile?.concern as string) ?? "immunity";
+  const concernStr  = (profile?.concern as string) ?? "immunity";
+  const concerns    = concernStr.split(",").filter(Boolean);
+  const concern     = concerns[0] ?? "immunity";
   const onboarded   = profile?.kidsOnboardingDone;
 
   // Edit sheet state
@@ -341,7 +344,7 @@ export default function KidsHomePage() {
     window.location.reload();
   };
 
-  const { primary, rest } = useMemo(() => getKidsRecs(childAge, concern, ljProducts, nudgeAnswers), [childAge, concern, ljProducts, nudgeAnswers]);
+  const { primary, rest } = useMemo(() => getKidsRecs(childAge, concerns, ljProducts, nudgeAnswers), [childAge, concernStr, ljProducts, nudgeAnswers]); // eslint-disable-line react-hooks/exhaustive-deps
   const habits = useMemo(() => getHabits(concern, childAge), [concern, childAge]);
 
   const tips = EDU_TIPS[childAge] ?? EDU_TIPS["6-12"];
@@ -392,7 +395,7 @@ export default function KidsHomePage() {
             </h1>
             <p className="text-[14px] font-semibold mb-4" style={{ color: "#c2410c" }}>{headline}</p>
             <span className="inline-flex items-center gap-1.5 text-[12px] font-bold px-3.5 py-1.5 rounded-full" style={{ color: "#c2410c", background: "rgba(255,255,255,0.82)", border: "1px solid #fed7aa" }}>
-              🎯 {CONCERN_LABEL[concern] ?? concern}
+              🎯 {concerns.map(c => CONCERN_LABEL[c] ?? c).join(" · ")}
             </span>
           </div>
 

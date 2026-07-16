@@ -245,6 +245,7 @@ export default function HomePage() {
   const [childName, setChildName] = useState("");
   const [childAge, setChildAge] = useState<"2-5" | "6-12" | "13+" | null>(null);
   const [childConcern, setChildConcern] = useState<string | null>(null);
+  const [selectedChildConcerns, setSelectedChildConcerns] = useState<string[]>([]);
   const [currentStep, setCurrentStep] = useState<FlowStep>("entry");
   const { addMember, members, activeMember, updateMemberProfile } = useActiveProfile();
   const router = useRouter();
@@ -500,6 +501,12 @@ export default function HomePage() {
     setShowGenerating(true);
     setTimeout(() => setGeneratingPhase("ready"), 2800);
   }, [childName, childAge, childConcern, addMember]);
+
+  const handleChildConcernContinue = useCallback(() => {
+    if (selectedChildConcerns.length === 0) return;
+    setChildConcern(selectedChildConcerns.join(","));
+    advance("child-followup");
+  }, [selectedChildConcerns, advance]);
 
   // ── Blank screen during edit mode profile load ──
   if (isEditMode && memberFlow === null) return <div className="min-h-dvh bg-surface" />;
@@ -977,7 +984,7 @@ export default function HomePage() {
             { value: "6-12", label: "6 – 12 years", desc: "School age",                emoji: "🎒" },
             { value: "13+",  label: "13+ years",    desc: "Teen",                      emoji: "🎧" },
           ] as const).map((opt) => (
-            <button key={opt.value} onClick={() => { setChildAge(opt.value); advance("child-concern"); }}
+            <button key={opt.value} onClick={() => { setChildAge(opt.value); setSelectedChildConcerns([]); advance("child-concern"); }}
               className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-white shadow-[0_2px_16px_rgba(0,58,45,0.08)] hover:shadow-[0_4px_24px_rgba(0,58,45,0.13)] transition-all cursor-pointer active:scale-[0.98]"
             >
               <span className="text-3xl leading-none shrink-0">{opt.emoji}</span>
@@ -999,19 +1006,33 @@ export default function HomePage() {
         <>
           <NavBar />
           <HeroImage />
-          <QuestionBlock q={`What's your main focus for ${childName || "them"}?`} />
+          <QuestionBlock q={`What's your focus for ${childName || "them"}?`} sub="Select all that apply" />
           <div className="px-4 grid grid-cols-2 gap-3 mt-3">
-            {concerns.map((c) => (
-              <button key={c.key} onClick={() => { setChildConcern(c.key); advance("child-followup"); }}
-                className="flex flex-col items-center justify-center gap-2.5 p-5 rounded-2xl bg-white shadow-[0_2px_16px_rgba(0,58,45,0.08)] hover:shadow-[0_4px_24px_rgba(0,58,45,0.12)] transition-all cursor-pointer active:scale-[0.97] min-h-[110px]"
-              >
-                <span className="text-3xl leading-none">{c.emoji}</span>
-                <div className="text-center">
-                  <p className="text-[13px] font-extrabold text-on-surface leading-snug">{c.label}</p>
-                  <p className="text-[10px] text-on-surface-variant/45 mt-0.5">{c.sub}</p>
-                </div>
-              </button>
-            ))}
+            {concerns.map((c) => {
+              const sel = selectedChildConcerns.includes(c.key);
+              return (
+                <button key={c.key} onClick={() => setSelectedChildConcerns(prev =>
+                  prev.includes(c.key) ? prev.filter(k => k !== c.key) : [...prev, c.key]
+                )}
+                  className={`relative flex flex-col items-center justify-center gap-2.5 p-5 rounded-2xl transition-all cursor-pointer active:scale-[0.97] min-h-[110px] ${
+                    sel
+                      ? "bg-[#004f54] shadow-[0_4px_24px_rgba(0,79,84,0.22)]"
+                      : "bg-white shadow-[0_2px_16px_rgba(0,58,45,0.08)] hover:shadow-[0_4px_24px_rgba(0,58,45,0.12)]"
+                  }`}
+                >
+                  {sel && (
+                    <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-white flex items-center justify-center">
+                      <Check className="w-3 h-3 text-[#004f54]" />
+                    </div>
+                  )}
+                  <span className="text-3xl leading-none">{c.emoji}</span>
+                  <div className="text-center">
+                    <p className={`text-[13px] font-extrabold leading-snug ${sel ? "text-white" : "text-on-surface"}`}>{c.label}</p>
+                    <p className={`text-[10px] mt-0.5 ${sel ? "text-white/70" : "text-on-surface-variant/45"}`}>{c.sub}</p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </>
       );
@@ -1019,7 +1040,8 @@ export default function HomePage() {
 
     // CHILD FOLLOWUP
     if (currentStep === "child-followup") {
-      const followUp = childConcern ? KIDS_FOLLOW_UPS[childConcern] : null;
+      const primaryConcern = childConcern?.split(",")[0] ?? null;
+      const followUp = primaryConcern ? KIDS_FOLLOW_UPS[primaryConcern] : null;
       const displayName = childName || "your child";
       if (!followUp) { handleKidsComplete(""); return null; }
       return (
@@ -1045,14 +1067,16 @@ export default function HomePage() {
   };
 
   // Bottom bar: what appears on the right side
-  const showContinue = currentStep === "concern" || currentStep === "name" || currentStep === "child-name";
+  const showContinue = currentStep === "concern" || currentStep === "name" || currentStep === "child-name" || currentStep === "child-concern";
   const continueEnabled =
-    currentStep === "concern"    ? selectedConcerns.length > 0 :
-    currentStep === "name"       ? !!nameText.trim() :
+    currentStep === "concern"       ? selectedConcerns.length > 0 :
+    currentStep === "name"          ? !!nameText.trim() :
+    currentStep === "child-concern" ? selectedChildConcerns.length > 0 :
     true;
   const onContinueClick =
-    currentStep === "concern"    ? handleConcernContinue :
-    currentStep === "name"       ? handleNameSubmit :
+    currentStep === "concern"       ? handleConcernContinue :
+    currentStep === "name"          ? handleNameSubmit :
+    currentStep === "child-concern" ? handleChildConcernContinue :
     () => advance("child-age");
 
   return (

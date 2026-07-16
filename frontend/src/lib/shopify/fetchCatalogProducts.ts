@@ -122,6 +122,15 @@ const CONCERN_OVERRIDES: Record<string, string[]> = {
   "10-magnesium-lotion-300ml":                                      ["sleep", "energy"],  // wrongly tagged 'skin' in Shopify
 };
 
+// Little Joys display categories for the kids protocol page card styling.
+// Derived from the product handle — this is pure UI/display logic, not data.
+function getLJCategory(handle: string): string {
+  if (/gummies|magnesium|electrolyte|immunity-kit/.test(handle)) return "gummies";
+  if (/nutrimix|proteinmix|activemix|nutrition|brain-development|oats/.test(handle)) return "nutrition";
+  if (/shampoo|toothpaste|lotion|lip-balm|mosquito/.test(handle)) return "personal-care";
+  return "healthysnacks";
+}
+
 export async function fetchCatalogProducts(): Promise<Product[]> {
   const token = await getAdminToken();
   const results: Product[] = [];
@@ -141,6 +150,7 @@ export async function fetchCatalogProducts(): Promise<Product[]> {
 
       if (!concern.length || !gender.length || !baseScore) continue;
 
+      const isLJ     = p.vendor === "Little Joys";
       const price     = Math.round(parseFloat(p.priceRangeV2.minVariantPrice.amount));
       const compareAt = Math.round(parseFloat(p.compareAtPriceRange?.maxVariantCompareAtPrice?.amount ?? "0"));
 
@@ -154,7 +164,7 @@ export async function fetchCatalogProducts(): Promise<Product[]> {
         gender,
         segment,
         followUp,
-        category: concern[0] ?? "",
+        category: isLJ ? getLJCategory(p.handle) : (concern[0] ?? ""),
         baseScore,
         image:    p.featuredImage?.url,
         images:   (p.images?.nodes ?? []).map((i) => i.url).filter(Boolean),
