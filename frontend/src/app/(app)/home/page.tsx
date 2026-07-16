@@ -777,7 +777,13 @@ export default function HomePage() {
         <NavBar onSkip={() => handleSexSelect("undisclosed")} />
         <HeroImage />
         <QuestionBlock
-          q={name ? `Tell me about ${memberFlow === "partner" ? name : "yourself"}, ${name}` : memberFlow === "partner" ? "Tell me about your partner" : "Who are we building this for?"}
+          q={name
+            ? memberFlow === "partner"
+              ? `Tell me about ${name}`
+              : `Tell me about yourself, ${name}`
+            : memberFlow === "partner"
+              ? "Tell me about your partner"
+              : "Who are we building this for?"}
           sub="This helps us personalise supplement picks, brands and daily habits."
         />
         <div className="px-4 grid grid-cols-2 gap-3 mt-3">
