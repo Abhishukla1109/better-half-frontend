@@ -665,7 +665,7 @@ export default function HomePage() {
           </button>
 
           <button
-            onClick={() => { if (!partnerDisabled) { applyTheme("male"); setMemberFlow("partner"); track("Onboarding Started", { member_flow: "partner" }); advance("name"); } }}
+            onClick={() => { if (!partnerDisabled) { applyTheme("male"); setMemberFlow("partner"); setName(""); setNameText(""); track("Onboarding Started", { member_flow: "partner" }); advance("name"); } }}
             disabled={partnerDisabled}
             className={`w-full flex items-center gap-4 py-4 px-5 rounded-2xl border transition-all duration-150 ${partnerDisabled ? "bg-surface-container border-outline-variant/10 cursor-not-allowed opacity-40" : "border-outline-variant/15 bg-surface-container-lowest shadow-sm cursor-pointer hover:bg-surface-container-low active:scale-[0.99]"}`}
           >
@@ -678,7 +678,7 @@ export default function HomePage() {
           </button>
 
           <button
-            onClick={() => { applyTheme("child"); setMemberFlow("kids"); track("Onboarding Started", { member_flow: "kids" }); advance("child-name"); }}
+            onClick={() => { applyTheme("child"); setMemberFlow("kids"); setName(""); setNameText(""); track("Onboarding Started", { member_flow: "kids" }); advance("child-name"); }}
             className="w-full flex items-center gap-4 py-4 px-5 rounded-2xl border border-outline-variant/15 bg-surface-container-lowest shadow-sm cursor-pointer hover:bg-surface-container-low transition-all duration-150 active:scale-[0.99]"
           >
             <div className="w-10 h-10 rounded-xl bg-primary-container/10 flex items-center justify-center text-xl shrink-0">🧒</div>
