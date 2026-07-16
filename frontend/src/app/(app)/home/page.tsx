@@ -237,6 +237,7 @@ export default function HomePage() {
   const [name, setName] = useState("");
   const [nameText, setNameText] = useState("");
   const [selectedConcerns, setSelectedConcerns] = useState<string[]>([]);
+  const [selectedQualifiers, setSelectedQualifiers] = useState<string[]>([]);
   const [showGenerating, setShowGenerating] = useState(false);
   const [generatingPhase, setGeneratingPhase] = useState<"generating" | "ready">("generating");
   const [restored, setRestored] = useState(false);
@@ -414,6 +415,7 @@ export default function HomePage() {
     const isMulti = selectedConcerns.length > 1;
     const hasSingleQualifier = !isMulti && selectedConcerns[0] && CONCERN_QUALIFIERS[selectedConcerns[0]];
     if (isMulti || hasSingleQualifier) {
+      setSelectedQualifiers([]);
       setCurrentStep("qualifier");
     } else {
       setLevel("L1");
@@ -879,13 +881,37 @@ export default function HomePage() {
             ? qualifier.question.replace(/\byour\b/gi, "their").replace(/\byou\b/gi, "they")
             : qualifier.question} />
           <div className="px-4 grid grid-cols-2 gap-3 mt-3">
-            {qualifier.options.map((opt) => (
-              <button key={opt.value} onClick={() => handleQualifierAnswer(qualifier!.key, opt.value)}
-                className="flex items-center justify-center px-3 py-8 rounded-2xl bg-white shadow-[0_2px_16px_rgba(0,58,45,0.08)] hover:shadow-[0_4px_24px_rgba(0,58,45,0.13)] transition-all duration-200 cursor-pointer active:scale-[0.97] text-center"
-              >
-                <p className="text-[14px] font-bold text-on-surface leading-snug">{opt.label}</p>
-              </button>
-            ))}
+            {qualifier.options.map((opt) => {
+              const sel = selectedQualifiers.includes(opt.value);
+              return (
+                <button key={opt.value}
+                  onClick={() => setSelectedQualifiers(prev =>
+                    prev.includes(opt.value) ? prev.filter(v => v !== opt.value) : [...prev, opt.value]
+                  )}
+                  className={`relative flex items-center justify-center px-3 py-8 rounded-2xl transition-all duration-200 cursor-pointer active:scale-[0.97] text-center ${
+                    sel
+                      ? "bg-primary-container/10 shadow-[0_2px_16px_rgba(0,58,45,0.14)] ring-2 ring-primary-container/40"
+                      : "bg-white shadow-[0_2px_16px_rgba(0,58,45,0.08)] hover:shadow-[0_4px_24px_rgba(0,58,45,0.13)]"
+                  }`}
+                >
+                  {sel && (
+                    <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-primary-container flex items-center justify-center">
+                      <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+                    </div>
+                  )}
+                  <p className="text-[14px] font-bold text-on-surface leading-snug">{opt.label}</p>
+                </button>
+              );
+            })}
+          </div>
+          <div className="px-4 mt-4">
+            <button
+              onClick={() => handleQualifierAnswer(qualifier!.key, selectedQualifiers.join(","))}
+              disabled={selectedQualifiers.length === 0}
+              className="w-full py-4 bg-[#004f54] text-white rounded-2xl font-extrabold text-base disabled:opacity-40 transition-opacity"
+            >
+              Continue →
+            </button>
           </div>
         </>
       );

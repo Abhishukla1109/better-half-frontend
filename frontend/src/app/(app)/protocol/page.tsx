@@ -149,6 +149,11 @@ const CONCERN_DISPLAY: Record<string, string> = {
   "Sleep / mind": "Sleep & Mind",
 };
 
+function getConcernDisplayLabel(label: string, sex?: string | null): string {
+  if (label === "Hair / beard" && sex === "female") return "Hair";
+  return CONCERN_DISPLAY[label] ?? label;
+}
+
 /* Emoji per concern */
 const CONCERN_EMOJI: Record<string, string> = {
   "Hair / beard": "💇",
@@ -955,13 +960,13 @@ export default function ProtocolPage() {
     const supplements = protocol.supplements;
     if (concernList.length <= 1) {
       return [{
-        label: concernList[0] ? (CONCERN_DISPLAY[concernList[0]] ?? concernList[0]) : "Your Picks",
+        label: concernList[0] ? getConcernDisplayLabel(concernList[0], profile?.sex) : "Your Picks",
         emoji: concernList[0] ? (CONCERN_EMOJI[concernList[0]] ?? "✦") : "✦",
         indices: supplements.map((_, i) => i),
       }];
     }
     const groups = concernList.map((label) => ({
-      label: CONCERN_DISPLAY[label] ?? label,
+      label: getConcernDisplayLabel(label, profile?.sex),
       emoji: CONCERN_EMOJI[label] ?? "✦",
       concernValues: ONBOARDING_CONCERN_MAP[label] ?? [],
       indices: [] as number[],
@@ -998,7 +1003,7 @@ export default function ProtocolPage() {
     const pool = protocol.supplements;
     const groups = concernList.map((label) => ({
       label,
-      displayLabel: CONCERN_DISPLAY[label] ?? label,
+      displayLabel: getConcernDisplayLabel(label, profile?.sex),
       emoji: CONCERN_EMOJI[label] ?? "✦",
       concernValues: ONBOARDING_CONCERN_MAP[label] ?? [],
       supplements: [] as ProtocolSupplement[],
