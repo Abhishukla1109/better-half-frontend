@@ -156,16 +156,24 @@ async function callMosaicBrand(brand: string, payload: object): Promise<string |
 
 function getUTMsFromOrder(order: ShopifyOrder): AffluenceUTMs | null {
   const attrs = order.note_attributes ?? [];
-  const get = (key: string) => attrs.find(a => a.name === key)?.value ?? "";
-  const utmSource = get("utmSource");
+  // Try multiple key formats: Affluence writes snake_case (utm_source),
+  // BetterHalf writes camelCase (utmSource). Accept both.
+  const pick = (...keys: string[]) => {
+    for (const k of keys) {
+      const v = attrs.find(a => a.name === k)?.value;
+      if (v) return v;
+    }
+    return "";
+  };
+  const utmSource = pick("utm_source", "utmSource", "affluence_last_utm_source");
   if (!utmSource) return null;
   return {
     utmSource,
-    utmMedium:    get("utmMedium"),
-    utmCampaign:  get("utmCampaign"),
-    ref:          get("ref"),
-    dmId:         get("dmId"),
-    influencerId: get("influencerId"),
+    utmMedium:    pick("utm_medium",   "utmMedium",   "affluence_last_utm_medium"),
+    utmCampaign:  pick("utm_campaign", "utmCampaign", "affluence_last_utm_campaign"),
+    ref:          pick("ref"),
+    dmId:         pick("dmId"),
+    influencerId: pick("influencerId"),
   };
 }
 
