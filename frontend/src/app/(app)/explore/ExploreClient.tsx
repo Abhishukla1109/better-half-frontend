@@ -22,6 +22,37 @@ const CONCERN_CHIPS = [
   { key: 'kids', label: '👶 Kids' },
 ];
 
+// Symptom/synonym → concern chip key
+const KEYWORD_CONCERN_MAP: Record<string, string> = {
+  "hairfall": "hair",  "hair fall": "hair",  "hair loss": "hair",
+  "dandruff": "hair",  "scalp": "hair",      "shampoo": "hair",
+  "beard": "hair",     "bald": "hair",       "serum": "hair",
+  "acne": "skin",      "pimple": "skin",     "sunscreen": "skin",
+  "moisturizer": "skin", "pigmentation": "skin", "glow": "skin",
+  "brightening": "skin", "body wash": "skin", "niacinamide": "skin",
+  "tired": "energy",   "fatigue": "energy",  "stamina": "energy",
+  "strength": "energy", "shilajit": "energy",
+  "insomnia": "sleep", "melatonin": "sleep",
+  "creatine": "fitness", "protein": "fitness", "workout": "fitness",
+  "muscle": "fitness", "gym": "fitness",
+  "pcos": "hormones",  "thyroid": "hormones", "period": "hormones",
+  "testosterone": "hormones", "hormonal": "hormones",
+  "digestion": "gut",  "bloating": "gut",    "probiotic": "gut",
+  "stomach": "gut",    "constipation": "gut",
+  "vitamin": "wellness", "immunity": "wellness", "multivitamin": "wellness",
+  "omega": "wellness", "magnesium": "wellness", "zinc": "wellness",
+  "child": "kids",     "baby": "kids",       "children": "kids",
+  "toddler": "kids",   "gummies": "kids",
+};
+
+function impliedConcern(query: string): string | null {
+  const q = query.toLowerCase().trim();
+  for (const [keyword, concern] of Object.entries(KEYWORD_CONCERN_MAP)) {
+    if (q.includes(keyword)) return concern;
+  }
+  return null;
+}
+
 interface Props {
   shopifyProducts: ShopifyProduct[];
   localProducts: LocalProduct[];
@@ -34,14 +65,27 @@ export default function ExploreClient({ shopifyProducts, localProducts }: Props)
   const usingShopify = shopifyProducts.length > 0;
 
   const filtered = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    const concern = q ? impliedConcern(q) : null;
+
     if (usingShopify) {
       return shopifyProducts.filter(p => {
         const matchConcern = activeFilter === 'all' ||
           p.tags.some(t => t.toLowerCase().includes(activeFilter)) ||
           p.title.toLowerCase().includes(activeFilter);
-        const matchSearch = !searchQuery.trim() ||
-          p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (p.vendor?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+
+        if (!q) return matchConcern;
+
+        const searchable = [
+          p.title,
+          p.vendor ?? '',
+          p.description ?? '',
+          ...(p.tags ?? []),
+        ].join(' ').toLowerCase();
+
+        const matchSearch = searchable.includes(q) ||
+          (concern !== null && p.tags.some(t => t.toLowerCase().includes(concern)));
+
         return matchConcern && matchSearch;
       });
     }
@@ -50,9 +94,23 @@ export default function ExploreClient({ shopifyProducts, localProducts }: Props)
       const matchConcern = activeFilter === 'all' ||
         p.concern === activeFilter ||
         p.tags.some(t => t.toLowerCase().includes(activeFilter));
-      const matchSearch = !searchQuery.trim() ||
-        p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.brand.toLowerCase().includes(searchQuery.toLowerCase());
+
+      if (!q) return matchConcern;
+
+      const searchable = [
+        p.title,
+        p.brand,
+        p.description,
+        p.concern,
+        p.forWith?.for ?? '',
+        p.forWith?.with ?? '',
+        ...p.tags,
+        ...p.ingredients,
+      ].join(' ').toLowerCase();
+
+      const matchSearch = searchable.includes(q) ||
+        (concern !== null && p.concern.includes(concern));
+
       return matchConcern && matchSearch;
     });
   }, [shopifyProducts, localProducts, activeFilter, searchQuery, usingShopify]);
