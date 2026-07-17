@@ -152,6 +152,7 @@ const CART_FRAGMENT = `
     id
     checkoutUrl
     totalQuantity
+    completedAt
     lines(first: 100) {
       nodes {
         id

@@ -86,6 +86,7 @@ export interface ShopifyCart {
   id: string;
   checkoutUrl: string;
   totalQuantity: number;
+  completedAt: string | null;
   lines: { nodes: ShopifyCartLine[] };
   cost: {
     subtotalAmount: ShopifyPrice;
