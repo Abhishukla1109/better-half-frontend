@@ -26,6 +26,7 @@ interface CartContextValue {
   updateItem: (lineId: string, quantity: number) => Promise<void>;
   removeItem: (lineId: string) => Promise<void>;
   checkout: () => void;
+  clearCart: () => void;
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -53,6 +54,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // without waiting for a React re-render to propagate state.
   const cartIdRef = useRef<string | null>(null);
 
+  const clearCart = useCallback(() => {
+    localStorage.removeItem(CART_ID_KEY);
+    cartIdRef.current = null;
+    setCart(null);
+    setIsOpen(false);
+  }, []);
+
   useEffect(() => {
     const stored = localStorage.getItem(CART_ID_KEY);
     if (!stored) { setCartReady(true); return; }
@@ -70,6 +78,46 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       .catch(() => { localStorage.removeItem(CART_ID_KEY); cartIdRef.current = null; })
       .finally(() => setCartReady(true));
   }, []);
+
+  // Clear cart when GoKwik order is placed successfully (modal-based flow)
+  useEffect(() => {
+    const w = window as Window & {
+      gokwikSdk?: { on: (event: string, cb: (data?: Record<string, unknown>) => void) => void };
+    };
+
+    const registerGkListener = () => {
+      w.gokwikSdk?.on('modal_closed', (data) => {
+        if (data && (data.order_id ?? data.orderId ?? data.gk_order_id)) {
+          clearCart();
+        }
+      });
+    };
+
+    if (w.gokwikSdk) {
+      registerGkListener();
+    } else {
+      window.addEventListener('gokwikLoaded', registerGkListener, { once: true });
+      return () => window.removeEventListener('gokwikLoaded', registerGkListener);
+    }
+  }, [clearCart]);
+
+  // Re-validate cart when user navigates back (browser back-forward cache restore).
+  // GoKwik redirects to Shopify after order, so the app unloads. When the user
+  // comes back via back button, the page is restored from bfcache with stale cart
+  // state. Re-fetching from Shopify returns null for completed carts → clears it.
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (!e.persisted) return; // normal load, already handled by mount effect
+      const id = cartIdRef.current;
+      if (!id) return;
+      cartApi('get', { cartId: id }).then(c => {
+        if (!c) clearCart();
+        else setCart(c);
+      }).catch(() => clearCart());
+    };
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
+  }, [clearCart]);
 
   const openCart = useCallback(() => setIsOpen(true), []);
   const closeCart = useCallback(() => setIsOpen(false), []);
@@ -191,6 +239,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       updateItem,
       removeItem,
       checkout,
+      clearCart,
     }}>
       {children}
     </CartContext.Provider>
