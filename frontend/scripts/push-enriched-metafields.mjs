@@ -118,6 +118,8 @@ async function main() {
     pushText("bh_product_type",     "single_line_text_field", product.productType);
     pushJson("bh_benefits",         product.benefits);
     pushText("bh_full_ingredients", "multi_line_text_field",  product.fullIngredientsList);
+    pushJson("bh_siblings",         product.siblings);
+    pushText("bh_recommendation",   "single_line_text_field", product.recommendation);
 
     if (metafields.length === 0) {
       console.log(`NO_CONTENT: ${handle}`);
@@ -131,7 +133,15 @@ async function main() {
       continue;
     }
 
-    const result = await gql(token, SET_METAFIELDS, { input: { id: productId, metafields } });
+    let result;
+    try {
+      result = await gql(token, SET_METAFIELDS, { input: { id: productId, metafields } });
+    } catch (err) {
+      console.log(`SHOPIFY_ERR [${i + 1}/${files.length}]: ${handle} — ${err.message}`);
+      failed++;
+      await sleep(1000);
+      continue;
+    }
     const errors = result.productUpdate.userErrors;
 
     if (errors?.length) {

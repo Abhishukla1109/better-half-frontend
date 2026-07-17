@@ -7,6 +7,12 @@ const SHOP = (process.env.NEXT_PUBLIC_SHOPIFY_STORE_URL ?? "").replace(/\/$/, ""
 const SF_TOKEN = process.env.SHOPIFY_STOREFRONT_PRIVATE_TOKEN ?? "";
 const SF_ENDPOINT = `https://${SHOP}/api/2024-01/graphql.json`;
 
+const BRAND_API: Record<string, string> = {
+  "Man Matters":  "https://api.manmatters.com/portal/page/mwsc/widgetised/product",
+  "Be Bodywise":  "https://api.bebodywise.com/portal/page/mwsc/widgetised/product",
+  "Little Joys":  "https://api.ourlittlejoys.com/portal/page/mwsc/widgetised/product",
+};
+
 const QUERY = `
   query GetPDP($handle: String!) {
     productByHandle(handle: $handle) {
@@ -33,6 +39,8 @@ const QUERY = `
         { namespace: "custom", key: "bh_product_type" }
         { namespace: "custom", key: "bh_benefits" }
         { namespace: "custom", key: "bh_full_ingredients" }
+        { namespace: "custom", key: "bh_siblings" }
+        { namespace: "custom", key: "bh_recommendation" }
       ]) { key value }
     }
   }
@@ -50,22 +58,44 @@ function text(nodes: MFNode[], key: string): string | null {
   return nodes.find((n) => n.key === key)?.value ?? null;
 }
 
+async function fetchBrandRating(vendor: string, handle: string): Promise<{ average: number | null; count: number | null }> {
+  const base = BRAND_API[vendor];
+  if (!base) return { average: null, count: null };
+  try {
+    const res = await fetch(`${base}/${handle}`, { signal: AbortSignal.timeout(3000) });
+    if (!res.ok) return { average: null, count: null };
+    const data = await res.json() as { data?: { productInfo?: { rating?: string; reviews?: string } } };
+    const pi = data?.data?.productInfo;
+    const average = pi?.rating ? parseFloat(pi.rating) : null;
+    // reviews come as "1K", "3K" etc — convert to number
+    const rawCount = pi?.reviews ?? "";
+    const count = rawCount.endsWith("K")
+      ? Math.round(parseFloat(rawCount) * 1000)
+      : rawCount ? parseInt(rawCount, 10) : null;
+    return { average: isNaN(average ?? NaN) ? null : average, count: isNaN(count ?? NaN) ? null : count };
+  } catch {
+    return { average: null, count: null };
+  }
+}
+
 export async function GET(req: NextRequest) {
   const handle       = req.nextUrl.searchParams.get("handle");
-  const variantTitle = req.nextUrl.searchParams.get("variant"); // e.g. "60N", "Vanilla"
+  const variantTitle = req.nextUrl.searchParams.get("variant");
   if (!handle) return NextResponse.json(null, { status: 400 });
 
   try {
-    const res = await fetch(SF_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Shopify-Storefront-Private-Token": SF_TOKEN,
-      },
-      body: JSON.stringify({ query: QUERY, variables: { handle } }),
-    });
+    const [shopifyRes, ] = await Promise.all([
+      fetch(SF_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Shopify-Storefront-Private-Token": SF_TOKEN,
+        },
+        body: JSON.stringify({ query: QUERY, variables: { handle } }),
+      }),
+    ]);
 
-    const data = await res.json();
+    const data = await shopifyRes.json();
     const p = data?.data?.productByHandle;
     if (!p) return NextResponse.json(null);
 
@@ -78,6 +108,9 @@ export async function GET(req: NextRequest) {
     const rawPrice = matchedVariant?.node?.priceV2?.amount ?? allVariants[0]?.node?.priceV2?.amount;
     const price = rawPrice ? Math.round(parseFloat(rawPrice)) : undefined;
 
+    // Fetch live rating from brand API in parallel with Shopify
+    const rating = await fetchBrandRating(p.vendor ?? "", handle);
+
     const enriched: EnrichedPDP = {
       slug:            handle,
       sourceId:        "",
@@ -86,7 +119,7 @@ export async function GET(req: NextRequest) {
       price,
       subtitle:        text(mf, "bh_subtitle") ?? "",
       metaDescription: "",
-      rating:          { average: null, count: null },
+      rating,
       images:          (p.images?.nodes ?? []).map((i: { url: string }) => i.url),
       heroVideo:       null,
       packs:           json(mf, "bh_packs")           ?? [],
@@ -106,6 +139,8 @@ export async function GET(req: NextRequest) {
       productType:     text(mf, "bh_product_type")    ?? undefined,
       benefits:        json(mf, "bh_benefits")        ?? undefined,
       fullIngredientsList: text(mf, "bh_full_ingredients") ?? undefined,
+      siblings:        json(mf, "bh_siblings")        ?? undefined,
+      recommendation:  text(mf, "bh_recommendation") ?? undefined,
     };
 
     return NextResponse.json(enriched);
