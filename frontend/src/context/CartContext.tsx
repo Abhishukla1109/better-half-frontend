@@ -62,6 +62,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // If returning after GoKwik checkout, clear cart immediately
+    if (localStorage.getItem("bh_checkout_started")) {
+      localStorage.removeItem("bh_checkout_started");
+      clearCart();
+      setCartReady(true);
+      return;
+    }
     const stored = localStorage.getItem(CART_ID_KEY);
     if (!stored) { setCartReady(true); return; }
     cartIdRef.current = stored;
