@@ -101,19 +101,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [clearCart]);
 
-  // Re-validate cart when user navigates back (browser back-forward cache restore).
-  // GoKwik redirects to Shopify after order, so the app unloads. When the user
-  // comes back via back button, the page is restored from bfcache with stale cart
-  // state. Re-fetching from Shopify returns null for completed carts → clears it.
+  // Clear cart when user returns via back button after GoKwik checkout.
+  // GoKwik redirects the page away, so React unloads and modal_closed never fires.
+  // We set bh_checkout_started before handing off to GoKwik — if that flag exists
+  // on pageshow (bfcache restore), the user came back after checkout → clear cart.
   useEffect(() => {
     const onPageShow = (e: PageTransitionEvent) => {
-      if (!e.persisted) return; // normal load, already handled by mount effect
-      const id = cartIdRef.current;
-      if (!id) return;
-      cartApi('get', { cartId: id }).then(c => {
-        if (!c) clearCart();
-        else setCart(c);
-      }).catch(() => clearCart());
+      if (!e.persisted) return;
+      if (localStorage.getItem("bh_checkout_started")) {
+        localStorage.removeItem("bh_checkout_started");
+        clearCart();
+      }
     };
     window.addEventListener('pageshow', onPageShow);
     return () => window.removeEventListener('pageshow', onPageShow);
@@ -220,8 +218,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     };
     if (w.triggerGokwikCustomCheckout && w.merchantInfo) {
       w.merchantInfo.cart = { id: cart.id };
+      // Flag so pageshow handler clears cart if user returns via back button
+      localStorage.setItem("bh_checkout_started", "1");
       w.triggerGokwikCustomCheckout();
     } else if (cart.checkoutUrl) {
+      localStorage.setItem("bh_checkout_started", "1");
       window.location.href = cart.checkoutUrl;
     }
     setIsLoading(false);

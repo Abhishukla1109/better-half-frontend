@@ -178,8 +178,7 @@ export async function updateCartAttributes(cartId: string, attributes: Array<{ k
 
 export async function getCart(cartId: string): Promise<Cart | null> {
   const data = await shopifyFetch<{ cart: ShopifyCart | null }>(GET_CART, { cartId });
-  if (!data.cart || data.cart.completedAt) return null;
-  return normalizeCart(data.cart);
+  return data.cart ? normalizeCart(data.cart) : null;
 }
 
 // ── Formatting ───────────────────────────────────────────────
