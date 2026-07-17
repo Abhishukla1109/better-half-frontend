@@ -23,7 +23,6 @@ import { resolveVariantId } from "@/lib/shopify/variant-resolver";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import { supabase } from "@/lib/supabase/client";
 import { getProductRating } from "@/data/ratingsLookup";
-import { getEnrichedPDP } from "@/data/enrichedProducts";
 import { track } from "@/lib/mixpanel";
 
 /* ── Emoji per question key (for the AI question popup) ──── */
@@ -1803,9 +1802,9 @@ export default function ProtocolPage() {
                         const trustBadge = getTrustBadge(s);
                         const displayScore = displayScoreMap.get(s.id) ?? s.matchScore;
                         const activeSlug = selectedVariants.get(s.id) ?? s.id;
-                        const activeEnriched = getEnrichedPDP(activeSlug);
-                        const siblings = getEnrichedPDP(s.id)?.siblings;
-                        const displayName = activeEnriched?.name ?? s.name;
+                        const siblings = s.siblings;
+                        const activeSibling = siblings?.find(sib => sib.slug === activeSlug);
+                        const displayName = activeSibling && activeSlug !== s.id ? `${s.name} (${activeSibling.label})` : s.name;
                         return (
                           <div
                             key={s.id}
@@ -1929,9 +1928,9 @@ export default function ProtocolPage() {
                   const trustBadge = getTrustBadge(s);
                   const displayScore = displayScoreMap.get(s.id) ?? s.matchScore;
                   const activeSlug = selectedVariants.get(s.id) ?? s.id;
-                  const activeEnriched = getEnrichedPDP(activeSlug);
-                  const siblings = getEnrichedPDP(s.id)?.siblings;
-                  const displayName = activeEnriched?.name ?? s.name;
+                  const siblings = s.siblings;
+                  const activeSibling = siblings?.find(sib => sib.slug === activeSlug);
+                  const displayName = activeSibling && activeSlug !== s.id ? `${s.name} (${activeSibling.label})` : s.name;
                   return (
                     <div
                       key={s.id}

@@ -41,6 +41,7 @@ const QUERY = `
         { namespace: "custom", key: "bh_full_ingredients" }
         { namespace: "custom", key: "bh_siblings" }
         { namespace: "custom", key: "bh_recommendation" }
+        { namespace: "custom", key: "bh_pairings" }
       ]) { key value }
     }
   }
@@ -141,6 +142,7 @@ export async function GET(req: NextRequest) {
       fullIngredientsList: text(mf, "bh_full_ingredients") ?? undefined,
       siblings:        json(mf, "bh_siblings")        ?? undefined,
       recommendation:  text(mf, "bh_recommendation") ?? undefined,
+      pairings:        json(mf, "bh_pairings")        ?? undefined,
     };
 
     return NextResponse.json(enriched);

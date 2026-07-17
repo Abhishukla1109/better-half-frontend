@@ -718,6 +718,7 @@ function buildSupplements(
       rating: product.rating,
       reviewCount: product.reviewCount,
       priority,
+      siblings: product.siblings,
     };
   });
 
@@ -811,7 +812,7 @@ function buildMultiConcernSupplements(
       id: product.id, name: product.name, brand: product.brand,
       price: product.price, mrp: product.mrp, timing, reasoning, reasonTags,
       matchScore: product.matchScore, shopifyUrl: product.url ?? getProductShopifyUrl(product.id),
-      image: product.image, rating: product.rating, reviewCount: product.reviewCount, priority,
+      image: product.image, rating: product.rating, reviewCount: product.reviewCount, priority, siblings: product.siblings,
     });
     return true;
   }

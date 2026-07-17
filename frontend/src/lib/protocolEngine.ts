@@ -25,6 +25,7 @@ export type Product = {
   url?: string;
   rating?: number;
   reviewCount?: number;
+  siblings?: Array<{ slug: string; label: string }>;
 };
 
 export type MatchedProduct = Product & { matchScore: number };

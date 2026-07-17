@@ -55,6 +55,7 @@ export interface ProtocolSupplement {
   reviewCount?: number;
   priority: "essential" | "recommended" | "optional";
   alternative?: ProtocolSupplementAlternative;
+  siblings?: Array<{ slug: string; label: string }>;
 }
 
 export interface FollowUpQuestion {

@@ -4,7 +4,6 @@
 // Server-side only — called from /api/catalog route.
 
 import type { Product } from "@/lib/protocolEngine";
-import { getEnrichedPDP } from "@/data/enrichedProducts";
 
 const SHOP = (process.env.NEXT_PUBLIC_SHOPIFY_STORE_URL ?? "").replace(/\/$/, "").replace("https://", "");
 const CLIENT_ID = process.env.SHOPIFY_ADMIN_CLIENT_ID ?? "";
@@ -50,8 +49,8 @@ const CATALOG_QUERY = `
         images(first: 6) { nodes { url } }
         priceRangeV2 { minVariantPrice { amount } }
         compareAtPriceRange { maxVariantCompareAtPrice { amount } }
-        metafields(first: 10) {
-          nodes { namespace key value }
+        metafields(first: 30, namespace: "custom") {
+          nodes { key value }
         }
       }
       pageInfo { hasNextPage endCursor }
@@ -67,7 +66,7 @@ type AdminProduct = {
   images: { nodes: Array<{ url: string }> } | null;
   priceRangeV2: { minVariantPrice: { amount: string } };
   compareAtPriceRange: { maxVariantCompareAtPrice: { amount: string } | null } | null;
-  metafields: { nodes: Array<{ namespace: string; key: string; value: string }> };
+  metafields: { nodes: Array<{ key: string; value: string }> };
 };
 
 type CatalogPage = {
@@ -77,8 +76,14 @@ type CatalogPage = {
   };
 };
 
-function getMeta(nodes: Array<{ namespace: string; key: string; value: string }>, key: string): string {
-  return nodes.find((m) => m.namespace === "custom" && m.key === key)?.value ?? "";
+function getMeta(nodes: Array<{ key: string; value: string }>, key: string): string {
+  return nodes.find((m) => m.key === key)?.value ?? "";
+}
+
+function getMetaJson<T>(nodes: Array<{ key: string; value: string }>, key: string): T | null {
+  const v = nodes.find((m) => m.key === key)?.value;
+  if (!v) return null;
+  try { return JSON.parse(v) as T; } catch { return null; }
 }
 
 function splitCSV(val: string, lowercase = false): string[] {
@@ -153,6 +158,7 @@ export async function fetchCatalogProducts(): Promise<Product[]> {
       const isLJ     = p.vendor === "Little Joys";
       const price     = Math.round(parseFloat(p.priceRangeV2.minVariantPrice.amount));
       const compareAt = Math.round(parseFloat(p.compareAtPriceRange?.maxVariantCompareAtPrice?.amount ?? "0"));
+      const siblings  = getMetaJson<Array<{ slug: string; label: string }>>(nodes, "bh_siblings") ?? undefined;
 
       results.push({
         id:       p.handle,
@@ -169,6 +175,7 @@ export async function fetchCatalogProducts(): Promise<Product[]> {
         image:    p.featuredImage?.url,
         images:   (p.images?.nodes ?? []).map((i) => i.url).filter(Boolean),
         url:      `https://${SHOP}/products/${p.handle}`,
+        siblings,
       });
     }
     cursor = page.products.pageInfo.hasNextPage ? page.products.pageInfo.endCursor : null;
@@ -177,8 +184,7 @@ export async function fetchCatalogProducts(): Promise<Product[]> {
   // Deduplicate sibling products — only keep the primary variant (first in siblings array).
   // Size switching is handled by pills on the card; no need to show 30N, 60N, 90N separately.
   return results.filter((p) => {
-    const siblings = getEnrichedPDP(p.id)?.siblings;
-    if (!siblings || siblings.length <= 1) return true;
-    return siblings[0].slug === p.id;
+    if (!p.siblings || p.siblings.length <= 1) return true;
+    return p.siblings[0].slug === p.id;
   });
 }
