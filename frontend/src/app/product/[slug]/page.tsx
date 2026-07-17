@@ -1664,7 +1664,15 @@ export default function ProductPage({
 
   /* ── Lightweight / Enriched PDP for new catalog products ── */
   const handleBack = () => window.history.length > 1 ? router.back() : router.replace("/explore");
-  if (newProduct) return <NewProductPDP product={newProduct} enriched={enriched} onBack={handleBack} />;
+  if (newProduct) {
+    // For Little Joys products, the slug (e.g. "multivitamin-gummies") may collide with a
+    // Man Matters enriched entry. Look up the lj- prefixed key first; if not found, pass null
+    // so the PDP falls back to raw Shopify catalog data rather than showing wrong brand content.
+    const productEnriched = newProduct.brand === "Little Joys"
+      ? (getEnrichedPDP(`lj-${slug}`) ?? null)
+      : enriched;
+    return <NewProductPDP product={newProduct} enriched={productEnriched} onBack={handleBack} />;
+  }
 
   /* product is guaranteed non-null from here — new catalog was handled above */
   if (!product) return null;
