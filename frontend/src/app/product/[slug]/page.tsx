@@ -334,7 +334,7 @@ function NewProductPDP({
   onBack: () => void;
 }) {
   const router = useRouter();
-  const { addItem, cart, openCart } = useCart();
+  const { addItem, cart, openCart, checkout } = useCart();
   const { activeMember } = useActiveProfile();
   const hasProfile = activeMember !== null;
 
@@ -567,6 +567,35 @@ function NewProductPDP({
       setTimeout(() => setCartState("idle"), 2500);
     }
   }, [addItem, cartState, product.id, product.name, product.brand, product.price, product.concern, router]);
+
+  const handleBuyNow = useCallback(async () => {
+    try { if (!localStorage.getItem("bh_auth")) { router.push("/"); return; } } catch {}
+    if (cartState !== "idle") return;
+    setCartState("loading");
+    try {
+      const variantId = await resolveVariantId(product.id);
+      if (!variantId) throw new Error("not found");
+      const source = (() => {
+        try {
+          const ref = document.referrer;
+          if (ref.includes("/protocol")) return "protocol";
+          if (ref.includes("/explore")) return "explore";
+          return "direct";
+        } catch { return "unknown"; }
+      })();
+      await addItem(variantId, 1, {
+        product_name: product.name,
+        brand: product.brand,
+        price: product.price,
+        concern: product.concern?.[0],
+        source,
+      });
+      checkout();
+    } catch {
+      setCartState("error");
+      setTimeout(() => setCartState("idle"), 2500);
+    }
+  }, [addItem, checkout, cartState, product.id, product.name, product.brand, product.price, product.concern, router]);
 
   return (
     <div className="min-h-dvh bg-surface pb-24">
@@ -1517,7 +1546,7 @@ function NewProductPDP({
           </button>
           {/* Buy Now — solid */}
           <button
-            onClick={handleAddToCart}
+            onClick={handleBuyNow}
             disabled={cartState !== "idle"}
             className={`flex-1 flex items-center justify-center gap-1.5 min-h-[48px] rounded-2xl text-sm font-bold transition-all duration-200 cursor-pointer active:scale-[0.98] disabled:opacity-70 ${
               cartState === "done" ? "bg-green-500 text-white"
