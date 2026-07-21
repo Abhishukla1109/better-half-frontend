@@ -10,7 +10,6 @@ const TABS: { key: string; label: string; emoji: string; href: string; isCenter?
   { key: "home",     label: "Home",     emoji: "🏠", href: "/protocol"  },
   { key: "shop",     label: "Shop",     emoji: "🛒", href: "/explore"   },
   { key: "ask",      label: "Ask",      emoji: "✨", href: "/protocol", isCenter: true },
-  { key: "experts",  label: "Experts",  emoji: "🩺", href: "/experts"   },
   { key: "insights", label: "Insights", emoji: "📊", href: "/insights"  },
 ];
 

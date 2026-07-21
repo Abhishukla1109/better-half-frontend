@@ -1017,36 +1017,19 @@ function NewProductPDP({
 
                   {/* Description bullets */}
                   {enriched.productDetails.description.length > 0 && (() => {
-                    const fullText = enriched.productDetails.description.join(" ").trim();
-                    const EMOJI_RE = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{27BF}\u{1F000}-\u{1F02F}\u{2700}-\u{27BF}]/u;
-                    const segments: string[] = [];
-                    let buf = "";
-                    const chars = [...fullText];
-                    for (let idx = 0; idx < chars.length; idx++) {
-                      const ch = chars[idx];
-                      if (idx > 0 && EMOJI_RE.test(ch)) {
-                        const trimmed = buf.replace(/[.\s]+$/, "").trim();
-                        if (trimmed) segments.push(trimmed);
-                        buf = ch;
-                      } else {
-                        buf += ch;
-                      }
-                    }
-                    const last = buf.replace(/[.\s]+$/, "").trim();
-                    if (last) segments.push(last);
-
                     const DISCLAIMER_RE = /medical advice|physician|dietician|nutritionist|consult a/i;
                     const bullets: { icon: string; text: string }[] = [];
                     let disclaimer = "";
 
-                    for (const seg of segments) {
+                    for (const item of enriched.productDetails.description) {
+                      const seg = item.trim();
+                      if (!seg) continue;
                       if (DISCLAIMER_RE.test(seg)) { disclaimer = seg; continue; }
                       const m = seg.match(/^([\u{1F300}-\u{1F9FF}\u{2600}-\u{27BF}\u{1F000}-\u{1F02F}\u{2700}-\u{27BF}][\u{FE0F}]?)\s*/u);
                       if (m) {
                         bullets.push({ icon: m[1], text: seg.slice(m[0].length).trim() });
                       } else {
-                        seg.split(/\.\s+/).map(s => s.replace(/\.$/, "").trim()).filter(s => s.length > 8)
-                          .forEach(s => bullets.push({ icon: "", text: s }));
+                        bullets.push({ icon: "", text: seg });
                       }
                     }
 

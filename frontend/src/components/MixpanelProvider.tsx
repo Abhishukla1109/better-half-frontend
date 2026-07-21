@@ -25,7 +25,6 @@ export default function MixpanelProvider({ children }: { children: React.ReactNo
       "/explore":   "Explore",
       "/protocol":  "Protocol",
       "/insights":  "Insights",
-      "/experts":   "Experts",
       "/ai":        "AI Companion",
       "/profile":   "Profile",
       "/auth":      "Auth",

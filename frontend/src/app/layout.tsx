@@ -35,6 +35,10 @@ export const metadata: Metadata = {
     "personalised health",
     "Indian health",
   ],
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 export const viewport: Viewport = {

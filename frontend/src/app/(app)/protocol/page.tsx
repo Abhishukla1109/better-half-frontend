@@ -435,9 +435,9 @@ function compressHabit(text: string): string {
     .replace(/[,.]$/, "");
   // Strip trailing incomplete words left by regex cuts
   s = s.replace(/\s+(within|of|for|from|in|at|by|or|with|to|the|a|an|like|actively|directly)$/i, "");
-  // Soft cap at 7 words — gives room for natural completeness
+  // Hard cap at 4 words for habit tiles
   const words = s.split(" ");
-  if (words.length > 7) s = words.slice(0, 6).join(" ");
+  if (words.length > 4) s = words.slice(0, 4).join(" ");
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
@@ -485,13 +485,13 @@ function getConcernTagStyle(c: string): string {
 function getHabitStyle(tip: string, isVeg = false): { emoji: string; bg: string } {
   const t = tip.toLowerCase();
   if (t.includes("hair") || t.includes("scalp") || t.includes("hairstyle") || t.includes("dandruff"))
-    return { emoji: "🪮", bg: "bg-rose-500/12" };
+    return { emoji: "💆", bg: "bg-rose-500/12" };
   if (t.includes("skin") || t.includes("acne") || t.includes("moistur") || t.includes("sunscreen") || t.includes("face wash"))
-    return { emoji: "✨", bg: "bg-amber-500/12" };
+    return { emoji: "🧴", bg: "bg-amber-500/12" };
   if (t.includes("sleep") || t.includes("bed") || t.includes("screen time"))
-    return { emoji: "🌙", bg: "bg-indigo-500/12" };
+    return { emoji: "😴", bg: "bg-indigo-500/12" };
   if (t.includes("protein"))
-    return { emoji: isVeg ? "🌱" : "🥩", bg: "bg-emerald-500/12" };
+    return { emoji: isVeg ? "🥚" : "💪", bg: "bg-emerald-500/12" };
   if (t.includes("water") || t.includes("rinse") || t.includes("cold shower") || t.includes("hydrat"))
     return { emoji: "💧", bg: "bg-sky-500/12" };
   if (t.includes("exercise") || t.includes("workout") || t.includes("walk") || t.includes("step") || t.includes("gym"))
@@ -501,10 +501,10 @@ function getHabitStyle(tip: string, isVeg = false): { emoji: string; bg: string 
   if (t.includes("sun") || t.includes("vitamin d") || t.includes("morning light"))
     return { emoji: "☀️", bg: "bg-amber-500/12" };
   if (t.includes("sugar") || t.includes("dairy") || t.includes("junk") || t.includes("avoid") || t.includes("cut "))
-    return { emoji: "🚫", bg: "bg-red-500/10" };
+    return { emoji: "✋", bg: "bg-red-500/10" };
   if (t.includes("eat") || t.includes("meal") || t.includes("diet") || t.includes("food") || t.includes("nutrient"))
     return { emoji: "🥗", bg: "bg-emerald-500/10" };
-  return { emoji: "✅", bg: "bg-surface-container-low" };
+  return { emoji: "⚡", bg: "bg-surface-container-low" };
 }
 
 /* ── Loading skeleton ──────────────────────────────────────── */
@@ -956,7 +956,7 @@ export default function ProtocolPage() {
   // Groups for the Protocol Cart sheet — all supplements bucketed by concern
   const protocolCartGroups = useMemo(() => {
     if (!protocol) return [];
-    const supplements = protocol.supplements;
+    const supplements = protocol.supplements ?? [];
     if (concernList.length <= 1) {
       return [{
         label: concernList[0] ? getConcernDisplayLabel(concernList[0], profile?.sex) : "Your Picks",
@@ -1719,50 +1719,48 @@ export default function ProtocolPage() {
             ) : (
               <button
                 onClick={() => setShowQuestionSheet(true)}
-                className="mt-3 w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 transition-colors cursor-pointer"
+                className="mt-3 w-full flex items-center justify-between px-4 py-3 rounded-xl bg-black/25 hover:bg-black/30 transition-colors cursor-pointer"
               >
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-3.5 h-3.5 text-primary-fixed/80 shrink-0" strokeWidth={1.5} />
+                <div className="flex items-center gap-2.5">
+                  <Sparkles className="w-4 h-4 text-primary-fixed shrink-0" strokeWidth={1.5} />
                   <div className="text-left">
-                    <p className="text-[12px] font-bold text-white leading-none">
+                    <p className="text-[14px] font-extrabold text-white leading-none">
                       {sessionLimitReached ? "That's good for today" : "Sharpen your protocol"}
                     </p>
-                    <p className="text-[10px] text-white/45 mt-0.5">
+                    <p className="text-[11px] text-white/55 mt-1">
                       {sessionLimitReached ? `${liveDepth}% · Come back tomorrow` : "Answer more to sharpen more"}
                     </p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-white/30 shrink-0" strokeWidth={2} />
+                <ChevronRight className="w-4 h-4 text-white/50 shrink-0" strokeWidth={2.5} />
               </button>
             )}
           </div>
 
-          {/* Habits — divider then clean list */}
-          {protocol.lifestyle.length > 0 && (
-            <>
-              <div className="mx-4 h-px bg-white/10" />
-              <div className="pt-3 pb-4 px-4">
-                <p className="text-[11px] font-bold text-white/50 uppercase tracking-widest mb-3">
-                  Habits before supplements
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  {protocol.lifestyle.slice(0, 4).map((tip, i) => {
-                    const { action } = splitRoutineText(tip);
-                    const profileDiet = String(profile?.diet || "").toLowerCase();
-                    const isVeg = !profileDiet.includes("non") && (profileDiet.includes("veg") || profileDiet.includes("vegan") || profileDiet.includes("egg"));
-                    const { emoji } = getHabitStyle(tip, isVeg);
-                    return (
-                      <div key={i} className="flex flex-col gap-2 rounded-2xl bg-white/8 border border-white/10 px-3 py-3">
-                        <span className="text-[24px] leading-none">{emoji}</span>
-                        <p className="text-[12px] font-semibold text-white/90 leading-snug">{compressHabit(action)}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </>
-          )}
         </div>
+
+        {/* Habits before supplements — on main background, horizontal scroll */}
+        {protocol.lifestyle.length > 0 && (
+          <div className="mb-4 mt-4 rounded-2xl border border-outline-variant/10 p-4" style={{ background: "linear-gradient(175deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.015) 50%, rgba(0,0,0,0.00) 100%)" }}>
+            <p className="text-[15px] font-extrabold text-on-surface mb-3">
+              Habits before supplements
+            </p>
+            <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-1 -mx-1 px-1">
+              {protocol.lifestyle.slice(0, 4).map((tip, i) => {
+                const { action } = splitRoutineText(tip);
+                const profileDiet = String(profile?.diet || "").toLowerCase();
+                const isVeg = !profileDiet.includes("non") && (profileDiet.includes("veg") || profileDiet.includes("vegan") || profileDiet.includes("egg"));
+                const { emoji } = getHabitStyle(tip, isVeg);
+                return (
+                  <div key={i} className="flex flex-col gap-2.5 rounded-2xl border border-outline-variant/20 px-3 py-3.5 flex-shrink-0 w-[42vw] max-w-[170px]" style={{ background: "linear-gradient(to bottom, #ffffff, #efefef)" }}>
+                    <span className="text-[32px] leading-none">{emoji}</span>
+                    <p className="text-[12px] font-bold text-on-surface leading-snug">{compressHabit(action)}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ── Product picks — right after habits ── */}
         {protocol.supplements.length > 0 && (
@@ -2091,22 +2089,23 @@ export default function ProtocolPage() {
                       <button
                         key={item.name}
                         onClick={() => toggleReasoning(item.name)}
-                        className={`w-full text-left rounded-2xl border p-3 transition-all duration-200 cursor-pointer active:scale-[0.98] ${cardStyle}`}
+                        className="w-full text-left rounded-2xl border border-outline-variant/20 p-3 transition-all duration-200 cursor-pointer active:scale-[0.98]"
+                        style={{ background: "linear-gradient(to bottom, #ffffff, #efefef)" }}
                       >
                         <div className="flex items-start justify-between mb-2">
                           <span className="text-xl leading-none">{getSupplementEmoji(item.name)}</span>
                           <ChevronDown
-                            className={`w-3.5 h-3.5 text-on-surface-variant/35 shrink-0 transition-transform duration-200 mt-0.5 ${isExpanded ? "rotate-180" : ""}`}
+                            className={`w-3.5 h-3.5 text-on-surface-variant/40 shrink-0 transition-transform duration-200 mt-0.5 ${isExpanded ? "rotate-180" : ""}`}
                             strokeWidth={2.5}
                           />
                         </div>
-                        <p className="text-[12px] font-bold text-on-surface leading-snug mb-1.5">{item.name}</p>
+                        <p className="text-[13px] font-extrabold text-on-surface leading-snug mb-1.5">{item.name}</p>
                         <span className={`text-[8px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${badgeStyle}`}>
                           {item.priority}
                         </span>
-                        <p className="text-[10px] text-on-surface-variant/55 mt-1.5 leading-relaxed">{item.timing}</p>
+                        <p className="text-[11px] text-on-surface-variant/65 mt-1.5 leading-relaxed font-medium">{item.timing}</p>
                         {isExpanded && (
-                          <p className="text-[10px] text-on-surface-variant/80 mt-2 leading-relaxed border-t border-outline-variant/15 pt-2">
+                          <p className="text-[11px] text-on-surface-variant/80 mt-2 leading-relaxed border-t border-outline-variant/15 pt-2">
                             {item.why}
                           </p>
                         )}

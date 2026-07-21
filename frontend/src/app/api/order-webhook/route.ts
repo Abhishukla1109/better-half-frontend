@@ -91,12 +91,35 @@ async function getProductInfo(productIds: number[], adminToken: string): Promise
   return map;
 }
 
-async function writeOrderMetafield(orderId: number, key: string, value: string, adminToken: string): Promise<void> {
-  await fetch(`https://${SHOP}/admin/api/2024-01/orders/${orderId}/metafields.json`, {
+async function writeOrderMetafield(orderId: number, value: string, adminToken: string): Promise<void> {
+  const gid = `gid://shopify/Order/${orderId}`;
+  const res = await fetch(`https://${SHOP}/admin/api/2024-01/graphql.json`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
-    body: JSON.stringify({ metafield: { namespace: "mosaic", key, value, type: "single_line_text_field" } }),
+    body: JSON.stringify({
+      query: `
+        mutation($metafields: [MetafieldsSetInput!]!) {
+          metafieldsSet(metafields: $metafields) {
+            metafields { key }
+            userErrors { field message }
+          }
+        }
+      `,
+      variables: {
+        metafields: [{
+          ownerId:   gid,
+          namespace: "custom",
+          key:       "mosaic_orders",
+          type:      "json",
+          value,
+        }],
+      },
+    }),
   });
+  const data = await res.json() as { data?: { metafieldsSet?: { userErrors?: Array<{ message: string }> } } };
+  const errs = data?.data?.metafieldsSet?.userErrors ?? [];
+  if (errs.length > 0) console.error("[order-webhook] metafield write errors:", errs);
+  else console.log("[order-webhook] mosaic_orders metafield written for order", orderId);
 }
 
 function normalizePhone(raw: string | null): string {
@@ -142,14 +165,17 @@ async function callMosaicBrand(brand: string, payload: object): Promise<string |
     headers: { "Content-Type": "application/json", "servicesecret": MOSAIC_SECRET },
     body: JSON.stringify(payload),
   });
+  const rawText = await res.text();
+  console.log(`[order-webhook] ${brand} raw response (${res.status}):`, rawText);
   if (!res.ok) {
-    const text = await res.text();
-    console.error(`[order-webhook] ${brand} API error:`, res.status, text);
+    console.error(`[order-webhook] ${brand} API error:`, res.status, rawText);
     return null;
   }
-  const result = await res.json() as { order_id?: string };
-  console.log(`[order-webhook] ${brand} order created:`, result.order_id);
-  return result.order_id ?? null;
+  let result: { result?: { order_id?: string } } = {};
+  try { result = JSON.parse(rawText); } catch { return null; }
+  const orderId = result.result?.order_id;
+  console.log(`[order-webhook] ${brand} order id:`, orderId);
+  return orderId ?? null;
 }
 
 // ── Affluence ────────────────────────────────────────────────
@@ -166,14 +192,17 @@ function getUTMsFromOrder(order: ShopifyOrder): AffluenceUTMs | null {
     return "";
   };
   const utmSource = pick("utm_source", "utmSource", "affluence_last_utm_source");
-  if (!utmSource) return null;
+  if (!utmSource || utmSource === "direct") return null;
+  const influencerId = pick("influencerId");
+  const ref = pick("ref");
+  if (!influencerId && !ref) return null;
   return {
     utmSource,
     utmMedium:    pick("utm_medium",   "utmMedium",   "affluence_last_utm_medium"),
     utmCampaign:  pick("utm_campaign", "utmCampaign", "affluence_last_utm_campaign"),
-    ref:          pick("ref"),
+    ref,
     dmId:         pick("dmId"),
-    influencerId: pick("influencerId"),
+    influencerId,
   };
 }
 
@@ -269,18 +298,19 @@ export async function POST(req: NextRequest) {
 
     const results = await Promise.all(brandCalls);
 
-    // Write Mosaic order IDs back to Shopify order as metafields
-    const metafieldKey: Record<string, string> = {
-      "Man Matters": "mm_order_id",
-      "Be Bodywise": "bb_order_id",
-      "Little Joys": "lj_order_id",
-    };
+    // Write Mosaic order IDs back to Shopify order as a single JSON note attribute
+    const mosaicOrders = results
+      .filter(r => r.mosaicOrderId)
+      .map(r => ({
+        brand:    r.brand,
+        code:     BRAND_CODE[r.brand] ?? r.brand,
+        order_id: r.mosaicOrderId!,
+        items:    (byBrand[r.brand] ?? []).map(i => i.title),
+      }));
 
-    await Promise.all(
-      results
-        .filter(r => r.mosaicOrderId && metafieldKey[r.brand])
-        .map(r => writeOrderMetafield(order.id, metafieldKey[r.brand], r.mosaicOrderId!, adminToken))
-    );
+    if (mosaicOrders.length > 0) {
+      await writeOrderMetafield(order.id, JSON.stringify(mosaicOrders), adminToken);
+    }
 
     // Notify Affluence for orders that came from influencer links
     const utms = getUTMsFromOrder(order);
