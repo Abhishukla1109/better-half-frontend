@@ -389,7 +389,17 @@ export async function POST(req: NextRequest) {
       }));
 
     if (mosaicOrders.length > 0) {
-      await writeOrderMetafield(order.id, JSON.stringify(mosaicOrders), adminToken);
+      const metafieldValue = {
+        mosaicOrders,
+        items: order.line_items.map(i => ({
+          sku:       i.sku ?? null,
+          title:     i.title,
+          quantity:  i.quantity,
+          unitPrice: { amount: i.price, currencyCode: "INR" },
+          total:     { amount: String((parseFloat(i.price) * i.quantity).toFixed(2)), currencyCode: "INR" },
+        })),
+      };
+      await writeOrderMetafield(order.id, JSON.stringify(metafieldValue), adminToken);
     }
 
     // Notify Affluence for influencer-attributed orders
