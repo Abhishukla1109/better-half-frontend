@@ -131,6 +131,25 @@ async function isAlreadyProcessed(orderId: number, adminToken: string): Promise<
   }
 }
 
+async function addOrderTags(orderId: number, tags: string[], adminToken: string): Promise<void> {
+  const gid = `gid://shopify/Order/${orderId}`;
+  await fetch(`https://${SHOP}/admin/api/2024-01/graphql.json`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
+    body: JSON.stringify({
+      query: `
+        mutation($id: ID!, $tags: [String!]!) {
+          tagsAdd(id: $id, tags: $tags) {
+            node { id }
+            userErrors { field message }
+          }
+        }
+      `,
+      variables: { id: gid, tags },
+    }),
+  });
+}
+
 async function writeOrderMetafield(orderId: number, value: string, adminToken: string): Promise<void> {
   const gid = `gid://shopify/Order/${orderId}`;
   const res = await fetch(`https://${SHOP}/admin/api/2024-01/graphql.json`, {
@@ -389,6 +408,10 @@ export async function POST(req: NextRequest) {
       }));
 
     if (mosaicOrders.length > 0) {
+      // Tag order with mosaic IDs so mosaic-webhook can find it later (e.g. mosaic-MM-050021153)
+      const tags = mosaicOrders.map(r => `mosaic-${r.code}-${r.order_id}`);
+      await addOrderTags(order.id, tags, adminToken);
+
       const metafieldValue = {
         mosaicOrders,
         items: order.line_items.map(i => ({
