@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHmac } from "crypto";
 
-const MOSAIC_SECRET     = process.env.MOSAIC_SERVICE_SECRET ?? "fce45aff64536ec8ecea7ab6ce80";
-const AFFLUENCE_URL     = process.env.AFFLUENCE_EARNINGS_URL ?? "https://stg.api.myaffluence.app/affluence/social/earnings/";
+const MOSAIC_SECRET       = process.env.MOSAIC_SERVICE_SECRET ?? "fce45aff64536ec8ecea7ab6ce80";
+const AFFLUENCE_URL       = process.env.AFFLUENCE_EARNINGS_URL ?? "https://stg.api.myaffluence.app/affluence/social/earnings/";
+const AFFLUENCE_TOKEN     = process.env.AFFLUENCE_BEARER_TOKEN ?? "Gb6uz7fTFUUi624l";
+const WEBHOOK_SECRET      = process.env.SHOPIFY_WEBHOOK_SECRET ?? "";
 const BRAND_CODE: Record<string, string> = { "Man Matters": "MM", "Be Bodywise": "BW", "Little Joys": "LJ" };
 
 const BRAND_ORDER_URL: Record<string, string> = {
@@ -44,6 +47,7 @@ interface ShopifyOrder {
   first_name:       string;
   last_name:        string;
   financial_status: string;
+  payment_gateway:  string | null;
   shipping_address: ShopifyAddress;
   line_items:       ShopifyLineItem[];
   note_attributes:  Array<{ name: string; value: string }>;
@@ -64,6 +68,17 @@ interface ProductInfo {
 }
 
 // ── Helpers ──────────────────────────────────────────────────
+
+// Fix 6: Verify Shopify webhook HMAC signature to reject forged requests
+async function verifyWebhookSignature(rawBody: string, signature: string | null): Promise<boolean> {
+  if (!WEBHOOK_SECRET) {
+    console.warn("[order-webhook] SHOPIFY_WEBHOOK_SECRET not set — skipping signature check");
+    return true;
+  }
+  if (!signature) return false;
+  const hmac = createHmac("sha256", WEBHOOK_SECRET).update(rawBody, "utf8").digest("base64");
+  return hmac === signature;
+}
 
 async function getAdminToken(): Promise<string | null> {
   try {
@@ -89,6 +104,31 @@ async function getProductInfo(productIds: number[], adminToken: string): Promise
   const map: Record<number, ProductInfo> = {};
   for (const p of data.products ?? []) map[p.id] = { handle: p.handle, vendor: p.vendor };
   return map;
+}
+
+// Fix 7: Check if this order was already processed by reading the metafield we write at the end
+async function isAlreadyProcessed(orderId: number, adminToken: string): Promise<boolean> {
+  try {
+    const gid = `gid://shopify/Order/${orderId}`;
+    const res = await fetch(`https://${SHOP}/admin/api/2024-01/graphql.json`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
+      body: JSON.stringify({
+        query: `
+          query($id: ID!) {
+            order(id: $id) {
+              metafield(namespace: "custom", key: "mosaic_orders") { value }
+            }
+          }
+        `,
+        variables: { id: gid },
+      }),
+    });
+    const data = await res.json() as { data?: { order?: { metafield?: { value: string } | null } } };
+    return !!data?.data?.order?.metafield?.value;
+  } catch {
+    return false;
+  }
 }
 
 async function writeOrderMetafield(orderId: number, value: string, adminToken: string): Promise<void> {
@@ -131,6 +171,15 @@ function normalizeStateCode(provinceCode: string): string {
   return provinceCode.replace(/^IN-/, "");
 }
 
+// Fix 1: Derive payment method dynamically from the order instead of hardcoding "juspay"
+function derivePaymentMethod(order: ShopifyOrder): string {
+  if (order.financial_status === "pending") return "cod";
+  // GoKwik/Juspay handles all prepaid — gateway name may vary but intent is prepaid
+  const gateway = (order.payment_gateway ?? "").toLowerCase();
+  if (gateway.includes("cod") || gateway.includes("cash")) return "cod";
+  return "prepaid";
+}
+
 function buildOrderPayload(order: ShopifyOrder, items: ShopifyLineItem[], productMap: Record<number, ProductInfo>, source: string) {
   const shipping = order.shipping_address;
   return {
@@ -144,7 +193,7 @@ function buildOrderPayload(order: ShopifyOrder, items: ShopifyLineItem[], produc
     city:           shipping.city,
     state:          normalizeStateCode(shipping.province_code),
     postcode:       shipping.zip,
-    payment_method: "juspay",
+    payment_method: derivePaymentMethod(order),
     source,
     order: items.map(item => ({
       product_id: productMap[item.product_id]?.handle ?? item.sku ?? String(item.product_id),
@@ -182,8 +231,6 @@ async function callMosaicBrand(brand: string, payload: object): Promise<string |
 
 function getUTMsFromOrder(order: ShopifyOrder): AffluenceUTMs | null {
   const attrs = order.note_attributes ?? [];
-  // Try multiple key formats: Affluence writes snake_case (utm_source),
-  // BetterHalf writes camelCase (utmSource). Accept both.
   const pick = (...keys: string[]) => {
     for (const k of keys) {
       const v = attrs.find(a => a.name === k)?.value;
@@ -206,12 +253,29 @@ function getUTMsFromOrder(order: ShopifyOrder): AffluenceUTMs | null {
   };
 }
 
+// Fix 3: Determine if customer is new or returning via their Shopify order count
+async function resolveCustomerType(customerId: number | null, adminToken: string): Promise<"NEW" | "REPEAT"> {
+  if (!customerId) return "NEW";
+  try {
+    const res = await fetch(
+      `https://${SHOP}/admin/api/2024-01/customers/${customerId}.json?fields=orders_count`,
+      { headers: { "X-Shopify-Access-Token": adminToken } },
+    );
+    const data = await res.json() as { customer?: { orders_count?: number } };
+    const count = data?.customer?.orders_count ?? 0;
+    return count <= 1 ? "NEW" : "REPEAT";
+  } catch {
+    return "NEW";
+  }
+}
+
 async function callAffluenceEarnings(
   order: ShopifyOrder,
   brand: string,
   items: ShopifyLineItem[],
   mosaicOrderId: string,
   utms: AffluenceUTMs,
+  customerType: "NEW" | "REPEAT",
 ): Promise<void> {
   const total = items.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
   const payload = {
@@ -221,7 +285,7 @@ async function callAffluenceEarnings(
     ref:          utms.ref,
     dmId:         utms.dmId,
     influencerId: utms.influencerId,
-    metaData: { paymentMode: "juspay" },
+    metaData: { paymentMode: derivePaymentMethod(order) },
     order: {
       status:        "confirmed",
       netTotal:      total,
@@ -232,7 +296,7 @@ async function callAffluenceEarnings(
       coupons:       [],
     },
     user: {
-      type:   "NEW",
+      type:   customerType,
       userId: String(order.customer_id ?? order.id),
       brand:  BRAND_CODE[brand] ?? brand,
       phone:  normalizePhone(order.shipping_address?.phone ?? order.phone),
@@ -241,14 +305,14 @@ async function callAffluenceEarnings(
   };
   const res = await fetch(AFFLUENCE_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${AFFLUENCE_TOKEN}` },
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
     const text = await res.text();
     console.error(`[order-webhook] Affluence ${brand} error:`, res.status, text);
   } else {
-    console.log(`[order-webhook] Affluence notified: ${brand} → ${mosaicOrderId}`);
+    console.log(`[order-webhook] Affluence notified: ${brand} → ${mosaicOrderId} (${customerType})`);
   }
 }
 
@@ -257,9 +321,18 @@ async function callAffluenceEarnings(
 export async function POST(req: NextRequest) {
   console.log("[order-webhook] received POST from", req.headers.get("x-shopify-topic") ?? "unknown");
 
+  // Fix 6: Verify Shopify signature — read raw body first, then parse
+  const rawBody = await req.text();
+  const signature = req.headers.get("x-shopify-hmac-sha256");
+  const isValid = await verifyWebhookSignature(rawBody, signature);
+  if (!isValid) {
+    console.error("[order-webhook] Invalid webhook signature — rejecting");
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   let order: ShopifyOrder;
   try {
-    order = await req.json() as ShopifyOrder;
+    order = JSON.parse(rawBody) as ShopifyOrder;
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
@@ -272,6 +345,13 @@ export async function POST(req: NextRequest) {
   try {
     const adminToken = await getAdminToken();
     if (!adminToken) throw new Error("Could not get Shopify admin token");
+
+    // Fix 7: Idempotency — if we already wrote mosaic_orders metafield, this order is done
+    const alreadyDone = await isAlreadyProcessed(order.id, adminToken);
+    if (alreadyDone) {
+      console.log(`[order-webhook] Order ${order.id} already processed — skipping`);
+      return NextResponse.json({ ok: true, skipped: "already_processed" });
+    }
 
     const productIds = [...new Set(order.line_items.map(i => i.product_id))];
     const productMap = await getProductInfo(productIds, adminToken);
@@ -298,27 +378,29 @@ export async function POST(req: NextRequest) {
 
     const results = await Promise.all(brandCalls);
 
-    // Write Mosaic order IDs back to Shopify order as a single JSON note attribute
+    // Write Mosaic order IDs back to Shopify as metafield
     const mosaicOrders = results
       .filter(r => r.mosaicOrderId)
       .map(r => ({
         brand:    r.brand,
         code:     BRAND_CODE[r.brand] ?? r.brand,
         order_id: r.mosaicOrderId!,
-        items:    (byBrand[r.brand] ?? []).map(i => i.title),
+        items:    (byBrand[r.brand] ?? []).map(i => ({ sku: i.sku ?? null, title: i.title })),
       }));
 
     if (mosaicOrders.length > 0) {
       await writeOrderMetafield(order.id, JSON.stringify(mosaicOrders), adminToken);
     }
 
-    // Notify Affluence for orders that came from influencer links
+    // Notify Affluence for influencer-attributed orders
     const utms = getUTMsFromOrder(order);
     if (utms) {
+      // Fix 3: Resolve customer type once, reuse across all brand calls
+      const customerType = await resolveCustomerType(order.customer_id, adminToken);
       await Promise.all(
         results
           .filter(r => r.mosaicOrderId)
-          .map(r => callAffluenceEarnings(order, r.brand, byBrand[r.brand], r.mosaicOrderId!, utms))
+          .map(r => callAffluenceEarnings(order, r.brand, byBrand[r.brand], r.mosaicOrderId!, utms, customerType))
       );
     }
 
