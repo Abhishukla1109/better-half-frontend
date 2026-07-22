@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Sparkles, ExternalLink, ArrowRight, ShoppingBag, Loader2, Check, AlertCircle, X, ChevronDown, Search } from "lucide-react";
+import { Sparkles, ExternalLink, ArrowRight, ShoppingBag, Loader2, Check, X, ChevronDown, Search, Minus, Plus } from "lucide-react";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { resolveSegment } from "@/lib/protocolEngine";
 import type { Product, MatchedProduct } from "@/lib/protocolEngine";
@@ -223,8 +223,13 @@ function ProductCard({
   matchPct?: number;
 }) {
   const router = useRouter();
-  const { addItem } = useCart();
-  const [cartState, setCartState] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const { addItem, updateItem, removeItem, cart } = useCart();
+  const [isAdding, setIsAdding] = useState(false);
+  const [resolvedVariantId, setResolvedVariantId] = useState<string | null>(null);
+
+  const cartItem = resolvedVariantId ? cart?.items.find(i => i.variantId === resolvedVariantId) : null;
+  const cartQty = cartItem?.quantity ?? 0;
+  const cartLineId = cartItem?.lineId;
   const [imgIdx, setImgIdx] = useState(0);
   const touchX = useRef(0);
   const touchY = useRef(0);
@@ -260,20 +265,18 @@ function ProductCard({
   const handleAddToCart = useCallback(
     async (e: React.MouseEvent) => {
       e.stopPropagation();
-      if (cartState !== "idle") return;
-      setCartState("loading");
+      if (isAdding || cartQty > 0) return;
+      setIsAdding(true);
       try {
         const variantId = await resolveVariantId(product.id);
-        if (!variantId) throw new Error("not found");
+        if (!variantId) return;
         await addItem(variantId, 1);
-        setCartState("done");
-      } catch {
-        setCartState("error");
+        setResolvedVariantId(variantId);
       } finally {
-        setTimeout(() => setCartState("idle"), 2500);
+        setIsAdding(false);
       }
     },
-    [addItem, cartState, product.id],
+    [addItem, isAdding, cartQty, product.id],
   );
 
   const discountPct =
@@ -402,28 +405,36 @@ function ProductCard({
           </div>
         )}
 
-        {/* Add to Cart */}
-        <button
-          onClick={handleAddToCart}
-          disabled={cartState !== "idle"}
-          className={`mt-1 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[12px] font-bold transition-all duration-200 cursor-pointer active:scale-[0.97] disabled:cursor-default ${
-            cartState === "done"
-              ? "bg-green-500/15 text-green-600"
-              : cartState === "error"
-              ? "bg-red-500/10 text-red-500"
-              : "text-white"
-          }`}
-          style={cartState === "idle" || cartState === "loading" ? { background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)" } : undefined}
-        >
-          {cartState === "loading" && <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2.5} />}
-          {cartState === "done"    && <Check className="w-3.5 h-3.5" strokeWidth={2.5} />}
-          {cartState === "error"   && <AlertCircle className="w-3.5 h-3.5" strokeWidth={2} />}
-          {cartState === "idle"    && <ShoppingBag className="w-3.5 h-3.5" strokeWidth={2} />}
-          {cartState === "loading" ? "Adding…"
-            : cartState === "done" ? "Added!"
-            : cartState === "error" ? "Not available"
-            : "Add to Cart"}
-        </button>
+        {/* Add to Cart / Stepper */}
+        {cartQty > 0 && cartLineId ? (
+          <div className="mt-1 w-full flex items-center justify-between rounded-xl overflow-hidden bg-primary-container text-white">
+            <button
+              onClick={(e) => { e.stopPropagation(); void (cartQty - 1 === 0 ? removeItem(cartLineId).then(() => setResolvedVariantId(null)) : updateItem(cartLineId, cartQty - 1)); }}
+              className="w-9 h-9 flex items-center justify-center hover:bg-primary active:bg-primary transition-colors"
+              aria-label="Remove one"
+            >
+              <Minus className="w-3.5 h-3.5" strokeWidth={2.5} />
+            </button>
+            <span className="text-[12px] font-bold">{cartQty}</span>
+            <button
+              onClick={(e) => { e.stopPropagation(); void updateItem(cartLineId, cartQty + 1); }}
+              className="w-9 h-9 flex items-center justify-center hover:bg-primary active:bg-primary transition-colors"
+              aria-label="Add one more"
+            >
+              <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleAddToCart}
+            disabled={isAdding}
+            className="mt-1 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[12px] font-bold transition-all duration-200 cursor-pointer active:scale-[0.97] disabled:cursor-default text-white"
+            style={{ background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)" }}
+          >
+            {isAdding ? <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2.5} /> : <ShoppingBag className="w-3.5 h-3.5" strokeWidth={2} />}
+            {isAdding ? "Adding…" : "Add to Cart"}
+          </button>
+        )}
       </div>
     </div>
   );

@@ -14,6 +14,8 @@ import {
   Stethoscope,
   Loader2,
   X,
+  Minus,
+  Plus,
 } from "lucide-react";
 import type { GeneratedProtocol, UserProfile, ProtocolSupplement } from "@/lib/ai/types";
 import { calculateProfileDepth } from "@/lib/ai/profile-depth";
@@ -596,9 +598,11 @@ export default function ProtocolPage() {
   // Daily nudge tracking: answered today or too many skips → don't auto-open again
   const [nudgeState, setNudgeState] = useState<{ date: string; answered: boolean; skipCount: number; shown?: boolean } | null>(null);
   // Cart
-  const { addItem, openCart } = useCart();
+  const { addItem, updateItem, removeItem, cart, openCart } = useCart();
   const [addingId, setAddingId] = useState<string | null>(null);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
+  // Map product slug → resolved Shopify variant ID (cached after first resolution)
+  const resolvedVariants = useRef<Map<string, string>>(new Map());
   const [addingAll, setAddingAll] = useState(false);
   // "Protocol sharpened!" dramatic moment
   const [showSharpen, setShowSharpen] = useState(false);
@@ -878,7 +882,11 @@ export default function ProtocolPage() {
     if (addingId || addedIds.has(productId)) return;
     setAddingId(productId);
     try {
-      const variantId = await resolveVariantId(productId);
+      let variantId = resolvedVariants.current.get(productId);
+      if (!variantId) {
+        variantId = await resolveVariantId(productId) ?? undefined;
+        if (variantId) resolvedVariants.current.set(productId, variantId);
+      }
       if (variantId) {
         await addItem(variantId);
         setAddedIds((prev) => new Set([...prev, productId]));
@@ -1252,6 +1260,11 @@ export default function ProtocolPage() {
           const pill = BRAND_PILL[brand] ?? { bg: "bg-surface-container", text: "text-on-surface-variant" };
           const discountPct = mrp > price ? Math.round((1 - price / mrp) * 100) : 0;
           const ratingData = getProductRating(id);
+          // Find this product in the cart using its cached variant ID
+          const cachedVariantId = resolvedVariants.current.get(id);
+          const cartItem = cachedVariantId ? cart?.items.find(i => i.variantId === cachedVariantId) : null;
+          const cartQty = cartItem?.quantity ?? 0;
+          const cartLineId = cartItem?.lineId;
 
           return (
             <div
@@ -1300,25 +1313,44 @@ export default function ProtocolPage() {
                   ) : null}
                 </div>
 
-                {/* Add to Cart button */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); void handleAddToCart(id); }}
-                  disabled={isAdded || !!isLoading}
-                  className={`w-full py-2 rounded-xl text-[10px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer disabled:cursor-default active:scale-[0.98] ${
-                    isAdded
-                      ? "bg-green-500/12 text-green-700"
-                      : isPrimary
+                {/* Add to Cart / Quantity stepper */}
+                {isAdded && cartLineId && cartQty > 0 ? (
+                  <div
+                    onClick={e => e.stopPropagation()}
+                    className="w-full flex items-center justify-between rounded-xl overflow-hidden bg-primary-container text-white"
+                  >
+                    <button
+                      onClick={() => { if (cartLineId) void (cartQty - 1 === 0 ? removeItem(cartLineId).then(() => setAddedIds(prev => { const next = new Set(prev); next.delete(id); return next; })) : updateItem(cartLineId, cartQty - 1)); }}
+                      className="w-8 h-8 flex items-center justify-center hover:bg-primary active:bg-primary transition-colors"
+                      aria-label="Remove one"
+                    >
+                      <Minus className="w-3 h-3" strokeWidth={2.5} />
+                    </button>
+                    <span className="text-[11px] font-bold">{cartQty}</span>
+                    <button
+                      onClick={() => { if (cartLineId) void updateItem(cartLineId, cartQty + 1); }}
+                      className="w-8 h-8 flex items-center justify-center hover:bg-primary active:bg-primary transition-colors"
+                      aria-label="Add one more"
+                    >
+                      <Plus className="w-3 h-3" strokeWidth={2.5} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); void handleAddToCart(id); }}
+                    disabled={!!isLoading}
+                    className={`w-full py-2 rounded-xl text-[10px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer disabled:cursor-default active:scale-[0.98] ${
+                      isPrimary
                         ? "bg-primary-container text-white hover:bg-primary"
                         : "bg-surface-container border border-outline-variant/20 text-on-surface-variant hover:bg-surface-container-high"
-                  }`}
-                >
-                  {isLoading
-                    ? <Loader2 className="w-3 h-3 animate-spin" strokeWidth={2.5} />
-                    : isAdded
-                      ? <><Check className="w-3 h-3" strokeWidth={2.5} /><span>Added</span></>
+                    }`}
+                  >
+                    {isLoading
+                      ? <Loader2 className="w-3 h-3 animate-spin" strokeWidth={2.5} />
                       : <><ShoppingBag className="w-3 h-3" strokeWidth={2} /><span>Add to Cart</span></>
-                  }
-                </button>
+                    }
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -1803,6 +1835,10 @@ export default function ProtocolPage() {
                         const siblings = s.siblings;
                         const activeSibling = siblings?.find(sib => sib.slug === activeSlug);
                         const displayName = activeSibling && activeSlug !== s.id ? `${s.name} (${activeSibling.label})` : s.name;
+                        const cachedVariantIdMC = resolvedVariants.current.get(activeSlug);
+                        const cartItemMC = cachedVariantIdMC ? cart?.items.find(i => i.variantId === cachedVariantIdMC) : null;
+                        const cartQtyMC = cartItemMC?.quantity ?? 0;
+                        const cartLineIdMC = cartItemMC?.lineId;
                         return (
                           <div
                             key={s.id}
@@ -1876,15 +1912,38 @@ export default function ProtocolPage() {
                               <div className="mt-auto">
                                 <p className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
                                 {s.mrp && s.mrp > s.price && <p className="text-[9px] text-on-surface-variant/35 line-through mt-0.5">₹{s.mrp}</p>}
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); void handleAddToCart(activeSlug); }}
-                                  disabled={addingId === activeSlug || addedIds.has(activeSlug)}
-                                  className={`mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-[12px] font-bold transition-all duration-200 cursor-pointer active:scale-[0.98] text-white disabled:opacity-60 ${addedIds.has(activeSlug) ? "bg-primary-container" : ""}`}
-                                  style={!addedIds.has(activeSlug) ? { background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)" } : undefined}
-                                  aria-label={addedIds.has(activeSlug) ? "Added" : "Add to cart"}
-                                >
-                                  {addingId === activeSlug ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : addedIds.has(activeSlug) ? <><Check className="w-3.5 h-3.5" strokeWidth={2.5} /><span>Added</span></> : <><ShoppingBag className="w-3.5 h-3.5" strokeWidth={2} /><span>Add</span></>}
-                                </button>
+                                {addedIds.has(activeSlug) && cartLineIdMC && cartQtyMC > 0 ? (
+                                  <div
+                                    onClick={e => e.stopPropagation()}
+                                    className="mt-2 w-full flex items-center justify-between rounded-xl overflow-hidden bg-primary-container text-white"
+                                  >
+                                    <button
+                                      onClick={() => { if (cartLineIdMC) void (cartQtyMC - 1 === 0 ? removeItem(cartLineIdMC).then(() => setAddedIds(prev => { const next = new Set(prev); next.delete(activeSlug); return next; })) : updateItem(cartLineIdMC, cartQtyMC - 1)); }}
+                                      className="w-8 h-8 flex items-center justify-center hover:bg-primary active:bg-primary transition-colors"
+                                      aria-label="Remove one"
+                                    >
+                                      <Minus className="w-3.5 h-3.5" strokeWidth={2.5} />
+                                    </button>
+                                    <span className="text-[12px] font-bold">{cartQtyMC}</span>
+                                    <button
+                                      onClick={() => { if (cartLineIdMC) void updateItem(cartLineIdMC, cartQtyMC + 1); }}
+                                      className="w-8 h-8 flex items-center justify-center hover:bg-primary active:bg-primary transition-colors"
+                                      aria-label="Add one more"
+                                    >
+                                      <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); void handleAddToCart(activeSlug); }}
+                                    disabled={addingId === activeSlug}
+                                    className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-[12px] font-bold transition-all duration-200 cursor-pointer active:scale-[0.98] text-white"
+                                    style={{ background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)" }}
+                                    aria-label="Add to cart"
+                                  >
+                                    {addingId === activeSlug ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><ShoppingBag className="w-3.5 h-3.5" strokeWidth={2} /><span>Add</span></>}
+                                  </button>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1929,6 +1988,10 @@ export default function ProtocolPage() {
                   const siblings = s.siblings;
                   const activeSibling = siblings?.find(sib => sib.slug === activeSlug);
                   const displayName = activeSibling && activeSlug !== s.id ? `${s.name} (${activeSibling.label})` : s.name;
+                  const cachedVariantIdSC = resolvedVariants.current.get(activeSlug);
+                  const cartItemSC = cachedVariantIdSC ? cart?.items.find(i => i.variantId === cachedVariantIdSC) : null;
+                  const cartQtySC = cartItemSC?.quantity ?? 0;
+                  const cartLineIdSC = cartItemSC?.lineId;
                   return (
                     <div
                       key={s.id}
@@ -2002,15 +2065,38 @@ export default function ProtocolPage() {
                         <div className="mt-auto">
                           <p className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
                           {s.mrp && s.mrp > s.price && <p className="text-[9px] text-on-surface-variant/35 line-through mt-0.5">₹{s.mrp}</p>}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); void handleAddToCart(activeSlug); }}
-                            disabled={addingId === activeSlug || addedIds.has(activeSlug)}
-                            className={`mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-[12px] font-bold transition-all duration-200 cursor-pointer active:scale-[0.98] text-white disabled:opacity-60 ${addedIds.has(activeSlug) ? "bg-primary-container" : ""}`}
-                            style={!addedIds.has(activeSlug) ? { background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)" } : undefined}
-                            aria-label={addedIds.has(activeSlug) ? "Added" : "Add to cart"}
-                          >
-                            {addingId === activeSlug ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : addedIds.has(activeSlug) ? <><Check className="w-3.5 h-3.5" strokeWidth={2.5} /><span>Added</span></> : <><ShoppingBag className="w-3.5 h-3.5" strokeWidth={2} /><span>Add</span></>}
-                          </button>
+                          {addedIds.has(activeSlug) && cartLineIdSC && cartQtySC > 0 ? (
+                            <div
+                              onClick={e => e.stopPropagation()}
+                              className="mt-2 w-full flex items-center justify-between rounded-xl overflow-hidden bg-primary-container text-white"
+                            >
+                              <button
+                                onClick={() => { if (cartLineIdSC) void (cartQtySC - 1 === 0 ? removeItem(cartLineIdSC).then(() => setAddedIds(prev => { const next = new Set(prev); next.delete(activeSlug); return next; })) : updateItem(cartLineIdSC, cartQtySC - 1)); }}
+                                className="w-8 h-8 flex items-center justify-center hover:bg-primary active:bg-primary transition-colors"
+                                aria-label="Remove one"
+                              >
+                                <Minus className="w-3.5 h-3.5" strokeWidth={2.5} />
+                              </button>
+                              <span className="text-[12px] font-bold">{cartQtySC}</span>
+                              <button
+                                onClick={() => { if (cartLineIdSC) void updateItem(cartLineIdSC, cartQtySC + 1); }}
+                                className="w-8 h-8 flex items-center justify-center hover:bg-primary active:bg-primary transition-colors"
+                                aria-label="Add one more"
+                              >
+                                <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); void handleAddToCart(activeSlug); }}
+                              disabled={addingId === activeSlug}
+                              className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-[12px] font-bold transition-all duration-200 cursor-pointer active:scale-[0.98] text-white"
+                              style={{ background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)" }}
+                              aria-label="Add to cart"
+                            >
+                              {addingId === activeSlug ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><ShoppingBag className="w-3.5 h-3.5" strokeWidth={2} /><span>Add</span></>}
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>

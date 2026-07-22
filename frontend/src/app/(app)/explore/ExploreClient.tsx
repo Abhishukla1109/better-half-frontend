@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Search, ShoppingBag } from 'lucide-react';
+import AddToCartButton from '@/components/shop/AddToCartButton';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
@@ -284,6 +285,15 @@ function ShopifyCard({ product: p }: { product: ShopifyProduct }) {
           {price && <span className="text-base font-extrabold text-[#004f54]">₹{parseFloat(price.amount).toLocaleString('en-IN')}</span>}
           {compare && onSale && <span className="text-sm text-[#9ca3af] line-through">₹{parseFloat(compare.amount).toLocaleString('en-IN')}</span>}
         </div>
+        <AddToCartButton
+          variantId={firstVariant?.id ?? ''}
+          available={firstVariant?.availableForSale ?? false}
+          productName={p.title}
+          brand={p.vendor ?? undefined}
+          price={price ? parseFloat(price.amount) : undefined}
+          source="explore"
+          className="w-full mt-1 py-2.5 text-sm"
+        />
       </div>
     </div>
   );

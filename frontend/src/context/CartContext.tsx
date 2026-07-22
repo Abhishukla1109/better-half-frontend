@@ -163,8 +163,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           source: meta?.source ?? "unknown",
           has_protocol: hasProtocol,
         });
+        // Dispatch toast event so any listener can show confirmation
+        window.dispatchEvent(new CustomEvent("bh-cart-added", {
+          detail: { name: meta?.product_name ?? "Item" },
+        }));
       }
-      setIsOpen(true);
     } finally {
       setIsLoading(false);
     }
@@ -193,30 +196,43 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const checkout = useCallback(async () => {
-    if (!cart || !cartIdRef.current) return;
+    // Fix 5: use cartIdRef (updated synchronously by addItem) instead of cart state
+    // so Buy Now works on a fresh session where cart state hasn't re-rendered yet
+    const currentCartId = cartIdRef.current;
+    if (!currentCartId) return;
     setIsLoading(true);
-    try {
-      const utms = getStoredUTMs();
-      if (utms) {
-        await cartApi('attributes', {
-          cartId: cartIdRef.current,
-          attributes: [
-            { key: "source",       value: "betterhalf" },
-            { key: "utmSource",    value: utms.utmSource },
-            { key: "utmMedium",    value: utms.utmMedium },
-            { key: "utmCampaign",  value: utms.utmCampaign },
-            { key: "ref",          value: utms.ref },
-            { key: "dmId",         value: utms.dmId },
-            { key: "influencerId", value: utms.influencerId },
-          ],
-        });
+
+    // Fix 4: retry UTM write up to 3 times before giving up — a single network blip
+    // would otherwise silently drop influencer attribution from the order
+    const utms = getStoredUTMs();
+    if (utms) {
+      let written = false;
+      for (let attempt = 0; attempt < 3 && !written; attempt++) {
+        try {
+          if (attempt > 0) await new Promise(r => setTimeout(r, 500));
+          await cartApi('attributes', {
+            cartId: currentCartId,
+            attributes: [
+              { key: "source",       value: "betterhalf" },
+              { key: "utmSource",    value: utms.utmSource },
+              { key: "utmMedium",    value: utms.utmMedium },
+              { key: "utmCampaign",  value: utms.utmCampaign },
+              { key: "ref",          value: utms.ref },
+              { key: "dmId",         value: utms.dmId },
+              { key: "influencerId", value: utms.influencerId },
+            ],
+          });
+          written = true;
+        } catch {
+          console.warn(`[checkout] UTM write attempt ${attempt + 1} failed`);
+        }
       }
-    } catch { /* non-critical — proceed to checkout anyway */ }
+    }
 
     const hasProtocol = !!localStorage.getItem("bh_protocol_picks");
     track("Checkout Started", {
-      item_count: cart.totalQuantity,
-      cart_value: parseFloat(cart.subtotal?.amount ?? "0"),
+      item_count: cart?.totalQuantity ?? 0,
+      cart_value: parseFloat(cart?.subtotal?.amount ?? "0"),
       has_protocol: hasProtocol,
     });
     const w = window as Window & {
@@ -224,16 +240,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       triggerGokwikCustomCheckout?: () => void;
     };
     if (w.triggerGokwikCustomCheckout && w.merchantInfo) {
-      w.merchantInfo.cart = { id: cart.id };
-      // Flag so pageshow handler clears cart if user returns via back button
+      w.merchantInfo.cart = { id: currentCartId };
       localStorage.setItem("bh_checkout_started", "1");
       w.triggerGokwikCustomCheckout();
-    } else if (cart.checkoutUrl) {
+    } else if (cart?.checkoutUrl) {
       localStorage.setItem("bh_checkout_started", "1");
       window.location.href = cart.checkoutUrl;
     }
     setIsLoading(false);
-  }, [cart]); // cart state is fine here — checkout is always user-triggered after a render
+  }, []); // uses cartIdRef synchronously — no cart state dependency needed
 
   return (
     <CartContext.Provider value={{

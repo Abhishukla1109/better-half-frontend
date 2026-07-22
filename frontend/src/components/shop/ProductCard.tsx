@@ -73,6 +73,9 @@ export default function ProductCard({ product, compact = false }: Props) {
           <AddToCartButton
             variantId={firstVariant?.id ?? ''}
             available={available}
+            productName={product.title}
+            brand={product.vendor ?? undefined}
+            price={parseFloat(product.price.amount)}
             className="w-full mt-1 py-2.5 text-sm"
           />
         )}

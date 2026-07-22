@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ShoppingBag, Check, Loader2 } from 'lucide-react';
+import { Minus, Plus, Loader2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 
 interface Props {
@@ -9,47 +9,102 @@ interface Props {
   available: boolean;
   className?: string;
   label?: string;
+  productName?: string;
+  brand?: string;
+  price?: number;
+  concern?: string;
+  source?: string;
 }
 
-export default function AddToCartButton({ variantId, available, className = '', label = 'Add to Cart' }: Props) {
-  const { addItem } = useCart();
-  const [state, setState] = useState<'idle' | 'loading' | 'added'>('idle');
+export default function AddToCartButton({
+  variantId, available, className = '', label = 'Add to Cart',
+  productName, brand, price, concern, source,
+}: Props) {
+  const { addItem, updateItem, removeItem, cart } = useCart();
+  const [loading, setLoading] = useState(false);
 
-  async function handleClick() {
-    if (!available || state !== 'idle') return;
-    setState('loading');
-    try {
-      await addItem(variantId);
-      setState('added');
-      setTimeout(() => setState('idle'), 2000);
-    } catch {
-      setState('idle');
-    }
-  }
+  // Derive everything from cart state — single source of truth
+  const lineItem = cart?.items.find(i => i.variantId === variantId);
+  const qty = lineItem?.quantity ?? 0;
+  const lineId = lineItem?.lineId ?? null;
 
   if (!available) {
     return (
-      <button disabled className={`flex items-center justify-center gap-2 py-4 rounded-xl font-700 text-base bg-[#e5e7eb] text-[#9ca3af] cursor-not-allowed ${className}`}>
+      <button disabled className={`flex items-center justify-center py-2.5 rounded-xl text-sm font-semibold bg-[#e5e7eb] text-[#9ca3af] cursor-not-allowed ${className}`}>
         Sold Out
       </button>
     );
   }
 
+  const handleAdd = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      await addItem(variantId, 1, { product_name: productName, brand, price, concern, source });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleIncrease = async () => {
+    if (loading || !lineId) return;
+    setLoading(true);
+    try {
+      await updateItem(lineId, qty + 1);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDecrease = async () => {
+    if (loading || !lineId) return;
+    setLoading(true);
+    try {
+      if (qty - 1 <= 0) {
+        await removeItem(lineId);
+      } else {
+        await updateItem(lineId, qty - 1);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Not in cart — show Add to Cart
+  if (qty === 0) {
+    return (
+      <button
+        onClick={handleAdd}
+        disabled={loading}
+        className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold bg-[#004f54] text-white hover:bg-[#01696f] active:scale-[0.98] transition-all disabled:opacity-70 ${className}`}
+      >
+        {loading ? <Loader2 size={15} className="animate-spin" /> : label}
+      </button>
+    );
+  }
+
+  // In cart — show quantity stepper
   return (
-    <button
-      onClick={handleClick}
-      disabled={state !== 'idle'}
-      className={`flex items-center justify-center gap-2 py-4 rounded-xl font-700 text-base transition-all
-        ${state === 'added'
-          ? 'bg-green-600 text-white'
-          : 'bg-[#004f54] text-white hover:bg-[#01696f] active:scale-[0.98]'}
-        disabled:opacity-80
-        ${className}`}
-    >
-      {state === 'loading' && <Loader2 size={18} className="animate-spin" />}
-      {state === 'added' && <Check size={18} />}
-      {state === 'idle' && <ShoppingBag size={18} />}
-      {state === 'loading' ? 'Adding…' : state === 'added' ? 'Added!' : label}
-    </button>
+    <div className={`flex items-center justify-between rounded-xl bg-[#004f54] text-white ${className}`}>
+      <button
+        onClick={handleDecrease}
+        disabled={loading}
+        className="w-10 h-10 flex items-center justify-center hover:bg-[#01696f] active:bg-[#003a3e] transition-colors disabled:opacity-50 rounded-l-xl"
+        aria-label="Remove one"
+      >
+        <Minus size={14} strokeWidth={2.5} />
+      </button>
+      <span className="text-sm font-bold min-w-[20px] text-center">
+        {loading ? <Loader2 size={13} className="animate-spin inline" /> : qty}
+      </span>
+      <button
+        onClick={handleIncrease}
+        disabled={loading}
+        className="w-10 h-10 flex items-center justify-center hover:bg-[#01696f] active:bg-[#003a3e] transition-colors disabled:opacity-50 rounded-r-xl"
+        aria-label="Add one more"
+      >
+        <Plus size={14} strokeWidth={2.5} />
+      </button>
+    </div>
   );
 }

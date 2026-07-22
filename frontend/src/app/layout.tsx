@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 import CartDrawer from "@/components/cart/CartDrawer";
+import CartToast from "@/components/cart/CartToast";
 import MixpanelProvider from "@/components/MixpanelProvider";
 
 const manrope = Manrope({
@@ -78,6 +79,7 @@ export default function RootLayout({
         <CartProvider>
           <MixpanelProvider>
             <CartDrawer />
+            <CartToast />
             {children}
           </MixpanelProvider>
         </CartProvider>
