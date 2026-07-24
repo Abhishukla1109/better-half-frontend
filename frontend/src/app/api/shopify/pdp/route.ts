@@ -42,6 +42,7 @@ const QUERY = `
         { namespace: "custom", key: "bh_siblings" }
         { namespace: "custom", key: "bh_recommendation" }
         { namespace: "custom", key: "bh_pairings" }
+        { namespace: "custom", key: "bh_mm_url_key" }
       ]) { key value }
     }
   }
@@ -59,11 +60,11 @@ function text(nodes: MFNode[], key: string): string | null {
   return nodes.find((n) => n.key === key)?.value ?? null;
 }
 
-async function fetchBrandRating(vendor: string, handle: string): Promise<{ average: number | null; count: number | null }> {
+async function fetchBrandRating(vendor: string, urlKey: string): Promise<{ average: number | null; count: number | null }> {
   const base = BRAND_API[vendor];
-  if (!base) return { average: null, count: null };
+  if (!base || !urlKey) return { average: null, count: null };
   try {
-    const res = await fetch(`${base}/${handle}`, { signal: AbortSignal.timeout(3000) });
+    const res = await fetch(`${base}/${urlKey}`, { signal: AbortSignal.timeout(3000) });
     if (!res.ok) return { average: null, count: null };
     const data = await res.json() as { data?: { productInfo?: { rating?: string; reviews?: string } } };
     const pi = data?.data?.productInfo;
@@ -109,8 +110,9 @@ export async function GET(req: NextRequest) {
     const rawPrice = matchedVariant?.node?.priceV2?.amount ?? allVariants[0]?.node?.priceV2?.amount;
     const price = rawPrice ? Math.round(parseFloat(rawPrice)) : undefined;
 
-    // Fetch live rating from brand API in parallel with Shopify
-    const rating = await fetchBrandRating(p.vendor ?? "", handle);
+    // Use stored MM url_key for correct brand API rating fetch
+    const mmUrlKey = text(mf, "bh_mm_url_key") ?? "";
+    const rating = await fetchBrandRating(p.vendor ?? "", mmUrlKey);
 
     const enriched: EnrichedPDP = {
       slug:            handle,

@@ -638,7 +638,7 @@ function NewProductPDP({
           };
           return (
             <div
-              className="relative w-full h-80 bg-surface-container-low overflow-hidden select-none"
+              className="relative w-full h-[380px] bg-surface-container-low overflow-hidden select-none"
               onTouchStart={onTouchStart}
               onTouchEnd={onTouchEnd}
             >
@@ -695,7 +695,7 @@ function NewProductPDP({
           )}
 
           <div className="flex items-start gap-2">
-            <h1 className="flex-1 text-xl font-extrabold text-on-surface leading-snug tracking-tight font-[family-name:var(--font-manrope)]">
+            <h1 className="flex-1 text-2xl font-extrabold text-on-surface leading-snug tracking-tight font-[family-name:var(--font-manrope)]">
               {displayName}
             </h1>
             <button
@@ -944,22 +944,37 @@ function NewProductPDP({
           </div>
         )}
 
-        {/* ── Little Joys: Benefits ── */}
-        {enriched?.benefits && enriched.benefits.length > 0 && (
-          <div className="mt-6 px-5">
-            <h2 className="text-lg font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] mb-3">✨ Key Benefits</h2>
-            <div className="grid grid-cols-2 gap-3">
-              {enriched.benefits.map((b, i) => (
-                <div key={i} className="flex flex-col gap-2 p-4 rounded-2xl bg-surface-container-lowest border border-outline-variant/8">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={b.icon} alt={b.title} className="w-10 h-10 object-contain" />
-                  <p className="text-[12px] font-bold text-on-surface leading-snug">{b.title}</p>
-                  <p className="text-[11px] text-on-surface-variant leading-relaxed">{b.description}</p>
+        {/* ── Key Benefits ── */}
+        {(() => {
+          const APP_PROMO = /\bapp\b|download|daily reminder|\breward|order usin|install|\bwallet\b|play.?store|app.?store|cashback|google play|apple store/i;
+          const cleanBenefits = (enriched?.benefits ?? []).filter(
+            b => !APP_PROMO.test(b.title ?? "") && !APP_PROMO.test(b.description ?? "")
+          );
+          if (!cleanBenefits.length) return null;
+          return (
+          <div className="mt-6">
+            <h2 className="text-xl font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] px-5 mb-3">✨ Key Benefits</h2>
+            <div className="flex gap-3 px-5 overflow-x-auto scrollbar-hide pb-1">
+              {cleanBenefits.map((b, i) => (
+                <div key={i} className="shrink-0 w-[180px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 overflow-hidden">
+                  {b.icon ? (
+                    <div className="w-full aspect-square overflow-hidden bg-gray-50 flex items-center justify-center p-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={b.icon} alt={b.title} className="w-full h-full object-contain" />
+                    </div>
+                  ) : null}
+                  <div className="p-3">
+                    <p className="text-[12.5px] font-bold text-on-surface leading-snug mb-1">{b.title}</p>
+                    {b.description && !/^[-\s]+$/.test(b.description) && (
+                      <p className="text-[11px] text-on-surface-variant leading-relaxed">{b.description}</p>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* ── Product Details / How to Use tabs ── */}
         {enriched && (
@@ -984,68 +999,58 @@ function NewProductPDP({
             <div className="px-5 pt-5 pb-2">
               {activeTab === "details" ? (
                 <div>
-                  {/* Supplement facts grid */}
-                  {(() => {
-                    const SKIP = new Set(["price", "lasts for"]);
-                    const FEAT_EMOJI: Record<string, string> = {
-                      "suitable for age": "👤", "net qty": "📦", "flavour": "🍬",
-                      "properties": "🌱", "country of origin": "🌏", "net weight": "⚖️",
-                      "form": "💊", "shelf life": "📅",
+                  {enriched.productDetails.description.length > 0 && (() => {
+                    const DISCLAIMER_RE = /medical advice|physician|dietician|nutritionist|consult a/i;
+                    const iconFor = (text: string): LucideIcon => {
+                      const t = text.toLowerCase();
+                      if (/biotin|zinc|vitamin|ingredient|compound|extract|acid|protein|mineral|nutrient|collagen|keratin|niacin/i.test(t)) return FlaskConical;
+                      if (/day|week|month|result|visible|proven|clinical|study|user|reported|consistent/i.test(t)) return TrendingUp;
+                      if (/free|safe|tested|certified|gmo|gluten|preservative|artificial|natural|pure/i.test(t)) return ShieldCheck;
+                      if (/hair|scalp|growth|follicle|strand|baldness/i.test(t)) return Zap;
+                      if (/skin|moisture|hydrat|pore|glow|ceramide/i.test(t)) return Droplets;
+                      return CheckCircle;
                     };
-                    const rows = enriched.productDetails.details.filter(
-                      (d) => !SKIP.has(d.feature.toLowerCase())
-                    );
-                    if (!rows.length) return null;
+
+                    const bullets: { emoji: string; title: string; body: string }[] = [];
+                    let disclaimer = "";
+
+                    for (const item of enriched.productDetails.description) {
+                      const seg = item.trim().replace(/^[►▶→•·▸▹◆◇✓✔]+\s*/u, "");
+                      if (!seg) continue;
+                      if (DISCLAIMER_RE.test(seg)) { disclaimer = seg; continue; }
+                      const emojiMatch = seg.match(/^([\u{1F300}-\u{1F9FF}\u{2600}-\u{27BF}\u{1F000}-\u{1F02F}\u{2700}-\u{27BF}][\u{FE0F}]?)\s*/u);
+                      const rawText = emojiMatch ? seg.slice(emojiMatch[0].length).trim() : seg;
+                      const emoji = emojiMatch ? emojiMatch[1] : "";
+                      const colonIdx = rawText.indexOf(":");
+                      const hasColon = colonIdx > 0 && colonIdx < 45;
+                      bullets.push({
+                        emoji,
+                        title: hasColon ? rawText.slice(0, colonIdx).trim() : "",
+                        body:  hasColon ? rawText.slice(colonIdx + 1).trim() : rawText,
+                      });
+                    }
+
                     return (
-                      <div className="grid grid-cols-2 gap-2 mb-5">
-                        {rows.map((d, i) => {
-                          const emoji = FEAT_EMOJI[d.feature.toLowerCase()] ?? "•";
-                          const isLong = d.value.length > 35;
+                      <div>
+                        {bullets.map((b, i) => {
+                          const Icon = iconFor(b.title + " " + b.body);
                           return (
-                            <div key={i} className={`flex items-start gap-2.5 px-3.5 py-3 rounded-2xl bg-[#f7fafa] border border-[#e2e8e8] ${isLong ? "col-span-2" : ""}`}>
-                              <span className="text-base shrink-0 mt-0.5">{emoji}</span>
-                              <div className="min-w-0">
-                                <p className="text-[10px] font-700 text-[#9ca3af] uppercase tracking-wider">{d.feature}</p>
-                                <p className="text-[13px] font-600 text-[#1a2e2e] mt-0.5 leading-snug">{d.value}</p>
+                            <div key={i} className={`flex items-start gap-3.5 py-4 ${i < bullets.length - 1 ? "border-b border-[#eff4f4]" : ""}`}>
+                              <div className="shrink-0 w-8 h-8 rounded-full bg-[#004f54]/8 flex items-center justify-center mt-0.5">
+                                {b.emoji
+                                  ? <span className="text-base leading-none">{b.emoji}</span>
+                                  : <Icon className="w-[15px] h-[15px] text-[#004f54]" strokeWidth={1.5} />
+                                }
+                              </div>
+                              <div className="flex-1 min-w-0 pt-0.5">
+                                {b.title && <p className="text-[13.5px] font-bold text-[#1a2e2e] leading-snug mb-1">{b.title}</p>}
+                                <p className={`leading-relaxed ${b.title ? "text-[12.5px] text-[#6b7280]" : "text-[13.5px] text-[#1a2e2e]"}`}>{b.body}</p>
                               </div>
                             </div>
                           );
                         })}
-                      </div>
-                    );
-                  })()}
-
-                  {/* Description bullets */}
-                  {enriched.productDetails.description.length > 0 && (() => {
-                    const DISCLAIMER_RE = /medical advice|physician|dietician|nutritionist|consult a/i;
-                    const bullets: { icon: string; text: string }[] = [];
-                    let disclaimer = "";
-
-                    for (const item of enriched.productDetails.description) {
-                      const seg = item.trim();
-                      if (!seg) continue;
-                      if (DISCLAIMER_RE.test(seg)) { disclaimer = seg; continue; }
-                      const m = seg.match(/^([\u{1F300}-\u{1F9FF}\u{2600}-\u{27BF}\u{1F000}-\u{1F02F}\u{2700}-\u{27BF}][\u{FE0F}]?)\s*/u);
-                      if (m) {
-                        bullets.push({ icon: m[1], text: seg.slice(m[0].length).trim() });
-                      } else {
-                        bullets.push({ icon: "", text: seg });
-                      }
-                    }
-
-                    return (
-                      <div className="space-y-2.5">
-                        {bullets.map((b, i) => (
-                          <div key={i} className="flex items-start gap-3.5 bg-[#f7fafa] rounded-2xl px-4 py-3.5 border border-[#e8f0f0]">
-                            {b.icon
-                              ? <span className="text-xl leading-none shrink-0 mt-0.5">{b.icon}</span>
-                              : <span className="w-2 h-2 rounded-full bg-[#004f54] shrink-0 mt-[7px]" />
-                            }
-                            <p className="text-[13.5px] font-[450] text-[#1a2e2e] leading-relaxed">{highlightIngredients(b.text)}</p>
-                          </div>
-                        ))}
                         {disclaimer && (
-                          <div className="flex gap-3 px-4 py-3.5 rounded-2xl bg-blue-50 border border-blue-100">
+                          <div className="flex gap-3 px-4 py-3.5 rounded-2xl bg-blue-50 border border-blue-100 mt-2">
                             <span className="text-lg shrink-0 mt-0.5">👨‍⚕️</span>
                             <p className="text-[12px] text-blue-700 leading-relaxed">{disclaimer}.</p>
                           </div>
@@ -1056,11 +1061,10 @@ function NewProductPDP({
                 </div>
               ) : (
                 /* How to Use */
-                <ol className="space-y-3">
+                <div>
                   {(() => {
                     const raw = enriched.howToUse || "Take as directed. Consistent daily use recommended for best results.";
 
-                    // Strip section headers like "How to use (Product Name)\n"
                     const cleaned = raw
                       .replace(/^How to use[^\n]*\n+/i, "")
                       .replace(/^How to Use\s*[:\-]?\s*\n+/i, "")
@@ -1070,24 +1074,36 @@ function NewProductPDP({
                     const hasStepMarker = /(?:Step\s*)?\d+\s*[:.]/i.test(cleaned);
 
                     if (hasStepMarker) {
-                      // Split on step markers whether newline-separated or inline-concatenated.
-                      // Lookahead keeps the split clean; (?<![0-9-]) avoids splitting "2-3 minutes".
                       steps = cleaned
                         .split(/\n+\s*(?:Step\s*)?\d+\s*[:.]\s*/i)
-                        .flatMap(chunk =>
-                          // If a chunk still contains inline step markers (e.g. "week2: Rinse"),
-                          // split those too — but only when NOT preceded by digit or dash.
-                          chunk.split(/(?<![0-9\-])(?:Step\s*)?\d+\s*[:.]\s*/i)
-                        )
+                        .flatMap(chunk => chunk.split(/(?<![0-9\-])(?:Step\s*)?\d+\s*[:.]\s*/i))
                         .map(s => s.replace(/^(?:Step\s*)?\d+\s*[:.]\s*/i, "").replace(/\.$/, "").trim())
                         .filter(s => s.length > 5);
                     } else {
-                      // No step markers — split on newlines first, then sentences
                       const byLine = cleaned.split(/\n+/).map(s => s.trim()).filter(s => s.length > 10);
-                      steps = byLine.length > 1 ? byLine : cleaned.split(/\.\s+/).map(s => s.trim()).filter(s => s.length > 10);
+                      if (byLine.length > 1) {
+                        steps = byLine;
+                      } else {
+                        // Kit products: split on "ProductName: instruction" pattern
+                        const byLabel = cleaned
+                          .split(/(?<=[a-z\)])\s+(?=[A-Z][^:]{2,30}:)/)
+                          .map(s => s.trim())
+                          .filter(s => s.length > 5);
+                        steps = byLabel.length > 1 ? byLabel : cleaned.split(/\.\s+/).map(s => s.trim()).filter(s => s.length > 10);
+                      }
                     }
 
-                    // Dedupe near-identical steps
+                    // Merge continuation lines — any line not starting with uppercase is a fragment
+                    const mergedSteps: string[] = [];
+                    for (const s of steps) {
+                      if (mergedSteps.length > 0 && !/^[A-Z]/.test(s.trim())) {
+                        mergedSteps[mergedSteps.length - 1] += " " + s;
+                      } else {
+                        mergedSteps.push(s);
+                      }
+                    }
+                    steps = mergedSteps;
+
                     const norm = (t: string) => t.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
                     const deduped = steps.reduce<string[]>((kept, s) => {
                       const dominated = kept.some(k => {
@@ -1102,16 +1118,25 @@ function NewProductPDP({
                       return kept;
                     }, []);
 
-                    return deduped.map((step, i) => (
-                      <li key={i} className="flex items-start gap-4 bg-[#f7fafa] rounded-2xl px-4 py-3.5 border border-[#e8f0f0]">
-                        <span className="w-8 h-8 rounded-full bg-[#004f54] text-white text-[13px] font-700 flex items-center justify-center shrink-0">
-                          {i + 1}
-                        </span>
-                        <p className="text-[13.5px] font-500 text-[#1a2e2e] leading-relaxed pt-1">{step}</p>
-                      </li>
-                    ));
+                    return deduped.map((step, i) => {
+                      const colonIdx = step.indexOf(":");
+                      const hasLabel = colonIdx > 0 && colonIdx < 40;
+                      const label = hasLabel ? step.slice(0, colonIdx).trim() : "";
+                      const body  = hasLabel ? step.slice(colonIdx + 1).trim() : step;
+                      return (
+                        <div key={i} className={`flex items-start gap-3.5 py-4 ${i < deduped.length - 1 ? "border-b border-[#eff4f4]" : ""}`}>
+                          <div className="shrink-0 w-8 h-8 rounded-full bg-[#004f54]/8 flex items-center justify-center mt-0.5">
+                            <span className="text-[13px] font-bold text-[#004f54]">{i + 1}</span>
+                          </div>
+                          <div className="flex-1 min-w-0 pt-0.5">
+                            {label && <p className="text-[13.5px] font-bold text-[#1a2e2e] leading-snug mb-1">{label}</p>}
+                            <p className={`leading-relaxed ${label ? "text-[12.5px] text-[#6b7280]" : "text-[13.5px] text-[#1a2e2e]"}`}>{body}</p>
+                          </div>
+                        </div>
+                      );
+                    });
                   })()}
-                </ol>
+                </div>
               )}
             </div>
           </div>
@@ -1120,7 +1145,7 @@ function NewProductPDP({
         {/* ── Safe & Effective badges grid ── */}
         {enriched?.badges && enriched.badges.length > 0 && (
           <div className="mt-6 px-5">
-            <h2 className="text-lg font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] mb-3">🛡️ Safe &amp; Effective</h2>
+            <h2 className="text-xl font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] mb-3">🛡️ Safe &amp; Effective</h2>
             <div className="grid grid-cols-3 gap-3">
               {enriched.badges.map((badge, i) => (
                 <div key={i} className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-surface-container-lowest border border-outline-variant/8 text-center">
@@ -1136,7 +1161,7 @@ function NewProductPDP({
         {/* ── Key ingredients ── */}
         {enriched?.ingredients && enriched.ingredients.length > 0 && (
           <div className="mt-8 bg-surface-container-lowest py-6">
-            <h2 className="text-lg font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] px-5 mb-4">
+            <h2 className="text-xl font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] px-5 mb-4">
               🌿 Key Ingredients
             </h2>
             <div className="px-5 space-y-2">
@@ -1146,25 +1171,41 @@ function NewProductPDP({
                 const isOpen = expandedIngredient === i;
                 return (
                 <div key={i} className="rounded-2xl bg-surface border border-outline-variant/10 overflow-hidden">
-                  <button
-                    onClick={() => setExpandedIngredient(isOpen ? null : i)}
-                    className="w-full flex items-center gap-3.5 px-4 py-3.5 cursor-pointer text-left"
-                  >
-                    <div className={`shrink-0 w-12 h-12 rounded-xl ${bg} flex items-center justify-center`}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={ing.icon} alt={ing.name} className="w-9 h-9 object-contain" />
-                    </div>
-                    <div className="flex-1 min-w-0">
+                  {(ing.shortDesc || ing.longDesc) ? (
+                    <button
+                      onClick={() => setExpandedIngredient(isOpen ? null : i)}
+                      className="w-full flex items-center gap-3.5 px-4 py-3.5 cursor-pointer text-left"
+                    >
+                      <div className={`shrink-0 w-12 h-12 rounded-xl ${bg} flex items-center justify-center overflow-hidden`}>
+                        {ing.icon
+                          ? /* eslint-disable-next-line @next/next/no-img-element */
+                            <img src={ing.icon} alt={ing.name} className="w-9 h-9 object-contain" />
+                          : <span className="text-2xl">🌿</span>
+                        }
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-on-surface leading-snug">{ing.name}</p>
+                        <p className="text-[10px] text-on-surface-variant/45 mt-0.5">
+                          {isOpen ? "Tap to collapse" : "Tap to learn more"}
+                        </p>
+                      </div>
+                      {isOpen
+                        ? <ChevronUp className="w-4 h-4 text-on-surface-variant/40 shrink-0" />
+                        : <ChevronDown className="w-4 h-4 text-on-surface-variant/40 shrink-0" />
+                      }
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-3.5 px-4 py-3.5">
+                      <div className={`shrink-0 w-12 h-12 rounded-xl ${bg} flex items-center justify-center overflow-hidden`}>
+                        {ing.icon
+                          ? /* eslint-disable-next-line @next/next/no-img-element */
+                            <img src={ing.icon} alt={ing.name} className="w-9 h-9 object-contain" />
+                          : <span className="text-2xl">🌿</span>
+                        }
+                      </div>
                       <p className="text-sm font-bold text-on-surface leading-snug">{ing.name}</p>
-                      <p className="text-[10px] text-on-surface-variant/45 mt-0.5">
-                        {isOpen ? "Tap to collapse" : "Tap to learn more"}
-                      </p>
                     </div>
-                    {isOpen
-                      ? <ChevronUp className="w-4 h-4 text-on-surface-variant/40 shrink-0" />
-                      : <ChevronDown className="w-4 h-4 text-on-surface-variant/40 shrink-0" />
-                    }
-                  </button>
+                  )}
                   {isOpen && (ing.shortDesc || ing.longDesc) && (
                     <div className="px-4 pb-4">
                       <div className="h-px bg-outline-variant/10 mb-3" />
@@ -1185,46 +1226,42 @@ function NewProductPDP({
           </div>
         )}
 
-        {/* ── What to expect / Key ingredients (timeline) ── */}
-        {enriched?.timeline && enriched.timeline.length > 0 && (() => {
-          const isIngredientList = enriched.timeline.every(s => !s.period);
-          return (
-            <div className="mt-8 bg-surface-container-lowest py-6">
-              <h2 className="text-lg font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] px-5 mb-5">
-                {isIngredientList ? "🧪 Key ingredients" : "📅 What to expect"}
-              </h2>
-              <div className="px-5 space-y-0">
-                {enriched.timeline.map((step, i) => (
-                  <div key={i} className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center shrink-0 z-10">
-                        <span className="text-xs font-bold text-white">{i + 1}</span>
+        {/* ── What to expect (timeline only — week/month progression) ── */}
+        {enriched?.timeline && enriched.timeline.length > 0 && (
+          <div className="mt-8 bg-surface-container-lowest py-6">
+            <h2 className="text-xl font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] px-5 mb-4">
+              📅 What to expect
+            </h2>
+            <div className="flex gap-3 px-5 overflow-x-auto scrollbar-hide pb-1">
+              {enriched.timeline.map((step, i) => {
+                const heading = step.label ?? step.title ?? step.period ?? "";
+                const imgSrc  = step.icon  ?? step.image ?? "";
+                return (
+                  <div key={i} className="shrink-0 w-[200px] rounded-2xl bg-surface border border-outline-variant/10 overflow-hidden">
+                    {imgSrc ? (
+                      <div className="w-full aspect-video overflow-hidden bg-gray-50">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={imgSrc} alt={heading} className="w-full h-full object-cover" />
                       </div>
-                      {i < enriched.timeline.length - 1 && <div className="w-0.5 flex-1 bg-primary-container/20 my-1" />}
-                    </div>
-                    <div className={`flex-1 ${i < enriched.timeline.length - 1 ? "pb-6" : "pb-0"}`}>
-                      {step.period ? (
-                        <span className="inline-block text-[11px] font-bold text-primary-container bg-primary-container/10 px-2.5 py-1 rounded-full mb-1.5">{step.period.trim()}</span>
+                    ) : (
+                      <div className="w-full aspect-video bg-primary-container/10 flex items-center justify-center">
+                        <span className="text-3xl font-extrabold text-primary-container/40">{i + 1}</span>
+                      </div>
+                    )}
+                    <div className="p-3">
+                      {heading ? (
+                        <span className="inline-block text-[10px] font-bold text-primary-container bg-primary-container/10 px-2 py-0.5 rounded-full mb-1.5 leading-none">{heading}</span>
                       ) : null}
-                      {step.title.trim() && step.title.trim() !== step.period?.trim() && (
-                        <p className="text-sm font-semibold text-on-surface">{step.title.trim()}</p>
-                      )}
-                      {step.description?.trim() && (
-                        <p className="text-sm text-on-surface-variant mt-1 leading-relaxed">{
-                          (() => {
-                            const sentences = step.description.trim().match(/[^.!?]*(?:[.!?]+|$)/g)
-                              ?.map(s => s.trim()).filter(Boolean) ?? [];
-                            return sentences.slice(0, 2).join(' ').trim() || step.description.trim();
-                          })()
-                        }</p>
+                      {step.description?.trim() && !/^[-\s]+$/.test(step.description.trim()) && (
+                        <p className="text-[11px] text-on-surface-variant leading-relaxed">{step.description.trim()}</p>
                       )}
                     </div>
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
-          );
-        })()}
+          </div>
+        )}
 
 
         {/* ── Complete your routine ── */}
@@ -1379,7 +1416,7 @@ function NewProductPDP({
         {/* ── Reviews ── */}
         {enriched?.reviews && enriched.reviews.length > 0 && (
           <div className="mt-8 bg-surface-container-lowest py-6">
-            <h2 className="text-lg font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] px-5 mb-4">⭐ What customers say</h2>
+            <h2 className="text-xl font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] px-5 mb-4">⭐ What customers say</h2>
             <div className="px-5 space-y-3">
               {enriched.reviews.map((review, i) => (
                 <div key={i} className="p-4 bg-surface rounded-2xl border border-outline-variant/8">
@@ -1423,7 +1460,7 @@ function NewProductPDP({
         {/* ── FAQs ── */}
         {enriched?.faqs && enriched.faqs.length > 0 && (
           <div className="mt-8 px-5">
-            <h2 className="text-lg font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] mb-4">💬 Got Questions?</h2>
+            <h2 className="text-xl font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] mb-4">💬 Got Questions?</h2>
             <div className="space-y-2">
               {enriched.faqs.map((faq, i) => (
                 <div key={i} className="rounded-2xl border border-outline-variant/10 overflow-hidden bg-surface-container-lowest">
@@ -1461,16 +1498,17 @@ function NewProductPDP({
 
         {/* ── Additional information ── */}
         {enriched?.additionalInfo && enriched.additionalInfo.length > 0 && (
-          <div className="mt-8 px-5">
-            <h2 className="text-base font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] mb-3">📋 Additional Information</h2>
-            <div className="rounded-2xl border border-outline-variant/10 overflow-hidden bg-surface-container-lowest divide-y divide-outline-variant/8">
-              {enriched.additionalInfo.map((row, i) => (
-                <div key={i} className="flex items-baseline gap-3 px-4 py-3">
-                  <span className="text-[11px] font-semibold text-on-surface-variant/55 uppercase tracking-wide shrink-0 w-28 leading-relaxed">{row.title}</span>
-                  <span className="text-xs text-on-surface leading-relaxed flex-1">{row.content}</span>
-                </div>
-              ))}
-            </div>
+          <div className="mt-6 px-5">
+            <ExpandableSection title="📋 Additional Information">
+              <div className="rounded-2xl border border-outline-variant/10 overflow-hidden bg-surface-container-lowest divide-y divide-outline-variant/8">
+                {enriched.additionalInfo.map((row, i) => (
+                  <div key={i} className="flex items-start gap-3 px-4 py-3">
+                    <span className="text-[11px] font-semibold text-on-surface-variant/55 uppercase tracking-wide shrink-0 w-28 leading-relaxed pt-0.5">{row.title}</span>
+                    <span className="text-xs text-on-surface leading-relaxed flex-1">{row.content}</span>
+                  </div>
+                ))}
+              </div>
+            </ExpandableSection>
           </div>
         )}
 

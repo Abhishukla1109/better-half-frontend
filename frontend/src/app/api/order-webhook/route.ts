@@ -106,26 +106,34 @@ async function getProductInfo(productIds: number[], adminToken: string): Promise
   return map;
 }
 
-// Fix 7: Check if this order was already processed by reading the metafield we write at the end
-async function isAlreadyProcessed(orderId: number, adminToken: string): Promise<boolean> {
+// Idempotency: check AND set a processing lock in one step to prevent race conditions.
+// We write a "processing" marker immediately — before calling Mosaic — so any concurrent
+// retry sees it and exits. The marker is overwritten with real data on success.
+async function acquireProcessingLock(orderId: number, adminToken: string): Promise<boolean> {
+  const gid = `gid://shopify/Order/${orderId}`;
   try {
-    const gid = `gid://shopify/Order/${orderId}`;
-    const res = await fetch(`https://${SHOP}/admin/api/2024-01/graphql.json`, {
+    // First check if already fully processed or locked
+    const checkRes = await fetch(`https://${SHOP}/admin/api/2024-01/graphql.json`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
       body: JSON.stringify({
-        query: `
-          query($id: ID!) {
-            order(id: $id) {
-              metafield(namespace: "custom", key: "mosaic_orders") { value }
-            }
-          }
-        `,
+        query: `query($id: ID!) { order(id: $id) { metafield(namespace: "custom", key: "mosaic_orders") { value } } }`,
         variables: { id: gid },
       }),
     });
-    const data = await res.json() as { data?: { order?: { metafield?: { value: string } | null } } };
-    return !!data?.data?.order?.metafield?.value;
+    const checkData = await checkRes.json() as { data?: { order?: { metafield?: { value: string } | null } } };
+    if (checkData?.data?.order?.metafield?.value) return false; // already processed or locked
+
+    // Write lock marker immediately
+    await fetch(`https://${SHOP}/admin/api/2024-01/graphql.json`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
+      body: JSON.stringify({
+        query: `mutation($mf: [MetafieldsSetInput!]!) { metafieldsSet(metafields: $mf) { metafields { key } userErrors { message } } }`,
+        variables: { mf: [{ ownerId: gid, namespace: "custom", key: "mosaic_orders", type: "json", value: JSON.stringify({ processing: true }) }] },
+      }),
+    });
+    return true; // lock acquired
   } catch {
     return false;
   }
@@ -365,10 +373,10 @@ export async function POST(req: NextRequest) {
     const adminToken = await getAdminToken();
     if (!adminToken) throw new Error("Could not get Shopify admin token");
 
-    // Fix 7: Idempotency — if we already wrote mosaic_orders metafield, this order is done
-    const alreadyDone = await isAlreadyProcessed(order.id, adminToken);
-    if (alreadyDone) {
-      console.log(`[order-webhook] Order ${order.id} already processed — skipping`);
+    // Acquire processing lock before calling Mosaic — prevents duplicate orders on Shopify webhook retries
+    const locked = await acquireProcessingLock(order.id, adminToken);
+    if (!locked) {
+      console.log(`[order-webhook] Order ${order.id} already processing or processed — skipping`);
       return NextResponse.json({ ok: true, skipped: "already_processed" });
     }
 

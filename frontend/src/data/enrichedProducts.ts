@@ -9,10 +9,12 @@ export type EnrichedIngredient = {
 };
 
 export type EnrichedTimelineStep = {
-  period: string;
-  title: string;
+  period?: string;
+  title?: string;
+  label?: string;
   description: string;
-  image: string;
+  image?: string;
+  icon?: string;
 };
 
 export type EnrichedFaq = {
