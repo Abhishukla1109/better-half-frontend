@@ -9,7 +9,7 @@ const STATS = [
 
 export default function TrustStrip() {
   return (
-    <div className="bg-[#004f54] py-4">
+    <div className="bg-brand py-4">
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex items-center justify-between gap-4 overflow-x-auto scrollbar-hide">
           {STATS.map(s => (
@@ -17,7 +17,7 @@ export default function TrustStrip() {
               <span className="text-xl">{s.icon}</span>
               <div>
                 <p className="text-white font-extrabold text-sm leading-none">{s.value}</p>
-                <p className="text-white/60 text-[11px] leading-none mt-0.5">{s.label}</p>
+                <p className="text-white/60 text-label leading-none mt-0.5">{s.label}</p>
               </div>
             </div>
           ))}

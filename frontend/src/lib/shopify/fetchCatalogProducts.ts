@@ -136,6 +136,10 @@ function getLJCategory(handle: string): string {
   return "healthysnacks";
 }
 
+// Campaign/deal/influencer duplicate handles — same product under a different URL for marketing.
+// These should not appear in catalog browse/search; they're only used for landing pages.
+const CAMPAIGN_RE = /-(deal|xp\d*|x\d+|free|b2g|new|offer|sale|promo|influencer)(-|$)/i;
+
 export async function fetchCatalogProducts(): Promise<Product[]> {
   const token = await getAdminToken();
   const results: Product[] = [];
@@ -144,6 +148,7 @@ export async function fetchCatalogProducts(): Promise<Product[]> {
   do {
     const page: CatalogPage = await adminGql<CatalogPage>(token, CATALOG_QUERY, { first: 250, after: cursor });
     for (const p of page.products.nodes) {
+      if (CAMPAIGN_RE.test(p.handle)) continue;
       const nodes = p.metafields.nodes;
       const rawConcern = splitCSV(getMeta(nodes, "bh_concern"), true);
       const concern    = CONCERN_OVERRIDES[p.handle] ?? rawConcern;

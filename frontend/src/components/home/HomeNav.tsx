@@ -45,19 +45,19 @@ export default function HomeNav() {
       {/* Main nav row */}
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center gap-4">
         {/* Logo */}
-        <Link href="/" className="flex-shrink-0 text-xl font-extrabold text-[#004f54] tracking-tight mr-2">
+        <Link href="/" className="flex-shrink-0 text-xl font-extrabold text-brand tracking-tight mr-2">
           BetterHalf
         </Link>
 
         {/* Search bar — desktop */}
         <div className="hidden md:flex flex-1 max-w-xl relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af]" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             placeholder="Search products, concerns, brands…"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-[#f7fafa] border border-[#e2e8e8] rounded-xl text-sm focus:outline-none focus:border-[#004f54] focus:bg-white transition-all"
+            className="w-full pl-9 pr-4 py-2.5 bg-surface-teal border border-border-light rounded-xl text-sm focus:outline-none focus:border-brand focus:bg-white transition-all"
           />
         </div>
 
@@ -66,7 +66,7 @@ export default function HomeNav() {
           {/* Mobile search toggle */}
           <button
             onClick={() => setSearchOpen(s => !s)}
-            className="md:hidden w-10 h-10 flex items-center justify-center rounded-xl hover:bg-[#f7fafa] text-[#374151] transition-colors"
+            className="md:hidden w-10 h-10 flex items-center justify-center rounded-xl hover:bg-surface-teal text-gray-700 transition-colors"
             aria-label="Search"
           >
             <Search size={20} />
@@ -75,7 +75,7 @@ export default function HomeNav() {
           {isLoggedIn ? (
             <Link
               href="/protocol"
-              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-[#004f54] hover:bg-[#f7fafa] transition-colors"
+              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-brand hover:bg-surface-teal transition-colors"
             >
               <User size={16} />
               <span>My protocol</span>
@@ -83,7 +83,7 @@ export default function HomeNav() {
           ) : (
             <Link
               href="/auth"
-              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-[#374151] hover:bg-[#f7fafa] transition-colors"
+              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-gray-700 hover:bg-surface-teal transition-colors"
             >
               <User size={16} />
               <span>Sign in</span>
@@ -94,7 +94,7 @@ export default function HomeNav() {
 
           <button
             onClick={() => setMobileOpen(o => !o)}
-            className="md:hidden w-10 h-10 flex items-center justify-center rounded-xl hover:bg-[#f7fafa] text-[#374151]"
+            className="md:hidden w-10 h-10 flex items-center justify-center rounded-xl hover:bg-surface-teal text-gray-700"
             aria-label="Menu"
           >
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
@@ -106,27 +106,27 @@ export default function HomeNav() {
       {searchOpen && (
         <div className="md:hidden px-4 pb-3">
           <div className="relative">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af]" />
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               autoFocus
               type="text"
               placeholder="Search products…"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 bg-[#f7fafa] border border-[#e2e8e8] rounded-xl text-sm focus:outline-none focus:border-[#004f54]"
+              className="w-full pl-9 pr-4 py-2.5 bg-surface-teal border border-border-light rounded-xl text-sm focus:outline-none focus:border-brand"
             />
           </div>
         </div>
       )}
 
       {/* Secondary nav links — desktop */}
-      <nav className="hidden md:flex border-t border-[#f3f4f6]">
+      <nav className="hidden md:flex border-t border-gray-100">
         <div className="max-w-6xl mx-auto px-4 w-full flex items-center gap-0">
           {NAV_LINKS.map(link => (
             <Link
               key={link.label}
               href={link.href}
-              className="px-4 py-2.5 text-sm font-medium text-[#374151] hover:text-[#004f54] hover:bg-[#f7fafa] transition-colors whitespace-nowrap first:pl-0"
+              className="px-4 py-2.5 text-sm font-medium text-gray-700 hover:text-brand hover:bg-surface-teal transition-colors whitespace-nowrap first:pl-0"
             >
               {link.label}
             </Link>
@@ -136,13 +136,13 @@ export default function HomeNav() {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <nav className="md:hidden border-t border-[#f3f4f6] bg-white">
+        <nav className="md:hidden border-t border-gray-100 bg-white">
           {NAV_LINKS.map(link => (
             <Link
               key={link.label}
               href={link.href}
               onClick={() => setMobileOpen(false)}
-              className="block px-5 py-3.5 text-sm font-medium text-[#374151] hover:bg-[#f7fafa] border-b border-[#f3f4f6] last:border-0"
+              className="block px-5 py-3.5 text-sm font-medium text-gray-700 hover:bg-surface-teal border-b border-gray-100 last:border-0"
             >
               {link.label}
             </Link>
@@ -151,7 +151,7 @@ export default function HomeNav() {
             <Link
               href="/protocol"
               onClick={() => setMobileOpen(false)}
-              className="block px-5 py-4 text-sm font-semibold text-[#004f54]"
+              className="block px-5 py-4 text-sm font-semibold text-brand"
             >
               👤 My protocol
             </Link>
@@ -159,7 +159,7 @@ export default function HomeNav() {
             <Link
               href="/auth"
               onClick={() => setMobileOpen(false)}
-              className="block px-5 py-4 text-sm font-semibold text-[#004f54]"
+              className="block px-5 py-4 text-sm font-semibold text-brand"
             >
               👤 Sign in / Register
             </Link>

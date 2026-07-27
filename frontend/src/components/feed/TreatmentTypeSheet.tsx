@@ -75,7 +75,7 @@ export default function TreatmentTypeSheet({
             <p className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
               Choose your {type.label}
             </p>
-            <p className="text-[11px] text-on-surface-variant/50">{type.timing}</p>
+            <p className="text-label text-on-surface-variant/50">{type.timing}</p>
           </div>
           <button
             onClick={onClose}
@@ -113,10 +113,10 @@ export default function TreatmentTypeSheet({
 
                     {/* Details */}
                     <div className="flex-1 min-w-0">
-                      <p className={`text-[13px] font-semibold leading-tight ${isSelected ? "text-primary-container" : "text-on-surface"}`}>
+                      <p className={`text-body font-semibold leading-tight ${isSelected ? "text-primary-container" : "text-on-surface"}`}>
                         {p.name}
                       </p>
-                      <p className="text-[10px] text-on-surface-variant/60 mt-0.5 leading-snug">
+                      <p className="text-icon text-on-surface-variant/60 mt-0.5 leading-snug">
                         {p.usp}
                       </p>
 
@@ -127,10 +127,10 @@ export default function TreatmentTypeSheet({
                         </span>
                         {p.mrp > p.price && (
                           <>
-                            <span className="text-[10px] text-on-surface-variant/35 line-through">
+                            <span className="text-icon text-on-surface-variant/35 line-through">
                               &#8377;{p.mrp}
                             </span>
-                            <span className="text-[9px] font-semibold text-primary-container">
+                            <span className="text-2xs font-semibold text-primary-container">
                               {discount}% off
                             </span>
                           </>
@@ -142,7 +142,7 @@ export default function TreatmentTypeSheet({
                     <Link
                       href={`/product/${p.slug}?from=treatment&typeId=${type.id}`}
                       onClick={(e) => e.stopPropagation()}
-                      className="text-[10px] font-semibold text-primary-container/70 hover:text-primary-container mt-1 shrink-0 underline underline-offset-2"
+                      className="text-icon font-semibold text-primary-container/70 hover:text-primary-container mt-1 shrink-0 underline underline-offset-2"
                     >
                       Know more
                     </Link>

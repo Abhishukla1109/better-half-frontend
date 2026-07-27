@@ -89,20 +89,20 @@ export default function BrandHeroBanners({ onBrandTap }: Props) {
         {/* Left: text content */}
         <div className="relative px-5 pt-4 pb-4" style={{ maxWidth: "58%" }}>
           <p
-            className="text-[10px] font-bold uppercase tracking-widest mb-1.5"
+            className="text-icon font-bold uppercase tracking-widest mb-1.5"
             style={{ color: slide.accent }}
           >
             {slide.icon} {slide.brand}
           </p>
-          <p className="text-[16px] font-bold text-white leading-snug mb-1">
+          <p className="text-base font-bold text-white leading-snug mb-1">
             {slide.tagline}
           </p>
-          <p className="text-[11px] mb-3 leading-relaxed" style={{ color: "rgba(255,255,255,0.5)" }}>
+          <p className="text-label mb-3 leading-relaxed" style={{ color: "rgba(255,255,255,0.5)" }}>
             {slide.sub}
           </p>
           <button
             onClick={handleTap}
-            className="px-4 py-1.5 rounded-full text-[11px] font-bold cursor-pointer transition-opacity hover:opacity-85 active:opacity-70"
+            className="px-4 py-1.5 rounded-full text-label font-bold cursor-pointer transition-opacity hover:opacity-85 active:opacity-70"
             style={{ background: slide.accent, color: "#000" }}
           >
             Shop now →

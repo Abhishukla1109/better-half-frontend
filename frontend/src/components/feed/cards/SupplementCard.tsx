@@ -35,7 +35,7 @@ export default function SupplementCard({ supplements, dayCount, onAction, delay 
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="flex items-center justify-between mb-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.5px] text-on-surface-variant/50">
+        <p className="text-label font-semibold uppercase tracking-[0.5px] text-on-surface-variant/50">
           Diet &middot; morning protocol
         </p>
         <span className="text-xs text-primary-container font-semibold">Day {dayCount}</span>
@@ -94,7 +94,7 @@ export default function SupplementCard({ supplements, dayCount, onAction, delay 
                     }`}
                   >
                     {state === "taken" ? "Taken" : state === "ran_out" ? "Ran out" : "Missed"}
-                    <span className="text-[10px] font-normal opacity-50">Edit</span>
+                    <span className="text-icon font-normal opacity-50">Edit</span>
                   </button>
                 )}
               </div>
@@ -117,7 +117,7 @@ export default function SupplementCard({ supplements, dayCount, onAction, delay 
           <p className="text-xs text-on-surface-variant/50">~{daysLeft} days left</p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-[11px] text-on-surface-variant/40 shrink-0">Plenty</span>
+          <span className="text-label text-on-surface-variant/40 shrink-0">Plenty</span>
           <input
             type="range"
             min={0}
@@ -132,7 +132,7 @@ export default function SupplementCard({ supplements, dayCount, onAction, delay 
             }}
             aria-label="Supply level"
           />
-          <span className="text-[11px] text-on-surface-variant/40 shrink-0">Almost out</span>
+          <span className="text-label text-on-surface-variant/40 shrink-0">Almost out</span>
         </div>
 
         {/* Reorder CTA when low */}

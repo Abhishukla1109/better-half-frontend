@@ -29,9 +29,9 @@ const BRANDS = [
 
 export default function BrandsRow() {
   return (
-    <section className="py-10 bg-[#f7fafa]">
+    <section className="py-10 bg-surface-teal">
       <div className="max-w-6xl mx-auto px-4">
-        <h2 className="text-xl md:text-2xl font-extrabold text-[#1a2e2e] mb-6">Our Brands</h2>
+        <h2 className="text-xl md:text-2xl font-extrabold text-on-dark mb-6">Our Brands</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {BRANDS.map(b => (
             <Link

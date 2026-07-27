@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { Flame, CheckCircle2, XCircle, ChevronLeft, ChevronRight, ChevronDown, ShoppingBag, X } from "lucide-react";
+import { motion } from "framer-motion";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { calculateProtocolMatch } from "@/lib/protocolEngine";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
@@ -777,18 +778,18 @@ export default function InsightsPage() {
           <div className="w-20 h-20 rounded-3xl mx-auto mb-6 flex items-center justify-center" style={{ background: "linear-gradient(135deg, #f0f4ff, #e9e4ff)" }}>
             <span className="text-[36px]">📊</span>
           </div>
-          <h2 className="text-[24px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-tight mb-2">
+          <h2 className="text-title font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-tight mb-2">
             No insights yet
           </h2>
-          <p className="text-[14px] text-on-surface-variant/60 leading-relaxed mb-8">
+          <p className="text-lead text-on-surface-variant/60 leading-relaxed mb-8">
             Complete your health protocol to unlock your personal dashboard — streak tracking, vitality score, supplement insights and more.
           </p>
           <a
             href="/protocol"
-            className="inline-flex items-center justify-between w-full py-4 px-5 rounded-2xl bg-primary-container text-white font-bold text-sm hover:bg-primary transition-colors duration-200"
+            className="inline-flex items-center justify-between w-full py-4 px-5 rounded-2xl bg-primary-container text-white font-bold text-lead hover:bg-primary transition-colors duration-200"
           >
             <span>Set up my protocol</span>
-            <span className="text-lg leading-none">→</span>
+            <span className="text-title-sm leading-none">→</span>
           </a>
         </div>
       </main>
@@ -801,32 +802,31 @@ export default function InsightsPage() {
 
         {/* ── Header ── */}
         <div className="mb-5">
-          <p className="text-[11px] font-bold text-primary-container uppercase tracking-widest mb-1">Health Tracking</p>
-          <h1 className="text-[28px] lg:text-[34px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-tight tracking-tight">
+          <p className="text-label font-bold text-primary-container uppercase tracking-widest mb-1">Health Tracking</p>
+          <h1 className="text-display lg:text-[34px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-tight tracking-tight">
             {possessive} Insights
           </h1>
         </div>
 
         {/* ── Reward banner — only when earned ── */}
         {rewardState && (
-          <div className="mb-5 rounded-3xl overflow-hidden" style={{ background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)" }}>
+          <div className="mb-5 rounded-3xl overflow-hidden gradient-brand-pill">
             <div className="px-5 py-4">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest mb-1">30-Day Reward Unlocked</p>
-                  <p className="text-[22px] font-extrabold text-white font-[family-name:var(--font-manrope)] leading-none">₹100 Cashback</p>
-                  <p className="text-[12px] text-white/55 mt-1">Expires in {rewardState.daysLeft} day{rewardState.daysLeft !== 1 ? "s" : ""} · apply at checkout</p>
+                  <p className="text-icon font-bold text-white/50 uppercase tracking-widest mb-1">30-Day Reward Unlocked</p>
+                  <p className="text-title font-extrabold text-white font-[family-name:var(--font-manrope)] leading-none">₹100 Cashback</p>
+                  <p className="text-label text-white/55 mt-1">Expires in {rewardState.daysLeft} day{rewardState.daysLeft !== 1 ? "s" : ""} · apply at checkout</p>
                 </div>
                 <span className="text-[38px] leading-none">🎁</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="flex-1 bg-white/10 border border-white/20 rounded-xl px-3 py-2.5">
-                  <p className="text-[14px] font-extrabold text-white tracking-[0.15em] font-mono">BH30STREAK</p>
+                  <p className="text-lead font-extrabold text-white tracking-[0.15em] font-mono">BH30STREAK</p>
                 </div>
                 <button
                   onClick={handleCopyCode}
-                  className="px-4 py-2.5 rounded-xl bg-white text-[12px] font-bold transition-all"
-                  style={{ color: "#004034" }}
+                  className="px-4 py-2.5 rounded-xl bg-white text-label font-bold transition-all text-primary"
                 >
                   {copied ? "Copied!" : "Copy"}
                 </button>
@@ -850,20 +850,20 @@ export default function InsightsPage() {
               <div className="w-8 h-8 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
                 <Flame className="w-4 h-4 text-orange-500" strokeWidth={1.5} />
               </div>
-              <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider">Streak</span>
+              <span className="text-icon font-bold text-orange-400 uppercase tracking-wider">Streak</span>
             </div>
             <div>
               <p className="text-[42px] lg:text-[56px] font-extrabold text-on-surface leading-none font-[family-name:var(--font-manrope)]">{streak}</p>
-              <p className="text-[11px] lg:text-[13px] text-on-surface-variant/50 mt-1">days in a row</p>
+              <p className="text-label lg:text-body text-on-surface-variant/50 mt-1">days in a row</p>
             </div>
             <div className="mt-auto space-y-1.5">
               {visitCount > 0 && (
-                <p className="text-[10px] font-semibold text-primary-container bg-primary-container/8 px-2.5 py-1 rounded-lg">
+                <p className="text-icon font-semibold text-primary-container bg-primary-container/8 px-2.5 py-1 rounded-lg">
                   Day {visitCount} on protocol
                 </p>
               )}
               {streak >= 7 && (
-                <p className="text-[10px] font-bold text-orange-500 bg-orange-50 px-2.5 py-1 rounded-lg">🔥 On a roll</p>
+                <p className="text-icon font-bold text-orange-500 bg-orange-50 px-2.5 py-1 rounded-lg">🔥 On a roll</p>
               )}
             </div>
           </div>
@@ -875,8 +875,8 @@ export default function InsightsPage() {
             style={{ background: "linear-gradient(145deg, #f8f5ff, #fff)" }}
           >
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Vitality</span>
-              <span className="text-[9px] font-semibold text-purple-200 group-hover:text-purple-400 transition-colors">Details →</span>
+              <span className="text-icon font-bold text-purple-400 uppercase tracking-wider">Vitality</span>
+              <span className="text-2xs font-semibold text-purple-200 group-hover:text-purple-400 transition-colors">Details →</span>
             </div>
             <div className="flex items-center justify-center flex-1">
               <svg className="lg:scale-125 origin-center" width="88" height="88" viewBox="0 0 90 90">
@@ -896,7 +896,7 @@ export default function InsightsPage() {
                 <text x="45" y="54" textAnchor="middle" fill="#9ca3af" fontSize="8" fontWeight="600">/ 100</text>
               </svg>
               {vitalityDelta !== null && (
-                <div className={`ml-2 flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${vitalityDelta >= 0 ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-600"}`}>
+                <div className={`ml-2 flex items-center gap-0.5 px-2 py-0.5 rounded-full text-icon font-bold ${vitalityDelta >= 0 ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-600"}`}>
                   <span>{vitalityDelta >= 0 ? "↑" : "↓"}</span>
                   <span>{Math.abs(vitalityDelta)} vs last week</span>
                 </div>
@@ -907,8 +907,8 @@ export default function InsightsPage() {
                 {concernScores.slice(0, 2).map(c => (
                   <div key={c.key}>
                     <div className="flex justify-between mb-0.5">
-                      <span className="text-[9px] font-semibold text-on-surface-variant/55">{c.label}</span>
-                      <span className="text-[9px] font-bold text-on-surface-variant/55">{c.score}</span>
+                      <span className="text-2xs font-semibold text-on-surface-variant/55">{c.label}</span>
+                      <span className="text-2xs font-bold text-on-surface-variant/55">{c.score}</span>
                     </div>
                     <div className="h-1 bg-purple-50 rounded-full overflow-hidden">
                       <div className={`h-full rounded-full ${CONCERN_BAR_COLOR[c.key] ?? "bg-primary-container"} transition-all duration-700`} style={{ width: `${c.score}%` }} />
@@ -922,7 +922,7 @@ export default function InsightsPage() {
 
         {/* ── Energy Bar ── */}
         <div className="rounded-3xl bg-white border border-outline-variant/10 p-4" style={{ background: "linear-gradient(145deg, #f0f4ff, #fff)" }}>
-          <p className="text-[13px] lg:text-[15px] font-bold text-on-surface mb-3">How&apos;s {possessiveLower} energy today?</p>
+          <p className="text-body lg:text-lead font-bold text-on-surface mb-3">How&apos;s {possessiveLower} energy today?</p>
           <div className="grid grid-cols-2 gap-2">
             {ENERGY_OPTIONS.map(opt => {
               const sel = energyLevel === opt.key;
@@ -934,20 +934,20 @@ export default function InsightsPage() {
                     sel ? opt.style : "bg-white border-outline-variant/15 text-on-surface-variant hover:bg-surface-container"
                   }`}
                 >
-                  <span className="text-[18px] leading-none">{opt.emoji}</span>
-                  <span className="text-[12px] font-semibold">{opt.label}</span>
+                  <span className="text-title-sm leading-none">{opt.emoji}</span>
+                  <span className="text-label font-semibold">{opt.label}</span>
                 </button>
               );
             })}
           </div>
           {energyMsg && (
-            <p className="text-[12px] text-on-surface-variant/65 mt-3 leading-snug px-0.5 animate-in fade-in slide-in-from-bottom-1 duration-300">
+            <p className="text-label text-on-surface-variant/65 mt-3 leading-snug px-0.5 animate-in fade-in slide-in-from-bottom-1 duration-300">
               {energyMsg}
             </p>
           )}
           {energyHistory.some(h => h.key) && (
             <div className="mt-3 pt-3 border-t border-outline-variant/8">
-              <p className="text-[10px] font-semibold text-on-surface-variant/40 uppercase tracking-wider mb-2.5">This week</p>
+              <p className="text-icon font-semibold text-on-surface-variant/40 uppercase tracking-wider mb-2.5">This week</p>
               <div className="grid grid-cols-7">
                 {energyHistory.map((h, i) => {
                   const isToday = h.date === today;
@@ -962,10 +962,10 @@ export default function InsightsPage() {
                           : { background: isToday ? "rgba(0,0,0,0.04)" : "transparent", boxShadow: isToday ? "0 0 0 1.5px rgba(0,0,0,0.1)" : "none" }}
                       >
                         {opt
-                          ? <span className="text-[13px] leading-none">{opt.emoji}</span>
+                          ? <span className="text-body leading-none">{opt.emoji}</span>
                           : <span className="w-1.5 h-1.5 rounded-full bg-gray-200 block" />}
                       </div>
-                      <span className={`text-[9px] font-bold ${isToday ? "text-primary-container" : "text-on-surface-variant/30"}`}>{h.dayLabel}</span>
+                      <span className={`text-2xs font-bold ${isToday ? "text-primary-container" : "text-on-surface-variant/30"}`}>{h.dayLabel}</span>
                     </div>
                   );
                 })}
@@ -974,10 +974,10 @@ export default function InsightsPage() {
           )}
           {energyDelta !== null && (
             <div className="mt-2 flex items-center gap-1.5">
-              <span className={`text-[11px] font-bold ${energyDelta >= 0 ? "text-emerald-600" : "text-rose-500"}`}>
+              <span className={`text-label font-bold ${energyDelta >= 0 ? "text-emerald-600" : "text-rose-500"}`}>
                 {energyDelta >= 0 ? "↑" : "↓"} {Math.abs(energyDelta)} pts
               </span>
-              <span className="text-[10px] text-on-surface-variant/40">vs last week</span>
+              <span className="text-icon text-on-surface-variant/40">vs last week</span>
             </div>
           )}
         </div>
@@ -987,7 +987,7 @@ export default function InsightsPage() {
           className={`rounded-3xl p-4 border ${ACTIVE_SECONDARY.border}`}
           style={{ background: ACTIVE_SECONDARY.bgGradient }}
         >
-          <p className="text-[13px] lg:text-[15px] font-bold text-on-surface mb-3">{ACTIVE_SECONDARY.question}</p>
+          <p className="text-body lg:text-lead font-bold text-on-surface mb-3">{ACTIVE_SECONDARY.question}</p>
           <div className="grid grid-cols-2 gap-2">
             {ACTIVE_SECONDARY.options.map(opt => {
               const sel = secondaryAnswer === opt.key;
@@ -1002,15 +1002,15 @@ export default function InsightsPage() {
                   }`}
                   style={sel ? { background: ACTIVE_SECONDARY.accentColor, borderColor: ACTIVE_SECONDARY.accentColor } : {}}
                 >
-                  <span className="text-[18px] leading-none">{opt.emoji}</span>
-                  <span className="text-[12px] font-semibold">{opt.label}</span>
+                  <span className="text-title-sm leading-none">{opt.emoji}</span>
+                  <span className="text-label font-semibold">{opt.label}</span>
                 </button>
               );
             })}
           </div>
           {secondaryHistory.some(h => h.key) && (
             <div className="mt-3 pt-3 border-t border-outline-variant/8">
-              <p className="text-[10px] font-semibold text-on-surface-variant/40 uppercase tracking-wider mb-2.5">This week</p>
+              <p className="text-icon font-semibold text-on-surface-variant/40 uppercase tracking-wider mb-2.5">This week</p>
               <div className="grid grid-cols-7">
                 {secondaryHistory.map((h, i) => {
                   const isToday = h.date === today;
@@ -1024,10 +1024,10 @@ export default function InsightsPage() {
                           : { background: isToday ? "rgba(0,0,0,0.04)" : "transparent", boxShadow: isToday ? "0 0 0 1.5px rgba(0,0,0,0.1)" : "none" }}
                       >
                         {opt
-                          ? <span className="text-[13px] leading-none">{opt.emoji}</span>
+                          ? <span className="text-body leading-none">{opt.emoji}</span>
                           : <span className="w-1.5 h-1.5 rounded-full bg-gray-200 block" />}
                       </div>
-                      <span className={`text-[9px] font-bold ${isToday ? "text-on-surface-variant/60" : "text-on-surface-variant/30"}`}>{h.dayLabel}</span>
+                      <span className={`text-2xs font-bold ${isToday ? "text-on-surface-variant/60" : "text-on-surface-variant/30"}`}>{h.dayLabel}</span>
                     </div>
                   );
                 })}
@@ -1037,7 +1037,7 @@ export default function InsightsPage() {
         </div>
 
         {/* Warm message */}
-        <p className="text-[13px] lg:text-[14px] text-on-surface-variant/60 leading-relaxed px-0.5">{vitalMsg}</p>
+        <p className="text-body text-on-surface-variant/60 leading-relaxed px-0.5">{vitalMsg}</p>
 
         </div>{/* end left column */}
 
@@ -1050,7 +1050,7 @@ export default function InsightsPage() {
             <button onClick={prevMonth} className="w-7 h-7 rounded-xl hover:bg-surface-container flex items-center justify-center transition-colors cursor-pointer">
               <ChevronLeft className="w-4 h-4 text-on-surface-variant/50" />
             </button>
-            <p className="text-[13px] lg:text-[15px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">{MONTH_NAMES[calMonth]} {calYear}</p>
+            <p className="text-body lg:text-lead font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">{MONTH_NAMES[calMonth]} {calYear}</p>
             <button onClick={nextMonth} className="w-7 h-7 rounded-xl hover:bg-surface-container flex items-center justify-center transition-colors cursor-pointer">
               <ChevronRight className="w-4 h-4 text-on-surface-variant/50" />
             </button>
@@ -1058,7 +1058,7 @@ export default function InsightsPage() {
           <div className="px-4 py-4">
             <div className="grid grid-cols-7 mb-2">
               {DAY_HEADERS.map((d, i) => (
-                <div key={i} className="text-center text-[10px] font-bold text-on-surface-variant/30 uppercase">{d}</div>
+                <div key={i} className="text-center text-icon font-bold text-on-surface-variant/30 uppercase">{d}</div>
               ))}
             </div>
             <div className="grid grid-cols-7 gap-y-1">
@@ -1070,7 +1070,7 @@ export default function InsightsPage() {
                 const isFuture = d > new Date();
                 return (
                   <div key={key} className="flex flex-col items-center gap-0.5 py-0.5">
-                    <span className={`text-[10px] font-semibold leading-none ${isToday ? "text-violet-600 font-extrabold" : "text-on-surface-variant/40"}`}>{d.getDate()}</span>
+                    <span className={`text-icon font-semibold leading-none ${isToday ? "text-violet-600 font-extrabold" : "text-on-surface-variant/40"}`}>{d.getDate()}</span>
                     <div className={`w-5 h-5 rounded-md transition-all ${
                       isFuture ? "opacity-0" :
                       val === true ? "bg-violet-400" :
@@ -1083,20 +1083,20 @@ export default function InsightsPage() {
               })}
             </div>
             <div className="flex items-center gap-4 mt-3">
-              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-violet-400" /><span className="text-[10px] text-on-surface-variant/40">Taken</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-rose-200" /><span className="text-[10px] text-on-surface-variant/40">Missed</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-gray-100" /><span className="text-[10px] text-on-surface-variant/40">No data</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-violet-400" /><span className="text-icon text-on-surface-variant/40">Taken</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-rose-200" /><span className="text-icon text-on-surface-variant/40">Missed</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-gray-100" /><span className="text-icon text-on-surface-variant/40">No data</span></div>
             </div>
             {adherence && adherence.total >= 3 && (
               <div className="mt-3.5 pt-3 border-t border-outline-variant/8">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[10px] font-semibold text-on-surface-variant/50">Consistency</span>
-                  <span className="text-[13px] font-extrabold font-[family-name:var(--font-manrope)]" style={{ color: adherence.pct >= 70 ? "#10b981" : adherence.pct >= 40 ? "#f59e0b" : "#f43f5e" }}>{adherence.pct}%</span>
+                  <span className="text-icon font-semibold text-on-surface-variant/50">Consistency</span>
+                  <span className="text-body font-extrabold font-[family-name:var(--font-manrope)]" style={{ color: adherence.pct >= 70 ? "#10b981" : adherence.pct >= 40 ? "#f59e0b" : "#f43f5e" }}>{adherence.pct}%</span>
                 </div>
                 <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <div className="h-full rounded-full transition-all duration-700" style={{ width: `${adherence.pct}%`, background: adherence.pct >= 70 ? "#10b981" : adherence.pct >= 40 ? "#f59e0b" : "#f43f5e" }} />
                 </div>
-                <p className="text-[10px] text-on-surface-variant/35 mt-1">{adherence.taken} of {adherence.total} days on protocol</p>
+                <p className="text-icon text-on-surface-variant/35 mt-1">{adherence.taken} of {adherence.total} days on protocol</p>
               </div>
             )}
           </div>
@@ -1106,7 +1106,7 @@ export default function InsightsPage() {
         <div className="rounded-3xl bg-white border border-outline-variant/10 px-5 py-4">
           {todayChecked === undefined ? (
             <>
-              <p className="text-[13px] font-semibold text-on-surface mb-3">
+              <p className="text-body font-semibold text-on-surface mb-3">
                 {!isOwnProfile
                   ? `Did ${activeMember?.name || "they"} take their supplements today?`
                   : "Did you take your supplements today?"}
@@ -1114,13 +1114,13 @@ export default function InsightsPage() {
               <div className="flex gap-3">
                 <button
                   onClick={() => handleCheckin(true)}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-[13px] font-bold hover:bg-emerald-100 transition-colors cursor-pointer"
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-body font-bold hover:bg-emerald-100 transition-colors cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4" strokeWidth={2} /> {!isOwnProfile ? "Yes, they did" : "Yes, I did"}
                 </button>
                 <button
                   onClick={() => handleCheckin(false)}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-gray-500 text-[13px] font-semibold hover:bg-gray-100 transition-colors cursor-pointer"
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-gray-500 text-body font-semibold hover:bg-gray-100 transition-colors cursor-pointer"
                 >
                   <XCircle className="w-4 h-4" strokeWidth={2} /> Missed today
                 </button>
@@ -1133,10 +1133,10 @@ export default function InsightsPage() {
                 : <XCircle className="w-5 h-5 text-gray-400 shrink-0" strokeWidth={2} />
               }
               <div>
-                <p className={`text-[13px] font-semibold ${todayChecked ? "text-emerald-700" : "text-gray-500"}`}>
+                <p className={`text-body font-semibold ${todayChecked ? "text-emerald-700" : "text-gray-500"}`}>
                   {todayChecked ? "Taken today — great work." : "Missed today. Back on track tomorrow."}
                 </p>
-                <button onClick={() => handleCheckin(!todayChecked)} className="text-[11px] text-on-surface-variant/40 hover:text-on-surface-variant transition-colors cursor-pointer mt-0.5">Undo</button>
+                <button onClick={() => handleCheckin(!todayChecked)} className="text-label text-on-surface-variant/40 hover:text-on-surface-variant transition-colors cursor-pointer mt-0.5">Undo</button>
               </div>
             </div>
           )}
@@ -1153,15 +1153,15 @@ export default function InsightsPage() {
           <div>
             <div className="flex items-baseline justify-between mb-3 px-0.5">
               <div>
-                <p className="text-[10px] font-bold text-on-surface-variant/35 uppercase tracking-widest">Daily Protocol</p>
-                <p className="text-[18px] lg:text-[22px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mt-0.5">{possessive} Current Stack</p>
+                <p className="text-icon font-bold text-on-surface-variant/35 uppercase tracking-widest">Daily Protocol</p>
+                <p className="text-title-sm lg:text-title font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mt-0.5">{possessive} Current Stack</p>
               </div>
-              <span className="text-[11px] font-semibold text-primary-container">{supplements.length} products</span>
+              <span className="text-label font-semibold text-primary-container">{supplements.length} products</span>
             </div>
 
             {/* Horizontal scroll */}
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5 snap-x snap-mandatory" style={{ scrollbarWidth: "none" }}>
-              {supplements.map(s => {
+              {supplements.map((s, idx) => {
                 const edu = s.concern.map(c => EDUCATION[c as keyof typeof EDUCATION]).find(Boolean) ?? EDUCATION.nutrition;
                 const isActive = expandedCard === s.id;
                 const daysLeft = Math.max(1, 30 - (visitCount % 30 || 0));
@@ -1169,8 +1169,8 @@ export default function InsightsPage() {
                 const barColor   = daysLeft > 15 ? "#10b981" : daysLeft > 8 ? "#f59e0b" : "#f43f5e";
                 const statusText = daysLeft > 15 ? "Stocked up" : daysLeft > 8 ? "Getting low" : "Reorder soon";
                 return (
+                  <motion.div key={s.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: idx * 0.07, ease: "easeOut" }}>
                   <button
-                    key={s.id}
                     onClick={() => setExpandedCard(isActive ? null : s.id)}
                     className="snap-start shrink-0 w-[172px] rounded-3xl overflow-hidden border text-left transition-all duration-200 cursor-pointer"
                     style={{
@@ -1186,10 +1186,10 @@ export default function InsightsPage() {
                       )}
                     </div>
                     <div className="px-3.5 pb-4">
-                      <p className="text-[8px] font-bold uppercase tracking-widest mb-0.5" style={{ color: edu.color }}>{s.brand}</p>
-                      <p className="text-[12px] font-extrabold text-on-surface leading-snug font-[family-name:var(--font-manrope)]">{s.name}</p>
+                      <p className="text-3xs font-bold uppercase tracking-widest mb-0.5" style={{ color: edu.color }}>{s.brand}</p>
+                      <p className="text-label font-extrabold text-on-surface leading-snug font-[family-name:var(--font-manrope)]">{s.name}</p>
                       <div className="flex items-center gap-1 mt-1.5">
-                        <p className="text-[10px] text-on-surface-variant/45 flex-1 leading-snug">
+                        <p className="text-icon text-on-surface-variant/45 flex-1 leading-snug">
                           {edu.openingLine.length > 32 ? edu.openingLine.slice(0, 32) + "…" : edu.openingLine}
                         </p>
                         <ChevronDown
@@ -1201,8 +1201,8 @@ export default function InsightsPage() {
                       {/* Stock bar */}
                       <div className="mt-2.5 pt-2.5 border-t" style={{ borderColor: `${edu.bannerFrom}20` }}>
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-[9px] font-bold" style={{ color: barColor }}>{statusText}</span>
-                          <span className="text-[9px] font-semibold text-on-surface-variant/45">{daysLeft}d left</span>
+                          <span className="text-2xs font-bold" style={{ color: barColor }}>{statusText}</span>
+                          <span className="text-2xs font-semibold text-on-surface-variant/45">{daysLeft}d left</span>
                         </div>
                         <div className="h-1 rounded-full overflow-hidden" style={{ background: `${edu.bannerFrom}15` }}>
                           <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: barColor }} />
@@ -1210,6 +1210,7 @@ export default function InsightsPage() {
                       </div>
                     </div>
                   </button>
+                  </motion.div>
                 );
               })}
             </div>
@@ -1230,16 +1231,16 @@ export default function InsightsPage() {
 
                     {/* Opening */}
                     <div>
-                      <p className="text-[14px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">{edu.openingLine}</p>
-                      <p className="text-[12px] text-on-surface-variant/60 mt-1 leading-relaxed">{edu.what}</p>
+                      <p className="text-lead font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">{edu.openingLine}</p>
+                      <p className="text-label text-on-surface-variant/60 mt-1 leading-relaxed">{edu.what}</p>
                     </div>
 
                     {/* Ingredient pills */}
                     <div className="flex flex-wrap gap-1.5">
                       {edu.ingredients.map(ing => (
-                        <span key={ing.label} className="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border text-on-surface"
+                        <span key={ing.label} className="flex items-center gap-1.5 text-label font-semibold px-3 py-1.5 rounded-full border text-on-surface"
                           style={{ background: `${edu.bannerFrom}10`, borderColor: `${edu.bannerFrom}30` }}>
-                          <span className="text-[13px]">{ing.emoji}</span>{ing.label}
+                          <span className="text-body">{ing.emoji}</span>{ing.label}
                         </span>
                       ))}
                     </div>
@@ -1248,15 +1249,15 @@ export default function InsightsPage() {
                     <div className="grid grid-cols-2 gap-2.5">
                       {edu.facts.map((fact, i) => (
                         <div key={i} className="rounded-2xl px-3.5 py-3.5" style={{ background: `${edu.bannerFrom}10` }}>
-                          <p className="text-[24px] font-extrabold leading-none font-[family-name:var(--font-manrope)]" style={{ color: edu.color }}>{fact.stat}</p>
-                          <p className="text-[10px] text-on-surface-variant/55 mt-1.5 leading-snug">{fact.label}</p>
+                          <p className="text-title font-extrabold leading-none font-[family-name:var(--font-manrope)]" style={{ color: edu.color }}>{fact.stat}</p>
+                          <p className="text-icon text-on-surface-variant/55 mt-1.5 leading-snug">{fact.label}</p>
                         </div>
                       ))}
                     </div>
 
                     {/* Timeline */}
                     <div>
-                      <p className="text-[10px] font-bold text-on-surface-variant/35 uppercase tracking-wider mb-3">Progress Timeline</p>
+                      <p className="text-icon font-bold text-on-surface-variant/35 uppercase tracking-wider mb-3">Progress Timeline</p>
                       <div className="relative">
                         <div className="flex items-start">
                           {edu.timeline.map((t, i) => (
@@ -1266,8 +1267,8 @@ export default function InsightsPage() {
                                   borderColor: i <= tlProgress ? edu.bannerFrom : "#d1d5db",
                                   background: i <= tlProgress ? edu.bannerFrom : "#fff",
                                 }} />
-                              <p className="text-[9px] font-bold text-center mt-1.5" style={{ color: i <= tlProgress ? edu.color : "#9ca3af" }}>{t.label}</p>
-                              <p className="text-[8px] text-on-surface-variant/40 text-center mt-0.5">{t.desc}</p>
+                              <p className="text-2xs font-bold text-center mt-1.5" style={{ color: i <= tlProgress ? edu.color : "#9ca3af" }}>{t.label}</p>
+                              <p className="text-3xs text-on-surface-variant/40 text-center mt-0.5">{t.desc}</p>
                             </div>
                           ))}
                         </div>
@@ -1276,7 +1277,7 @@ export default function InsightsPage() {
                           style={{ background: edu.bannerFrom, width: tlProgress === 0 ? 0 : tlProgress === 1 ? "33.33%" : "66.67%" }} />
                       </div>
                       {visitCount > 0 && (
-                        <p className="text-[10px] font-semibold text-center mt-3 rounded-full py-1"
+                        <p className="text-icon font-semibold text-center mt-3 rounded-full py-1"
                           style={{ color: edu.color, background: `${edu.bannerFrom}15` }}>
                           You are here · Week {weekNum + 1}
                         </p>
@@ -1285,10 +1286,10 @@ export default function InsightsPage() {
 
                     {/* Timing */}
                     <div className="flex items-center gap-2.5 rounded-2xl px-3.5 py-3" style={{ background: `${edu.bannerFrom}08` }}>
-                      <span className="text-[15px]">⏰</span>
+                      <span className="text-lead">⏰</span>
                       <div>
-                        <p className="text-[9px] font-bold text-on-surface-variant/35 uppercase tracking-wider">Best time to take</p>
-                        <p className="text-[12px] font-semibold text-on-surface mt-0.5">{edu.timing}</p>
+                        <p className="text-2xs font-bold text-on-surface-variant/35 uppercase tracking-wider">Best time to take</p>
+                        <p className="text-label font-semibold text-on-surface mt-0.5">{edu.timing}</p>
                       </div>
                     </div>
 
@@ -1303,15 +1304,16 @@ export default function InsightsPage() {
         {complementary.length > 0 && (
           <div>
             <div className="mb-3 px-0.5">
-              <p className="text-[10px] font-bold text-on-surface-variant/35 uppercase tracking-widest">Level Up</p>
-              <p className="text-[18px] lg:text-[22px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mt-0.5">Boost {possessive} Results</p>
+              <p className="text-icon font-bold text-on-surface-variant/35 uppercase tracking-widest">Level Up</p>
+              <p className="text-title-sm lg:text-title font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mt-0.5">Boost {possessive} Results</p>
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5 snap-x snap-mandatory" style={{ scrollbarWidth: "none" }}>
-              {complementary.map(p => {
+              {complementary.map((p, idx) => {
                 const catKey = EDUCATION[p.category] ? p.category : p.concern[0] ?? "energy";
                 const edu = EDUCATION[catKey] ?? EDUCATION.nutrition;
                 return (
-                  <div key={p.id} className="snap-start shrink-0 w-[158px] rounded-3xl border overflow-hidden"
+                  <motion.div key={p.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: idx * 0.07, ease: "easeOut" }}
+                    className="snap-start shrink-0 w-[158px] rounded-3xl border overflow-hidden"
                     style={{ background: `linear-gradient(160deg, ${edu.bannerFrom}12, #fff 65%)`, borderColor: `${edu.bannerFrom}25` }}>
                     <div className="h-36 flex items-center justify-center">
                       {p.image && (
@@ -1320,18 +1322,18 @@ export default function InsightsPage() {
                       )}
                     </div>
                     <div className="px-3 pb-4">
-                      <p className="text-[8px] font-bold uppercase tracking-widest mb-0.5" style={{ color: edu.color }}>{p.brand}</p>
-                      <p className="text-[11px] font-extrabold text-on-surface leading-snug font-[family-name:var(--font-manrope)]">{p.name}</p>
-                      <p className="text-[10px] text-on-surface-variant/45 mt-0.5">₹{p.price}</p>
+                      <p className="text-3xs font-bold uppercase tracking-widest mb-0.5" style={{ color: edu.color }}>{p.brand}</p>
+                      <p className="text-label font-extrabold text-on-surface leading-snug font-[family-name:var(--font-manrope)]">{p.name}</p>
+                      <p className="text-icon text-on-surface-variant/45 mt-0.5">₹{p.price}</p>
                       {p.url && (
                         <a href={p.url} target="_blank" rel="noopener noreferrer"
-                          className="mt-2.5 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-[10px] font-bold transition-colors"
+                          className="mt-2.5 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-icon font-bold transition-colors"
                           style={{ color: edu.color, background: `${edu.bannerFrom}15`, border: `1px solid ${edu.bannerFrom}35` }}>
                           <ShoppingBag className="w-3 h-3" strokeWidth={2.5} /> Shop
                         </a>
                       )}
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
@@ -1355,24 +1357,24 @@ export default function InsightsPage() {
                 {/* Gradient header */}
                 <div className="px-6 pt-8 pb-6 text-center" style={{ background: cfg.gradient }}>
                   <div className="text-[64px] leading-none mb-3">{cfg.emoji}</div>
-                  <p className="text-[11px] font-bold text-white/60 uppercase tracking-widest mb-1">{cfg.badge}</p>
-                  <p className="text-[28px] font-extrabold text-white font-[family-name:var(--font-manrope)] leading-tight">{cfg.title}</p>
+                  <p className="text-label font-bold text-white/60 uppercase tracking-widest mb-1">{cfg.badge}</p>
+                  <p className="text-display font-extrabold text-white font-[family-name:var(--font-manrope)] leading-tight">{cfg.title}</p>
                 </div>
                 {/* Body */}
                 <div className="bg-white px-6 py-5">
-                  <p className="text-[14px] text-on-surface/70 leading-relaxed text-center mb-5">{cfg.msg}</p>
+                  <p className="text-lead text-on-surface/70 leading-relaxed text-center mb-5">{cfg.msg}</p>
                   {milestoneToShow === 30 && rewardState && (
-                    <div className="mb-4 rounded-2xl px-4 py-3.5 flex items-center justify-between" style={{ background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)" }}>
+                    <div className="mb-4 rounded-2xl px-4 py-3.5 flex items-center justify-between gradient-brand-pill">
                       <div>
-                        <p className="text-[10px] font-bold text-white/50 uppercase tracking-wider mb-0.5">Your reward</p>
-                        <p className="text-[18px] font-extrabold text-white font-[family-name:var(--font-manrope)]">₹100 Cashback</p>
+                        <p className="text-icon font-bold text-white/50 uppercase tracking-wider mb-0.5">Your reward</p>
+                        <p className="text-title-sm font-extrabold text-white font-[family-name:var(--font-manrope)]">₹100 Cashback</p>
                       </div>
-                      <span className="text-[28px]">🎁</span>
+                      <span className="text-display">🎁</span>
                     </div>
                   )}
                   <button
                     onClick={dismissMilestone}
-                    className="w-full py-3.5 rounded-2xl text-[14px] font-bold text-white transition-all active:scale-[0.98]"
+                    className="w-full py-3.5 rounded-2xl text-lead font-bold text-white transition-all active:scale-[0.98]"
                     style={{ background: cfg.gradient }}
                   >
                     Keep going →
@@ -1394,7 +1396,7 @@ export default function InsightsPage() {
               {/* Dark header */}
               <div className="px-5 pt-5 pb-6" style={{ background: "linear-gradient(135deg, #2e1065, #4c1d95, #5b21b6)" }}>
                 <div className="flex items-center justify-between mb-5">
-                  <p className="text-[10px] font-bold text-purple-300 uppercase tracking-widest">Vitality Score</p>
+                  <p className="text-icon font-bold text-purple-300 uppercase tracking-widest">Vitality Score</p>
                   <button
                     onClick={() => setShowVitalityPopover(false)}
                     className="w-7 h-7 rounded-full flex items-center justify-center cursor-pointer"
@@ -1406,7 +1408,7 @@ export default function InsightsPage() {
                 <div className="flex items-end gap-4">
                   <div>
                     <p className="text-[68px] font-extrabold text-white leading-none font-[family-name:var(--font-manrope)]">{vitality}</p>
-                    <p className="text-[13px] font-semibold mt-1" style={{ color: "#c4b5fd" }}>{vitalityLabel}</p>
+                    <p className="text-body font-semibold mt-1" style={{ color: "#c4b5fd" }}>{vitalityLabel}</p>
                   </div>
                   {/* Mini ring */}
                   <div className="pb-1">
@@ -1424,20 +1426,20 @@ export default function InsightsPage() {
 
               {/* Pillars */}
               <div className="bg-white px-5 pt-5 pb-4 space-y-4">
-                <p className="text-[10px] font-bold text-on-surface-variant/35 uppercase tracking-widest">What makes up your score</p>
+                <p className="text-icon font-bold text-on-surface-variant/35 uppercase tracking-widest">What makes up your score</p>
                 {pillars.map(p => (
                   <div key={p.label}>
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-[15px] leading-none">{p.emoji}</span>
-                        <span className="text-[13px] font-semibold text-on-surface">{p.label}</span>
+                        <span className="text-lead leading-none">{p.emoji}</span>
+                        <span className="text-body font-semibold text-on-surface">{p.label}</span>
                       </div>
-                      <span className="text-[13px] font-extrabold font-[family-name:var(--font-manrope)]" style={{ color: p.color }}>{p.score}</span>
+                      <span className="text-body font-extrabold font-[family-name:var(--font-manrope)]" style={{ color: p.color }}>{p.score}</span>
                     </div>
                     <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                       <div className="h-full rounded-full transition-all duration-700" style={{ width: `${p.score}%`, background: p.color }} />
                     </div>
-                    <p className="text-[10px] text-on-surface-variant/40 mt-1">{p.sublabel}</p>
+                    <p className="text-icon text-on-surface-variant/40 mt-1">{p.sublabel}</p>
                   </div>
                 ))}
               </div>
@@ -1445,8 +1447,8 @@ export default function InsightsPage() {
               {/* Key insight */}
               <div className="bg-white px-5 pb-6">
                 <div className="rounded-2xl px-4 py-3.5" style={{ background: "#f5f3ff" }}>
-                  <p className="text-[9px] font-bold text-purple-400 uppercase tracking-widest mb-1.5">Key insight</p>
-                  <p className="text-[12px] text-on-surface/70 leading-relaxed">{keyInsight}</p>
+                  <p className="text-2xs font-bold text-purple-400 uppercase tracking-widest mb-1.5">Key insight</p>
+                  <p className="text-label text-on-surface/70 leading-relaxed">{keyInsight}</p>
                 </div>
               </div>
 

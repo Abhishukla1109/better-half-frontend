@@ -143,7 +143,7 @@ export default function AuthPage() {
 
         {step === "email" ? (
           <>
-            <h1 className="text-[28px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] text-center leading-tight mb-2">
+            <h1 className="text-display font-extrabold text-on-surface font-[family-name:var(--font-manrope)] text-center leading-tight mb-2">
               Welcome to BetterHalf
             </h1>
             <p className="text-sm text-on-surface-variant/70 text-center leading-relaxed mb-10">
@@ -151,7 +151,7 @@ export default function AuthPage() {
             </p>
 
             <div className="mb-4">
-              <p className="text-[11px] font-semibold text-on-surface-variant/60 uppercase tracking-wider mb-2">
+              <p className="text-label font-semibold text-on-surface-variant/60 uppercase tracking-wider mb-2">
                 Email address
               </p>
               <input
@@ -163,7 +163,7 @@ export default function AuthPage() {
                 className="w-full border border-outline-variant/30 rounded-xl px-4 py-3.5 bg-surface-container-lowest text-sm text-on-surface placeholder:text-on-surface-variant/35 outline-none focus:border-primary-container/50 transition-colors"
                 autoFocus
               />
-              {error && <p className="text-[12px] text-red-500 mt-2">{error}</p>}
+              {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
             </div>
 
             <button
@@ -179,13 +179,13 @@ export default function AuthPage() {
           <>
             <button
               onClick={() => { setStep("email"); setError(""); setDigits(["","","","","","","",""]); }}
-              className="flex items-center gap-1 text-[13px] text-on-surface-variant/60 hover:text-primary-container mb-6 cursor-pointer transition-colors"
+              className="flex items-center gap-1 text-body text-on-surface-variant/60 hover:text-primary-container mb-6 cursor-pointer transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" strokeWidth={2} />
               Use a different email
             </button>
 
-            <h1 className="text-[28px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] text-center leading-tight mb-2">
+            <h1 className="text-display font-extrabold text-on-surface font-[family-name:var(--font-manrope)] text-center leading-tight mb-2">
               Enter your code
             </h1>
             <p className="text-sm text-on-surface-variant/70 text-center leading-relaxed mb-8">
@@ -206,7 +206,7 @@ export default function AuthPage() {
                   onChange={e => handleDigitChange(i, e.target.value)}
                   onKeyDown={e => handleKeyDown(i, e)}
                   disabled={verifying}
-                  className="w-11 h-14 text-center text-[22px] font-extrabold text-on-surface rounded-xl outline-none transition-all duration-150 bg-surface-container-lowest font-[family-name:var(--font-manrope)] border-2"
+                  className="w-11 h-14 text-center text-title font-extrabold text-on-surface rounded-xl outline-none transition-all duration-150 bg-surface-container-lowest font-[family-name:var(--font-manrope)] border-2"
                   style={{
                     borderColor: d
                       ? "var(--color-primary-container)"
@@ -217,7 +217,7 @@ export default function AuthPage() {
               ))}
             </div>
 
-            {error && <p className="text-[12px] text-red-500 text-center mt-3 mb-1">{error}</p>}
+            {error && <p className="text-xs text-red-500 text-center mt-3 mb-1">{error}</p>}
 
             <button
               onClick={() => handleVerify(digits.join(""))}
@@ -230,14 +230,14 @@ export default function AuthPage() {
 
             {/* Resend */}
             {countdown > 0 ? (
-              <p className="text-center text-[12px] text-on-surface-variant/40">
+              <p className="text-center text-xs text-on-surface-variant/40">
                 Resend code in {countdown}s
               </p>
             ) : (
               <button
                 onClick={handleSendCode}
                 disabled={loading}
-                className="w-full text-center text-[12px] text-on-surface-variant/50 hover:text-primary-container py-2 cursor-pointer transition-colors disabled:opacity-40"
+                className="w-full text-center text-xs text-on-surface-variant/50 hover:text-primary-container py-2 cursor-pointer transition-colors disabled:opacity-40"
               >
                 {loading ? "Sending…" : "Resend code"}
               </button>
@@ -245,7 +245,7 @@ export default function AuthPage() {
           </>
         )}
 
-        <p className="text-[10px] text-on-surface-variant/35 text-center mt-8">
+        <p className="text-icon text-on-surface-variant/35 text-center mt-8">
           Free forever · No spam · Your data stays private
         </p>
 

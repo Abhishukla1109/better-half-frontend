@@ -30,7 +30,7 @@ export default function AddToCartButton({
 
   if (!available) {
     return (
-      <button disabled className={`flex items-center justify-center py-2.5 rounded-xl text-sm font-semibold bg-[#e5e7eb] text-[#9ca3af] cursor-not-allowed ${className}`}>
+      <button disabled className={`flex items-center justify-center py-2.5 rounded-xl text-sm font-semibold bg-gray-200 text-gray-400 cursor-not-allowed ${className}`}>
         Sold Out
       </button>
     );
@@ -76,7 +76,7 @@ export default function AddToCartButton({
       <button
         onClick={handleAdd}
         disabled={loading}
-        className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold bg-[#004f54] text-white hover:bg-[#01696f] active:scale-[0.98] transition-all disabled:opacity-70 ${className}`}
+        className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold bg-brand text-white hover:bg-brand-hover active:scale-[0.98] transition-all disabled:opacity-70 ${className}`}
       >
         {loading ? <Loader2 size={15} className="animate-spin" /> : label}
       </button>
@@ -85,11 +85,11 @@ export default function AddToCartButton({
 
   // In cart — show quantity stepper
   return (
-    <div className={`flex items-center justify-between rounded-xl bg-[#004f54] text-white ${className}`}>
+    <div className={`flex items-center justify-between rounded-xl bg-brand text-white ${className}`}>
       <button
         onClick={handleDecrease}
         disabled={loading}
-        className="w-10 h-10 flex items-center justify-center hover:bg-[#01696f] active:bg-[#003a3e] transition-colors disabled:opacity-50 rounded-l-xl"
+        className="w-10 h-10 flex items-center justify-center hover:bg-brand-hover active:bg-brand-active transition-colors disabled:opacity-50 rounded-l-xl"
         aria-label="Remove one"
       >
         <Minus size={14} strokeWidth={2.5} />
@@ -100,7 +100,7 @@ export default function AddToCartButton({
       <button
         onClick={handleIncrease}
         disabled={loading}
-        className="w-10 h-10 flex items-center justify-center hover:bg-[#01696f] active:bg-[#003a3e] transition-colors disabled:opacity-50 rounded-r-xl"
+        className="w-10 h-10 flex items-center justify-center hover:bg-brand-hover active:bg-brand-active transition-colors disabled:opacity-50 rounded-r-xl"
         aria-label="Add one more"
       >
         <Plus size={14} strokeWidth={2.5} />

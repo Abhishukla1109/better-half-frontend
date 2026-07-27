@@ -50,7 +50,7 @@ export default function BottomNav() {
                 className="flex flex-col items-center justify-center gap-0.5 w-16 h-14 cursor-default select-none opacity-35"
               >
                 <span className="text-[26px] leading-none">{tab.emoji}</span>
-                <span className="text-[9px] font-bold text-on-surface-variant/50 uppercase tracking-wide leading-none mt-0.5">Soon</span>
+                <span className="text-2xs font-bold text-on-surface-variant/50 uppercase tracking-wide leading-none mt-0.5">Soon</span>
               </div>
             );
           }
@@ -62,11 +62,11 @@ export default function BottomNav() {
               className="flex flex-col items-center justify-center gap-0.5 w-16 h-14"
             >
               <span
-                className={`text-[28px] leading-none transition-all duration-200 ${isActive ? "opacity-100 scale-110" : "opacity-50"}`}
+                className={`text-display leading-none transition-all duration-200 ${isActive ? "opacity-100 scale-110" : "opacity-50"}`}
               >
                 {tab.emoji}
               </span>
-              <span className={`text-[10px] font-bold leading-none transition-colors duration-200 ${isActive ? "text-primary" : "text-on-surface-variant/45"}`}>
+              <span className={`text-icon font-bold leading-none transition-colors duration-200 ${isActive ? "text-primary" : "text-on-surface-variant/45"}`}>
                 {tab.label}
               </span>
               {/* Active indicator dot */}
@@ -86,7 +86,7 @@ export default function BottomNav() {
           <span className="text-xl font-extrabold tracking-tight text-primary font-[family-name:var(--font-manrope)]">
             BetterHalf
           </span>
-          <p className="text-[11px] text-on-surface-variant/45 mt-0.5 font-medium">Your AI health companion</p>
+          <p className="text-label text-on-surface-variant/45 mt-0.5 font-medium">Your AI health companion</p>
         </div>
 
         {/* Nav items */}
@@ -101,9 +101,9 @@ export default function BottomNav() {
                   key={tab.key}
                   className="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant/35 cursor-default select-none"
                 >
-                  <span className="text-[20px] leading-none opacity-40">{tab.emoji}</span>
+                  <span className="text-xl leading-none opacity-40">{tab.emoji}</span>
                   <span className="text-sm font-semibold">{tab.label}</span>
-                  <span className="ml-auto text-[9px] font-bold text-on-surface-variant/30 uppercase tracking-wider">Soon</span>
+                  <span className="ml-auto text-2xs font-bold text-on-surface-variant/30 uppercase tracking-wider">Soon</span>
                 </div>
               );
             }
@@ -116,7 +116,7 @@ export default function BottomNav() {
                   isActive ? "bg-primary-fixed/15" : "hover:bg-surface-container-low"
                 }`}
               >
-                <span className={`text-[20px] leading-none transition-opacity duration-200 ${isActive ? "opacity-100" : "opacity-55"}`}>
+                <span className={`text-xl leading-none transition-opacity duration-200 ${isActive ? "opacity-100" : "opacity-55"}`}>
                   {tab.emoji}
                 </span>
                 <span className={`text-sm font-semibold transition-colors duration-200 ${isActive ? "text-primary" : "text-on-surface-variant"}`}>
@@ -136,7 +136,7 @@ export default function BottomNav() {
             <LogOut className="w-[18px] h-[18px]" strokeWidth={1.5} />
             <span className="text-sm font-semibold">Sign out</span>
           </button>
-          <p className="text-[10px] text-on-surface-variant/40 uppercase tracking-widest px-4">
+          <p className="text-icon text-on-surface-variant/40 uppercase tracking-widest px-4">
             Powered by Mosaic Wellness
           </p>
         </div>

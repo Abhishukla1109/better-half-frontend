@@ -67,10 +67,44 @@
   --color-on-error: #ffffff;
   --color-on-error-container: #93000a;
 
+  /* --- Extended Brand Palette (tokens missing from original design) --- */
+  --color-brand: #004f54;
+  --color-brand-hover: #01696f;
+  --color-brand-active: #003a3e;
+  --color-brand-dark: #002b22;
+  --color-brand-mid: #1a6b58;
+  --color-on-dark: #1a2e2e;
+  --color-border-light: #e2e8e8;
+  --color-surface-teal: #f7fafa;
+
+  /* --- Type Scale additions --- */
+  --text-3xs: 0.5rem;
+  --text-3xs--line-height: 0.75rem;
+
   /* --- Typography (next/font handles loading, these map to Tailwind) --- */
   --font-headline: var(--font-manrope);
   --font-body: var(--font-public-sans);
   --font-label: var(--font-public-sans);
+
+  /* --- Type Scale (semantic names for all arbitrary sizes used in the app) --- */
+  --text-2xs: 0.5625rem;
+  --text-2xs--line-height: 0.875rem;
+  --text-icon: 0.625rem;
+  --text-icon--line-height: 1rem;
+  --text-label: 0.6875rem;
+  --text-label--line-height: 1rem;
+  --text-body: 0.8125rem;
+  --text-body--line-height: 1.25rem;
+  --text-lead: 0.9375rem;
+  --text-lead--line-height: 1.375rem;
+  --text-title-sm: 1.0625rem;
+  --text-title-sm--line-height: 1.5rem;
+  --text-title: 1.375rem;
+  --text-title--line-height: 1.75rem;
+  --text-display: 1.75rem;
+  --text-display--line-height: 2.25rem;
+  --text-hero: 2.125rem;
+  --text-hero--line-height: 2.5rem;
 
   /* --- Border Radius --- */
   --radius-sm: 0.25rem;
@@ -107,7 +141,7 @@ html {
 }
 
 body {
-  font-family: var(--font-body), "Public Sans", sans-serif;
+  font-family: var(--font-body), "DM Sans", sans-serif;
   background-color: var(--color-surface);
   color: var(--color-on-surface);
   -webkit-font-smoothing: antialiased;
@@ -116,7 +150,7 @@ body {
 }
 
 h1, h2, h3 {
-  font-family: var(--font-headline), "Manrope", sans-serif;
+  font-family: var(--font-headline), "Plus Jakarta Sans", sans-serif;
 }
 
 /* --- Material Symbols (used across Stitch screens) --- */
@@ -272,6 +306,45 @@ h1, h2, h3 {
 }
 .animate-slide-in-left {
   animation: slideInLeft 240ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+/* --- Named gradients (replaces hardcoded inline style gradients) --- */
+.gradient-brand {
+  background: linear-gradient(135deg, var(--color-brand-mid) 0%, var(--color-primary) 100%);
+}
+.gradient-brand-pill {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-brand-mid) 100%);
+}
+.gradient-surface-subtle {
+  background: linear-gradient(175deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.015) 50%, rgba(0,0,0,0) 100%);
+}
+.gradient-pdp-dark {
+  background: linear-gradient(145deg, #00352E 0%, #004D40 60%, #00564A 100%);
+}
+.gradient-pdp-header {
+  background: linear-gradient(135deg, #004D40 0%, #00695C 60%, #00897B 100%);
+}
+.gradient-kids-hero {
+  background: linear-gradient(145deg, #fff3e0 0%, #ffe0b2 55%, #fff8f0 100%);
+}
+.gradient-kids-card {
+  background: linear-gradient(135deg, #fff8f0 0%, #fff3e0 100%);
+}
+
+/* --- Protocol page CTA button --- */
+.protocol-cta {
+  background: linear-gradient(135deg, #1a6b58 0%, #004034 100%);
+  box-shadow: 0 3px 16px rgba(0, 64, 52, 0.38), 0 1px 4px rgba(0, 0, 0, 0.12);
+  transition: box-shadow 0.2s ease, transform 0.12s ease;
+}
+
+.protocol-cta:hover {
+  box-shadow: 0 5px 24px rgba(0, 64, 52, 0.48), 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.protocol-cta:active {
+  transform: scale(0.985);
+  box-shadow: 0 2px 10px rgba(0, 64, 52, 0.3);
 }
 
 /* --- Reduced motion --- */

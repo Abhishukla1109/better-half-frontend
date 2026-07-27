@@ -27,7 +27,7 @@ export default function CartToast() {
 
   return (
     <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] animate-fade-in-up">
-      <div className="flex items-center gap-3 bg-[#1a2e2e] text-white px-4 py-3 rounded-2xl shadow-xl max-w-[320px]">
+      <div className="flex items-center gap-3 bg-on-dark text-white px-4 py-3 rounded-2xl shadow-xl max-w-[320px]">
         <div className="w-8 h-8 rounded-full bg-primary-container/20 flex items-center justify-center shrink-0">
           <ShoppingBag size={15} className="text-primary-container" />
         </div>

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Manrope, Public_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans, DM_Sans } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
@@ -7,14 +7,14 @@ import CartDrawer from "@/components/cart/CartDrawer";
 import CartToast from "@/components/cart/CartToast";
 import MixpanelProvider from "@/components/MixpanelProvider";
 
-const manrope = Manrope({
+const plusJakarta = Plus_Jakarta_Sans({
   variable: "--font-manrope",
   subsets: ["latin"],
-  weight: ["800"],
+  weight: ["600", "700", "800"],
   display: "swap",
 });
 
-const publicSans = Public_Sans({
+const dmSans = DM_Sans({
   variable: "--font-public-sans",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
@@ -55,7 +55,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${manrope.variable} ${publicSans.variable}`}>
+    <html lang="en" className={`${plusJakarta.variable} ${dmSans.variable}`}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

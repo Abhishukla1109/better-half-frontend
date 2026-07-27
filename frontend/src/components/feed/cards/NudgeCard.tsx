@@ -37,7 +37,7 @@ export default function NudgeCard({
       style={{ animationDelay: `${delay}ms` }}
     >
       {pillarTag && (
-        <p className="text-[11px] font-semibold uppercase tracking-[0.5px] text-on-surface-variant/50 mb-2">
+        <p className="text-label font-semibold uppercase tracking-[0.5px] text-on-surface-variant/50 mb-2">
           {pillarTag}
         </p>
       )}

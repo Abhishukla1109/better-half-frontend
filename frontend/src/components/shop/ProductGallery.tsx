@@ -16,7 +16,7 @@ export default function ProductGallery({ featuredImage, images, title }: Props) 
 
   if (allImages.length === 0) {
     return (
-      <div className="aspect-square bg-[#f7fafa] rounded-2xl flex items-center justify-center text-6xl">
+      <div className="aspect-square bg-surface-teal rounded-2xl flex items-center justify-center text-6xl">
         💊
       </div>
     );
@@ -25,7 +25,7 @@ export default function ProductGallery({ featuredImage, images, title }: Props) 
   return (
     <div className="flex flex-col gap-3">
       {/* Main image */}
-      <div className="relative aspect-square rounded-2xl overflow-hidden bg-[#f7fafa]">
+      <div className="relative aspect-square rounded-2xl overflow-hidden bg-surface-teal">
         <Image
           src={allImages[active].url}
           alt={allImages[active].altText || title}
@@ -45,7 +45,7 @@ export default function ProductGallery({ featuredImage, images, title }: Props) 
               onClick={() => setActive(i)}
               aria-label={`View image ${i + 1}`}
               className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-colors ${
-                active === i ? 'border-[#004f54]' : 'border-transparent hover:border-[#c8e0e0]'
+                active === i ? 'border-brand' : 'border-transparent hover:border-[#c8e0e0]'
               }`}
             >
               <Image

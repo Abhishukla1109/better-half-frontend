@@ -17,11 +17,11 @@ export default function ProductCard({ product, compact = false }: Props) {
   const available = firstVariant?.availableForSale ?? false;
 
   return (
-    <div className="group bg-white rounded-2xl overflow-hidden border border-[#e2e8e8] flex flex-col transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-[#004f54]/10">
+    <div className="group bg-white rounded-2xl overflow-hidden border border-border-light flex flex-col transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-[#004f54]/10">
       {/* Image */}
-      <Link href={`/product/${product.handle}`} className="relative block aspect-square bg-[#f7fafa] overflow-hidden">
+      <Link href={`/product/${product.handle}`} className="relative block aspect-square bg-surface-teal overflow-hidden">
         {product.onSale && (
-          <span className="absolute top-2 left-2 z-10 text-[11px] font-700 bg-red-500 text-white px-2 py-0.5 rounded-md">
+          <span className="absolute top-2 left-2 z-10 text-label font-700 bg-red-500 text-white px-2 py-0.5 rounded-md">
             {product.discountPct}% off
           </span>
         )}
@@ -34,7 +34,7 @@ export default function ProductCard({ product, compact = false }: Props) {
             className="object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-[#d1d5db] text-4xl">
+          <div className="w-full h-full flex items-center justify-center text-gray-300 text-4xl">
             💊
           </div>
         )}
@@ -43,12 +43,12 @@ export default function ProductCard({ product, compact = false }: Props) {
       {/* Body */}
       <div className="p-4 flex flex-col flex-1 gap-2">
         {product.vendor && (
-          <p className="text-[11px] font-700 text-[#004f54] uppercase tracking-wide">{product.vendor}</p>
+          <p className="text-label font-700 text-brand uppercase tracking-wide">{product.vendor}</p>
         )}
 
         <Link
           href={`/product/${product.handle}`}
-          className="text-sm font-600 text-[#1a2e2e] leading-snug line-clamp-2 hover:text-[#004f54] transition-colors"
+          className="text-sm font-600 text-on-dark leading-snug line-clamp-2 hover:text-brand transition-colors"
         >
           {product.title}
         </Link>
@@ -56,16 +56,16 @@ export default function ProductCard({ product, compact = false }: Props) {
         {/* Rating placeholder */}
         <div className="flex items-center gap-1">
           {[1,2,3,4,5].map(i => (
-            <Star key={i} size={11} className={i <= 4 ? 'fill-amber-400 text-amber-400' : 'text-[#d1d5db]'} />
+            <Star key={i} size={11} className={i <= 4 ? 'fill-amber-400 text-amber-400' : 'text-gray-300'} />
           ))}
-          <span className="text-[11px] text-[#9ca3af] ml-0.5">(4.0)</span>
+          <span className="text-label text-gray-400 ml-0.5">(4.0)</span>
         </div>
 
         {/* Price */}
         <div className="flex items-center gap-2 mt-auto">
-          <span className="text-base font-800 text-[#004f54]">{formatPrice(product.price)}</span>
+          <span className="text-base font-800 text-brand">{formatPrice(product.price)}</span>
           {product.compareAtPrice && (
-            <span className="text-sm text-[#9ca3af] line-through">{formatPrice(product.compareAtPrice)}</span>
+            <span className="text-sm text-gray-400 line-through">{formatPrice(product.compareAtPrice)}</span>
           )}
         </div>
 

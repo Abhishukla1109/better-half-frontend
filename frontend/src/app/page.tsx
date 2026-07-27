@@ -95,7 +95,7 @@ export default function LandingPage() {
       <p className="text-base text-on-surface-variant text-center mt-3 max-w-xs leading-relaxed splash-text-2 px-8">
         {isReturning ? "Taking you to your protocol." : "Let's build your personalised health journey."}
       </p>
-      <p className="absolute bottom-8 text-[10px] text-on-surface-variant/30 uppercase tracking-widest splash-text-2">BetterHalf</p>
+      <p className="absolute bottom-8 text-icon text-on-surface-variant/30 uppercase tracking-widest splash-text-2">BetterHalf</p>
     </div>
   ) : null;
 
@@ -164,7 +164,7 @@ export default function LandingPage() {
           <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-primary-container/15">
             <Sparkles className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
           </div>
-          <span className="text-[16px] font-extrabold tracking-tight text-on-surface font-[family-name:var(--font-manrope)]">BetterHalf</span>
+          <span className="text-base font-extrabold tracking-tight text-on-surface font-[family-name:var(--font-manrope)]">BetterHalf</span>
         </div>
         <button
           onClick={() => router.push("/auth")}
@@ -183,7 +183,7 @@ export default function LandingPage() {
         />
 
         <motion.p
-          className="text-[12px] font-bold text-primary-container uppercase tracking-widest mb-5"
+          className="text-xs font-bold text-primary-container uppercase tracking-widest mb-5"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.05 }}
@@ -203,7 +203,7 @@ export default function LandingPage() {
         </motion.h1>
 
         <motion.p
-          className="text-[15px] lg:text-[18px] text-on-surface-variant/75 leading-relaxed mb-8 max-w-md"
+          className="text-lead lg:text-lg text-on-surface-variant/75 leading-relaxed mb-8 max-w-md"
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.32 }}
@@ -213,7 +213,7 @@ export default function LandingPage() {
 
         <motion.button
           onClick={handleDemo}
-          className="flex items-center gap-3 py-4 px-8 rounded-2xl bg-primary-container text-white font-bold text-[15px] lg:text-[16px] hover:bg-primary transition-colors duration-200 cursor-pointer mb-10"
+          className="flex items-center gap-3 py-4 px-8 rounded-2xl bg-primary-container text-white font-bold text-lead lg:text-base hover:bg-primary transition-colors duration-200 cursor-pointer mb-10"
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.46 }}
@@ -265,14 +265,14 @@ export default function LandingPage() {
           transition={{ duration: 0.5, delay: 0.75 }}
         >
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container border border-outline-variant/15">
-            <span className="text-[11px]">✦</span>
-            <span className="text-[12px] font-semibold text-on-surface-variant/80">100+ products · 3 brands · 8 concerns</span>
+            <span className="text-label">✦</span>
+            <span className="text-xs font-semibold text-on-surface-variant/80">100+ products · 3 brands · 8 concerns</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded-md overflow-hidden bg-primary-container/10 flex items-center justify-center shrink-0">
               <Sparkles className="w-2.5 h-2.5 text-primary-container" strokeWidth={1.5} />
             </div>
-            <p className="text-[12px] text-on-surface-variant/60">By <span className="font-semibold text-on-surface-variant/75">Mosaic Wellness</span> — makers of Man Matters &amp; Be Bodywise</p>
+            <p className="text-xs text-on-surface-variant/60">By <span className="font-semibold text-on-surface-variant/75">Mosaic Wellness</span> — makers of Man Matters &amp; Be Bodywise</p>
           </div>
         </motion.div>
 
@@ -298,7 +298,7 @@ export default function LandingPage() {
       <section className="px-4 lg:px-16 py-16 lg:py-20 border-t border-outline-variant/10">
         <div className="max-w-4xl mx-auto">
           <motion.p
-            className="text-[12px] font-bold text-primary-container uppercase tracking-widest mb-3 text-center"
+            className="text-xs font-bold text-primary-container uppercase tracking-widest mb-3 text-center"
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false, margin: "-60px" }}
@@ -307,7 +307,7 @@ export default function LandingPage() {
             Everything you need
           </motion.p>
           <motion.h2
-            className="text-[24px] lg:text-[38px] font-extrabold text-on-surface text-center mb-10 font-[family-name:var(--font-manrope)] leading-tight"
+            className="text-2xl lg:text-[38px] font-extrabold text-on-surface text-center mb-10 font-[family-name:var(--font-manrope)] leading-tight"
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false, margin: "-60px" }}
@@ -329,21 +329,21 @@ export default function LandingPage() {
             >
               <div className="flex items-center gap-1.5 mb-3">
                 <Sparkles className="w-3 h-3 text-primary-container" strokeWidth={1.5} />
-                <span className="text-[9px] lg:text-[10px] font-bold text-primary-container uppercase tracking-wider">Your Protocol</span>
+                <span className="text-2xs lg:text-icon font-bold text-primary-container uppercase tracking-wider">Your Protocol</span>
               </div>
-              <p className="text-[14px] lg:text-[20px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-2 lg:mb-3">
+              <p className="text-sm lg:text-xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-2 lg:mb-3">
                 Hair &amp; Sleep<span className="hidden lg:inline"><br />&amp; Mind</span>
               </p>
               <div className="flex gap-1 lg:gap-1.5 flex-wrap mb-auto">
                 {["💇 Hair", "🌙 Sleep", "⚡ Energy"].map((c) => (
-                  <span key={c} className="text-[9px] lg:text-[11px] font-semibold text-primary-container bg-primary-container/12 px-2 lg:px-2.5 py-0.5 lg:py-1 rounded-full">{c}</span>
+                  <span key={c} className="text-2xs lg:text-label font-semibold text-primary-container bg-primary-container/12 px-2 lg:px-2.5 py-0.5 lg:py-1 rounded-full">{c}</span>
                 ))}
               </div>
               <div className="mt-3 flex items-center gap-2 bg-primary-container/8 rounded-xl lg:rounded-2xl px-2.5 lg:px-3.5 py-2 lg:py-2.5">
-                <span className="text-[14px] lg:text-[18px]">🧬</span>
+                <span className="text-sm lg:text-lg">🧬</span>
                 <div>
-                  <p className="text-[9px] lg:text-[11px] font-bold text-primary-container leading-none">3 products matched</p>
-                  <p className="hidden lg:block text-[10px] text-on-surface-variant/50 mt-0.5">Personalised to your profile</p>
+                  <p className="text-2xs lg:text-label font-bold text-primary-container leading-none">3 products matched</p>
+                  <p className="hidden lg:block text-icon text-on-surface-variant/50 mt-0.5">Personalised to your profile</p>
                 </div>
               </div>
             </motion.div>
@@ -357,8 +357,8 @@ export default function LandingPage() {
               whileHover={{ y: -4, transition: { duration: 0.2 } }}
             >
               <div className="px-3 lg:px-5 pt-3 lg:pt-5 pb-2 lg:pb-3 border-b border-outline-variant/8">
-                <p className="text-[9px] lg:text-[10px] font-bold text-primary-container uppercase tracking-wider">AI-matched</p>
-                <p className="text-[12px] lg:text-[16px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mt-0.5">Your supplements</p>
+                <p className="text-2xs lg:text-icon font-bold text-primary-container uppercase tracking-wider">AI-matched</p>
+                <p className="text-xs lg:text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mt-0.5">Your supplements</p>
               </div>
               {[
                 { img: "https://i.mscwlns.co/media/misc/pdp_rcl/26166752/1.2_d9def6.jpg?tr=w-200", name: "Biotin Gummies", price: "₹499" },
@@ -369,8 +369,8 @@ export default function LandingPage() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p.img} alt={p.name} className="w-7 lg:w-10 h-7 lg:h-10 rounded-lg lg:rounded-xl object-contain shrink-0 bg-surface-container-low" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] lg:text-[12px] font-bold text-on-surface truncate">{p.name}</p>
-                    <p className="text-[10px] lg:text-[12px] font-extrabold text-primary-container font-[family-name:var(--font-manrope)]">{p.price}</p>
+                    <p className="text-icon lg:text-xs font-bold text-on-surface truncate">{p.name}</p>
+                    <p className="text-icon lg:text-xs font-extrabold text-primary-container font-[family-name:var(--font-manrope)]">{p.price}</p>
                   </div>
                 </div>
               ))}
@@ -385,8 +385,8 @@ export default function LandingPage() {
               transition={{ duration: 0.4, delay: 0.19 }}
               whileHover={{ y: -4, transition: { duration: 0.2 } }}
             >
-              <p className="text-[9px] lg:text-[10px] font-bold text-purple-400 uppercase tracking-wider mb-2">Insights</p>
-              <p className="text-[12px] lg:text-[16px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-3">Track your progress</p>
+              <p className="text-2xs lg:text-icon font-bold text-purple-400 uppercase tracking-wider mb-2">Insights</p>
+              <p className="text-xs lg:text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-3">Track your progress</p>
               <div className="flex items-center gap-2 flex-1">
                 <svg width="52" height="52" viewBox="0 0 90 90" className="shrink-0">
                   <circle cx="45" cy="45" r="38" fill="none" stroke="#ede9fe" strokeWidth="8" />
@@ -406,13 +406,13 @@ export default function LandingPage() {
                 </svg>
                 <div className="flex-1 space-y-1.5">
                   <div className="flex items-center gap-1.5 bg-orange-50 rounded-lg px-2 py-1.5">
-                    <span className="text-[11px]">🔥</span>
-                    <p className="text-[9px] lg:text-[10px] font-extrabold text-on-surface">14 day streak</p>
+                    <span className="text-label">🔥</span>
+                    <p className="text-2xs lg:text-icon font-extrabold text-on-surface">14 day streak</p>
                   </div>
                   <div className="grid grid-cols-7 gap-0.5">
                     {["⚡","😊","⚡","😴","😊","⚡","⚡"].map((e, i) => (
                       <div key={i} className="w-5 h-5 rounded-full bg-emerald-50 flex items-center justify-center">
-                        <span className="text-[8px]">{e}</span>
+                        <span className="text-3xs">{e}</span>
                       </div>
                     ))}
                   </div>
@@ -429,8 +429,8 @@ export default function LandingPage() {
               transition={{ duration: 0.4, delay: 0.26 }}
               whileHover={{ y: -4, transition: { duration: 0.2 } }}
             >
-              <p className="text-[9px] lg:text-[10px] font-bold text-primary-container uppercase tracking-wider mb-1.5">Family</p>
-              <p className="text-[12px] lg:text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-3">
+              <p className="text-2xs lg:text-icon font-bold text-primary-container uppercase tracking-wider mb-1.5">Family</p>
+              <p className="text-xs lg:text-lg font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-3">
                 One app,<br />whole family
               </p>
               <div className="flex gap-1.5 mb-auto">
@@ -440,14 +440,14 @@ export default function LandingPage() {
                   { label: "Kids",    emoji: "👧", bg: "bg-amber-50",  border: "border-amber-200",  text: "text-amber-700" },
                 ].map((m) => (
                   <div key={m.label} className={`flex-1 flex flex-col items-center gap-0.5 py-2 rounded-xl border ${m.bg} ${m.border}`}>
-                    <span className="text-[16px] lg:text-[22px]">{m.emoji}</span>
-                    <span className={`text-[8px] lg:text-[10px] font-bold ${m.text}`}>{m.label}</span>
+                    <span className="text-base lg:text-title">{m.emoji}</span>
+                    <span className={`text-3xs lg:text-icon font-bold ${m.text}`}>{m.label}</span>
                   </div>
                 ))}
               </div>
               <div className="mt-3 flex items-center gap-1 bg-surface/60 rounded-lg px-2.5 py-1.5">
-                <span className="text-[10px]">⚡</span>
-                <p className="text-[9px] lg:text-[11px] text-on-surface-variant/60">Protocol in 60s</p>
+                <span className="text-icon">⚡</span>
+                <p className="text-2xs lg:text-label text-on-surface-variant/60">Protocol in 60s</p>
               </div>
             </motion.div>
 
@@ -459,7 +459,7 @@ export default function LandingPage() {
       <section className="px-6 lg:px-16 py-16 lg:py-24 border-t border-outline-variant/10">
         <div className="max-w-2xl mx-auto lg:max-w-4xl">
           <motion.p
-            className="text-[12px] font-bold text-primary-container uppercase tracking-widest mb-3 text-center"
+            className="text-xs font-bold text-primary-container uppercase tracking-widest mb-3 text-center"
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false, margin: "-60px" }}
@@ -488,12 +488,12 @@ export default function LandingPage() {
                 whileHover={{ x: 4, transition: { duration: 0.2 } }}
               >
                 <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-primary-container/10 shrink-0">
-                  <span className="text-[22px]">{step.emoji}</span>
+                  <span className="text-title">{step.emoji}</span>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-primary-container uppercase tracking-wider mb-1">{step.number}</p>
-                  <p className="text-[15px] lg:text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-1.5">{step.title}</p>
-                  <p className="text-[14px] text-on-surface-variant/75 leading-relaxed">{step.desc}</p>
+                  <p className="text-icon font-bold text-primary-container uppercase tracking-wider mb-1">{step.number}</p>
+                  <p className="text-lead lg:text-title-sm font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-1.5">{step.title}</p>
+                  <p className="text-sm text-on-surface-variant/75 leading-relaxed">{step.desc}</p>
                 </div>
               </motion.div>
             ))}
@@ -505,7 +505,7 @@ export default function LandingPage() {
       <section className="px-6 lg:px-16 py-16 lg:py-24 border-t border-outline-variant/10" style={{ background: "linear-gradient(180deg, rgba(21,89,74,0.04) 0%, transparent 100%)" }}>
         <div className="max-w-2xl mx-auto lg:max-w-4xl">
           <motion.p
-            className="text-[12px] font-bold text-primary-container uppercase tracking-widest mb-3 text-center"
+            className="text-xs font-bold text-primary-container uppercase tracking-widest mb-3 text-center"
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false, margin: "-60px" }}
@@ -523,7 +523,7 @@ export default function LandingPage() {
             What goes into your protocol
           </motion.h2>
           <motion.p
-            className="text-[15px] text-on-surface-variant/70 text-center mb-10 leading-relaxed"
+            className="text-lead text-on-surface-variant/70 text-center mb-10 leading-relaxed"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: false, margin: "-60px" }}
@@ -559,9 +559,9 @@ export default function LandingPage() {
                   <img src={p.img} alt={p.name} className="w-full h-full object-contain" />
                 </div>
                 <div className="p-4 lg:p-5">
-                  <p className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-wider mb-1">{p.brand}</p>
-                  <p className="text-[15px] lg:text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-1">{p.name}</p>
-                  <p className="text-[13px] text-on-surface-variant/65">{p.concern}</p>
+                  <p className="text-icon font-bold text-on-surface-variant/50 uppercase tracking-wider mb-1">{p.brand}</p>
+                  <p className="text-lead lg:text-title-sm font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-1">{p.name}</p>
+                  <p className="text-body text-on-surface-variant/65">{p.concern}</p>
                 </div>
               </motion.div>
             ))}
@@ -573,7 +573,7 @@ export default function LandingPage() {
       <section className="px-6 lg:px-16 py-16 lg:py-24 border-t border-outline-variant/10">
         <div className="max-w-2xl mx-auto lg:max-w-3xl">
           <motion.h2
-            className="text-[22px] lg:text-[32px] font-extrabold text-on-surface text-center mb-12 font-[family-name:var(--font-manrope)]"
+            className="text-title lg:text-[32px] font-extrabold text-on-surface text-center mb-12 font-[family-name:var(--font-manrope)]"
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false, margin: "-60px" }}
@@ -594,7 +594,7 @@ export default function LandingPage() {
                 <p className="text-[42px] lg:text-[52px] font-extrabold text-primary-container font-[family-name:var(--font-manrope)] leading-none mb-2">
                   <CountUp to={s.to} suffix={s.suffix} />
                 </p>
-                <p className="text-[14px] text-on-surface-variant/70 font-semibold">{s.label}</p>
+                <p className="text-sm text-on-surface-variant/70 font-semibold">{s.label}</p>
               </motion.div>
             ))}
           </div>
@@ -612,7 +612,7 @@ export default function LandingPage() {
           transition={{ duration: 0.5 }}
         >
           <motion.p
-            className="text-[11px] font-bold text-white/50 uppercase tracking-widest mb-4"
+            className="text-label font-bold text-white/50 uppercase tracking-widest mb-4"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: false, margin: "-60px" }}
@@ -630,7 +630,7 @@ export default function LandingPage() {
             Ready to build your<br />health protocol?
           </motion.h2>
           <motion.p
-            className="text-[15px] text-white/75 mb-8 max-w-sm mx-auto leading-relaxed"
+            className="text-lead text-white/75 mb-8 max-w-sm mx-auto leading-relaxed"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: false, margin: "-60px" }}
@@ -641,7 +641,7 @@ export default function LandingPage() {
           </motion.p>
           <motion.button
             onClick={handleDemo}
-            className="inline-flex items-center gap-3 bg-white text-primary-container font-bold text-[15px] px-8 py-4 rounded-2xl hover:bg-white/90 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-3 bg-white text-primary-container font-bold text-lead px-8 py-4 rounded-2xl hover:bg-white/90 transition-colors cursor-pointer"
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false, margin: "-60px" }}
@@ -653,7 +653,7 @@ export default function LandingPage() {
             <span className="text-xl">→</span>
           </motion.button>
           <motion.p
-            className="mt-5 text-[13px] text-white/55"
+            className="mt-5 text-body text-white/55"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: false, margin: "-60px" }}
@@ -674,11 +674,11 @@ export default function LandingPage() {
         { label: "Contact Us",            href: "/contact" },
         { label: "About Us",              href: "/about"   },
       ].map((link) => (
-        <a key={link.href} href={link.href} className="text-[12px] text-on-surface-variant/40 hover:text-on-surface-variant transition-colors">
+        <a key={link.href} href={link.href} className="text-xs text-on-surface-variant/40 hover:text-on-surface-variant transition-colors">
           {link.label}
         </a>
       ))}
-      <span className="w-full text-center text-[11px] text-on-surface-variant/25 mt-1">
+      <span className="w-full text-center text-label text-on-surface-variant/25 mt-1">
         © {new Date().getFullYear()} Mosaic Wellness Pvt. Ltd. All rights reserved.
       </span>
     </footer>

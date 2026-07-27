@@ -99,7 +99,7 @@ export default function HeroBanner() {
           <div className="flex flex-wrap gap-3">
             <Link
               href={slide.cta.href}
-              className="px-6 py-3 bg-white text-[#004f54] font-bold rounded-xl hover:bg-white/90 transition-all text-sm md:text-base active:scale-95"
+              className="px-6 py-3 bg-white text-brand font-bold rounded-xl hover:bg-white/90 transition-all text-sm md:text-base active:scale-95"
               style={{ color: slide.bg.includes('5b21b6') ? '#5b21b6' : slide.bg.includes('b45309') ? '#b45309' : slide.bg.includes('1e3a5f') ? '#1e3a5f' : '#004f54' }}
             >
               {slide.cta.label}

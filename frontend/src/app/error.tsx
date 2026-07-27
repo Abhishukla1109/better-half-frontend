@@ -26,22 +26,22 @@ export default function ErrorPage({
       <div className="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center mb-6">
         <span className="text-3xl">⚠️</span>
       </div>
-      <h1 className="text-[20px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-2">
+      <h1 className="text-xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-2">
         Something went wrong
       </h1>
-      <p className="text-[14px] text-on-surface-variant/70 leading-relaxed mb-8 max-w-xs">
+      <p className="text-sm text-on-surface-variant/70 leading-relaxed mb-8 max-w-xs">
         We hit an unexpected error. This has been noted and we&apos;re on it. Try again or go back home.
       </p>
       <div className="flex flex-col gap-3 w-full max-w-xs">
         <button
           onClick={reset}
-          className="w-full py-3 rounded-2xl bg-primary-container text-white text-[14px] font-bold cursor-pointer active:scale-[0.98] transition-transform"
+          className="w-full py-3 rounded-2xl bg-primary-container text-white text-sm font-bold cursor-pointer active:scale-[0.98] transition-transform"
         >
           Try again
         </button>
         <button
           onClick={() => router.push("/home")}
-          className="w-full py-3 rounded-2xl bg-surface-container text-on-surface text-[14px] font-semibold cursor-pointer active:scale-[0.98] transition-transform"
+          className="w-full py-3 rounded-2xl bg-surface-container text-on-surface text-sm font-semibold cursor-pointer active:scale-[0.98] transition-transform"
         >
           Go home
         </button>

@@ -108,10 +108,10 @@ export default function ProfileSidebar() {
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-outline-variant/10">
           <div>
-            <p className="font-extrabold text-[15px] text-on-surface font-[family-name:var(--font-manrope)]">
+            <p className="font-extrabold text-lead text-on-surface font-[family-name:var(--font-manrope)]">
               My profiles
             </p>
-            <p className="text-[11px] text-on-surface-variant/50 mt-0.5">Tap to switch</p>
+            <p className="text-label text-on-surface-variant/50 mt-0.5">Tap to switch</p>
           </div>
           <button
             onClick={() => setOpen(false)}
@@ -146,14 +146,14 @@ export default function ProfileSidebar() {
                     onClick={() => { setConfirmingDeleteId(null); handleSwitch(member); }}
                     className="flex items-center gap-3.5 flex-1 min-w-0 text-left cursor-pointer"
                   >
-                    <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-[22px] shrink-0 border border-outline-variant/10">
+                    <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-title shrink-0 border border-outline-variant/10">
                       {memberEmoji(member)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-sm text-on-surface truncate">
                         {memberDisplayName(member)}
                       </p>
-                      <p className="text-[11px] text-on-surface-variant/50 mt-0.5">
+                      <p className="text-label text-on-surface-variant/50 mt-0.5">
                         {memberSubtitle(member)}
                       </p>
                     </div>
@@ -184,17 +184,17 @@ export default function ProfileSidebar() {
                 {/* Inline confirmation */}
                 {isConfirming && (
                   <div className="flex items-center justify-between px-4 py-2.5 mx-0.5 mb-1 rounded-xl bg-error/8 border border-error/15 animate-fade-in-up">
-                    <p className="text-[12px] text-error font-medium">Delete {memberDisplayName(member)}?</p>
+                    <p className="text-xs text-error font-medium">Delete {memberDisplayName(member)}?</p>
                     <div className="flex gap-2">
                       <button
                         onClick={() => setConfirmingDeleteId(null)}
-                        className="text-[11px] font-semibold text-on-surface-variant/50 hover:text-on-surface-variant transition-colors cursor-pointer px-2 py-1"
+                        className="text-label font-semibold text-on-surface-variant/50 hover:text-on-surface-variant transition-colors cursor-pointer px-2 py-1"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={() => handleDelete(member.id)}
-                        className="text-[11px] font-bold text-white bg-error px-3 py-1 rounded-lg cursor-pointer hover:bg-error/90 transition-colors"
+                        className="text-label font-bold text-white bg-error px-3 py-1 rounded-lg cursor-pointer hover:bg-error/90 transition-colors"
                       >
                         Delete
                       </button>
@@ -230,7 +230,7 @@ export default function ProfileSidebar() {
             href="/privacy"
             className="w-full flex items-center justify-center py-2"
           >
-            <span className="text-[11px] text-on-surface-variant/35 hover:text-on-surface-variant/60 transition-colors">Privacy Policy</span>
+            <span className="text-label text-on-surface-variant/35 hover:text-on-surface-variant/60 transition-colors">Privacy Policy</span>
           </Link>
         </div>
 

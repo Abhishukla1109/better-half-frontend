@@ -47,7 +47,7 @@ export default function SliderCard({
       }}
     >
       {pillarTag && (
-        <p className="text-[11px] font-semibold uppercase tracking-[0.5px] text-on-surface-variant/50 mb-2">
+        <p className="text-label font-semibold uppercase tracking-[0.5px] text-on-surface-variant/50 mb-2">
           {pillarTag}
         </p>
       )}
@@ -78,9 +78,9 @@ export default function SliderCard({
               />
             </div>
             <div className="flex justify-between mt-1.5 px-1">
-              <span className="text-[11px] text-on-surface-variant/40">{leftLabel}</span>
+              <span className="text-label text-on-surface-variant/40">{leftLabel}</span>
               <span className="text-sm font-semibold text-primary-container">{value}/{steps}</span>
-              <span className="text-[11px] text-on-surface-variant/40">{rightLabel}</span>
+              <span className="text-label text-on-surface-variant/40">{rightLabel}</span>
             </div>
             <button
               onClick={handleSubmit}
@@ -105,7 +105,7 @@ export default function SliderCard({
               ))}
             </div>
             <span className="text-xs text-on-surface-variant/50 ml-2">Logged: {value}/{steps}</span>
-            <span className="text-[10px] text-primary-container/50 ml-1">Edit</span>
+            <span className="text-icon text-primary-container/50 ml-1">Edit</span>
           </button>
         )}
       </div>

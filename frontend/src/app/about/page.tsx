@@ -10,19 +10,19 @@ export default function AboutPage() {
         <div className="mb-8">
           <button
             onClick={() => window.history.length > 1 ? router.back() : router.replace("/")}
-            className="text-[13px] text-on-surface-variant/60 hover:text-on-surface-variant mb-6 inline-block cursor-pointer"
+            className="text-body text-on-surface-variant/60 hover:text-on-surface-variant mb-6 inline-block cursor-pointer"
           >
             ← Back
           </button>
-          <h1 className="text-[24px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-2">
+          <h1 className="text-2xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-2">
             About Us
           </h1>
         </div>
 
-        <div className="space-y-8 text-[14px] text-on-surface-variant leading-relaxed">
+        <div className="space-y-8 text-sm text-on-surface-variant leading-relaxed">
 
           <section>
-            <h2 className="text-[16px] font-bold text-on-surface mb-3">We built BetterHalf because health is personal</h2>
+            <h2 className="text-base font-bold text-on-surface mb-3">We built BetterHalf because health is personal</h2>
             <p>
               No two people are the same — different bodies, different goals, different lifestyles. Yet most wellness products are built for everyone, which means they&apos;re truly built for no one.
             </p>
@@ -32,14 +32,14 @@ export default function AboutPage() {
           </section>
 
           <section>
-            <h2 className="text-[16px] font-bold text-on-surface mb-3">Built for the whole family</h2>
+            <h2 className="text-base font-bold text-on-surface mb-3">Built for the whole family</h2>
             <p>
               Health isn&apos;t just about you. BetterHalf lets you build personalised protocols for your partner and your kids — all in one place. One app, one household, fully personalised for each person.
             </p>
           </section>
 
           <section>
-            <h2 className="text-[16px] font-bold text-on-surface mb-3">Backed by Mosaic Wellness</h2>
+            <h2 className="text-base font-bold text-on-surface mb-3">Backed by Mosaic Wellness</h2>
             <p>
               BetterHalf is operated by Mosaic Wellness Private Limited, one of India&apos;s most trusted digital health companies. Mosaic Wellness builds science-backed, clinically formulated wellness products through brands millions of Indians already trust — Man Matters, Be Bodywise, and Little Joys.
             </p>
@@ -49,7 +49,7 @@ export default function AboutPage() {
           </section>
 
           <section>
-            <h2 className="text-[16px] font-bold text-on-surface mb-3">Our promise</h2>
+            <h2 className="text-base font-bold text-on-surface mb-3">Our promise</h2>
             <ul className="space-y-2 list-disc list-inside">
               <li>Personalisation that actually means something</li>
               <li>Products that are clinically formulated, not just marketed</li>
@@ -59,7 +59,7 @@ export default function AboutPage() {
           </section>
 
           <section>
-            <h2 className="text-[16px] font-bold text-on-surface mb-3">Registered Office</h2>
+            <h2 className="text-base font-bold text-on-surface mb-3">Registered Office</h2>
             <div className="bg-surface-container rounded-xl p-4 space-y-1">
               <p className="font-semibold text-on-surface">Mosaic Wellness Private Limited</p>
               <p>Lodha iThink, 6th Floor,</p>

@@ -120,7 +120,7 @@ export default function ConcernCard({ onSelect, onTextSubmit, sex, maxSelections
                   ) : (
                     <div className="absolute inset-0 bg-surface-container-low" />
                   )}
-                  <span className={`relative z-10 px-3 pb-2.5 text-[13px] font-semibold leading-tight ${
+                  <span className={`relative z-10 px-3 pb-2.5 text-body font-semibold leading-tight ${
                     img ? "text-white" : isSelected ? "text-primary-container" : "text-on-surface"
                   }`}>
                     {label}

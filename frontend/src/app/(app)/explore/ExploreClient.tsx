@@ -117,19 +117,19 @@ export default function ExploreClient({ shopifyProducts, localProducts }: Props)
   }, [shopifyProducts, localProducts, activeFilter, searchQuery, usingShopify]);
 
   return (
-    <div className="min-h-screen bg-[#f7fafa] pb-24">
+    <div className="min-h-screen bg-surface-teal pb-24">
       {/* Sticky header + filters */}
-      <div className="sticky top-0 z-20 bg-[#f7fafa]/95 backdrop-blur-sm border-b border-[#e2e8e8] px-4 py-4">
+      <div className="sticky top-0 z-20 bg-surface-teal/95 backdrop-blur-sm border-b border-border-light px-4 py-4">
         <div className="max-w-6xl mx-auto">
-          <h1 className="text-xl font-extrabold text-[#004f54] mb-3">Shop</h1>
+          <h1 className="text-xl font-extrabold text-brand mb-3">Shop</h1>
           <div className="relative mb-3">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af]" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               placeholder="Search products…"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 bg-white border border-[#e2e8e8] rounded-xl text-sm focus:outline-none focus:border-[#004f54] transition-colors"
+              className="w-full pl-9 pr-4 py-2.5 bg-white border border-border-light rounded-xl text-sm focus:outline-none focus:border-brand transition-colors"
             />
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
@@ -139,8 +139,8 @@ export default function ExploreClient({ shopifyProducts, localProducts }: Props)
                 onClick={() => { setActiveFilter(chip.key); if (chip.key !== 'all') track("Explore Filter Applied", { filter: chip.key }); }}
                 className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
                   activeFilter === chip.key
-                    ? 'bg-[#004f54] text-white'
-                    : 'bg-white border border-[#e2e8e8] text-[#4b5563] hover:border-[#004f54]'
+                    ? 'bg-brand text-white'
+                    : 'bg-white border border-border-light text-gray-600 hover:border-brand'
                 }`}
               >
                 {chip.label}
@@ -155,17 +155,17 @@ export default function ExploreClient({ shopifyProducts, localProducts }: Props)
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
             <span className="text-5xl">🔍</span>
-            <p className="text-[#6b7280]">No products found</p>
+            <p className="text-gray-500">No products found</p>
             <button
               onClick={() => { setActiveFilter('all'); setSearchQuery(''); }}
-              className="text-[#004f54] font-semibold text-sm underline"
+              className="text-brand font-semibold text-sm underline"
             >
               Clear filters
             </button>
           </div>
         ) : (
           <>
-            <p className="text-sm text-[#9ca3af] mb-4">{filtered.length} products</p>
+            <p className="text-sm text-gray-400 mb-4">{filtered.length} products</p>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {usingShopify
                 ? (filtered as ShopifyProduct[]).map(p => <ShopifyCard key={p.id} product={p} />)
@@ -197,10 +197,10 @@ function LocalCard({ product: p }: { product: LocalProduct }) {
   }
 
   return (
-    <div className="group bg-white rounded-2xl overflow-hidden border border-[#e2e8e8] flex flex-col transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-[#004f54]/10">
-      <Link href={`/product/${p.handle}`} className="relative block aspect-square bg-[#f7fafa] overflow-hidden">
+    <div className="group bg-white rounded-2xl overflow-hidden border border-border-light flex flex-col transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-[#004f54]/10">
+      <Link href={`/product/${p.handle}`} className="relative block aspect-square bg-surface-teal overflow-hidden">
         {p.discountPct > 0 && (
-          <span className="absolute top-2 left-2 z-10 text-[11px] font-bold bg-red-500 text-white px-2 py-0.5 rounded-md">
+          <span className="absolute top-2 left-2 z-10 text-label font-bold bg-red-500 text-white px-2 py-0.5 rounded-md">
             {p.discountPct}% off
           </span>
         )}
@@ -219,21 +219,21 @@ function LocalCard({ product: p }: { product: LocalProduct }) {
       </Link>
 
       <div className="p-4 flex flex-col flex-1 gap-2">
-        <p className="text-[11px] font-bold text-[#004f54] uppercase tracking-wide">{p.brand}</p>
+        <p className="text-label font-bold text-brand uppercase tracking-wide">{p.brand}</p>
         <Link
           href={`/product/${p.handle}`}
-          className="text-sm font-semibold text-[#1a2e2e] leading-snug line-clamp-2 hover:text-[#004f54] transition-colors"
+          className="text-sm font-semibold text-on-dark leading-snug line-clamp-2 hover:text-brand transition-colors"
         >
           {p.title}
         </Link>
         {p.forWith && (
-          <p className="text-xs text-[#6b7280] line-clamp-1">{p.forWith.for}</p>
+          <p className="text-xs text-gray-500 line-clamp-1">{p.forWith.for}</p>
         )}
 
         <div className="flex items-center gap-2 mt-auto">
-          <span className="text-base font-extrabold text-[#004f54]">₹{p.price.toLocaleString('en-IN')}</span>
+          <span className="text-base font-extrabold text-brand">₹{p.price.toLocaleString('en-IN')}</span>
           {p.compareAtPrice && (
-            <span className="text-sm text-[#9ca3af] line-through">₹{p.compareAtPrice.toLocaleString('en-IN')}</span>
+            <span className="text-sm text-gray-400 line-through">₹{p.compareAtPrice.toLocaleString('en-IN')}</span>
           )}
         </div>
 
@@ -242,10 +242,10 @@ function LocalCard({ product: p }: { product: LocalProduct }) {
           disabled={!p.available || state !== 'idle'}
           className={`w-full mt-1 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2
             ${!p.available
-              ? 'bg-[#e5e7eb] text-[#9ca3af] cursor-not-allowed'
+              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
               : state === 'done'
                 ? 'bg-green-600 text-white'
-                : 'bg-[#004f54] text-white hover:bg-[#01696f] active:scale-[0.98]'
+                : 'bg-brand text-white hover:bg-brand-hover active:scale-[0.98]'
             }`}
         >
           <ShoppingBag size={14} />
@@ -265,10 +265,10 @@ function ShopifyCard({ product: p }: { product: ShopifyProduct }) {
   const onSale = compare && parseFloat(compare.amount) > parseFloat(price?.amount ?? '0');
 
   return (
-    <div className="group bg-white rounded-2xl overflow-hidden border border-[#e2e8e8] flex flex-col transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
-      <Link href={`/product/${p.handle}`} className="relative block aspect-square bg-[#f7fafa] overflow-hidden">
+    <div className="group bg-white rounded-2xl overflow-hidden border border-border-light flex flex-col transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
+      <Link href={`/product/${p.handle}`} className="relative block aspect-square bg-surface-teal overflow-hidden">
         {onSale && (
-          <span className="absolute top-2 left-2 z-10 text-[11px] font-bold bg-red-500 text-white px-2 py-0.5 rounded-md">Sale</span>
+          <span className="absolute top-2 left-2 z-10 text-label font-bold bg-red-500 text-white px-2 py-0.5 rounded-md">Sale</span>
         )}
         {p.featuredImage ? (
           <Image src={p.featuredImage.url} alt={p.featuredImage.altText || p.title} fill sizes="25vw" className="object-cover group-hover:scale-105 transition-transform duration-300" />
@@ -277,13 +277,13 @@ function ShopifyCard({ product: p }: { product: ShopifyProduct }) {
         )}
       </Link>
       <div className="p-4 flex flex-col flex-1 gap-2">
-        <p className="text-[11px] font-bold text-[#004f54] uppercase tracking-wide">{p.vendor}</p>
-        <Link href={`/product/${p.handle}`} className="text-sm font-semibold text-[#1a2e2e] leading-snug line-clamp-2 hover:text-[#004f54]">
+        <p className="text-label font-bold text-brand uppercase tracking-wide">{p.vendor}</p>
+        <Link href={`/product/${p.handle}`} className="text-sm font-semibold text-on-dark leading-snug line-clamp-2 hover:text-brand">
           {p.title}
         </Link>
         <div className="flex items-center gap-2 mt-auto">
-          {price && <span className="text-base font-extrabold text-[#004f54]">₹{parseFloat(price.amount).toLocaleString('en-IN')}</span>}
-          {compare && onSale && <span className="text-sm text-[#9ca3af] line-through">₹{parseFloat(compare.amount).toLocaleString('en-IN')}</span>}
+          {price && <span className="text-base font-extrabold text-brand">₹{parseFloat(price.amount).toLocaleString('en-IN')}</span>}
+          {compare && onSale && <span className="text-sm text-gray-400 line-through">₹{parseFloat(compare.amount).toLocaleString('en-IN')}</span>}
         </div>
         <AddToCartButton
           variantId={firstVariant?.id ?? ''}

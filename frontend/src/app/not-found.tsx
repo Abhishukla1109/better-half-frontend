@@ -14,15 +14,15 @@ export default function NotFoundPage() {
       <div className="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center mb-6">
         <span className="text-3xl">🔍</span>
       </div>
-      <h1 className="text-[20px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-2">
+      <h1 className="text-xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-2">
         Page not found
       </h1>
-      <p className="text-[14px] text-on-surface-variant/70 leading-relaxed mb-8 max-w-xs">
+      <p className="text-sm text-on-surface-variant/70 leading-relaxed mb-8 max-w-xs">
         This page doesn&apos;t exist or may have moved. Let&apos;s get you back on track.
       </p>
       <Link
         href="/home"
-        className="w-full max-w-xs py-3 rounded-2xl bg-primary-container text-white text-[14px] font-bold text-center block active:scale-[0.98] transition-transform"
+        className="w-full max-w-xs py-3 rounded-2xl bg-primary-container text-white text-sm font-bold text-center block active:scale-[0.98] transition-transform"
       >
         Go home
       </Link>

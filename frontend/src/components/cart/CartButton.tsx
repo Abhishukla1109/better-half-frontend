@@ -12,9 +12,9 @@ export default function CartButton() {
       aria-label={`Cart${count > 0 ? `, ${count} items` : ''}`}
       className="relative w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors cursor-pointer"
     >
-      <span className="text-[20px] leading-none">🛒</span>
+      <span className="text-xl leading-none">🛒</span>
       {count > 0 && (
-        <span className="absolute top-1 right-1 min-w-[16px] h-[16px] flex items-center justify-center bg-[#004f54] text-white text-[9px] font-bold rounded-full px-1 leading-none">
+        <span className="absolute top-1 right-1 min-w-[16px] h-[16px] flex items-center justify-center bg-brand text-white text-2xs font-bold rounded-full px-1 leading-none">
           {count > 99 ? '99+' : count}
         </span>
       )}

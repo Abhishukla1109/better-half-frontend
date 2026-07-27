@@ -75,7 +75,7 @@ export default function Header() {
             className="relative flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-low transition-colors duration-200 cursor-pointer"
             aria-label="Search products"
           >
-            <span className="text-[20px] leading-none">🔍</span>
+            <span className="text-xl leading-none">🔍</span>
           </button>
 
           {/* Notifications */}
@@ -83,7 +83,7 @@ export default function Header() {
             className="relative flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-low transition-colors duration-200 cursor-pointer"
             aria-label="Notifications"
           >
-            <span className="text-[20px] leading-none">🔔</span>
+            <span className="text-xl leading-none">🔔</span>
           </button>
 
           {/* Profile avatar — opens family switcher sidebar */}

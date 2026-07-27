@@ -375,9 +375,11 @@ function NewProductPDP({
   const images = enriched?.images?.length ? enriched.images : product.image ? [product.image] : [];
   const initialIndex = 0;
 
-  // Deduplicate by label, sort smallest size first, keep first 2
+  // Deduplicate by label, strip internal SKU codes (MWxx.nnnnn format), keep first 2
+  const SKU_RE = /^MW[A-Z]{2,}\.\d{4,}/i;
   const packOptions = enriched?.packs
     ? [...new Map(enriched.packs.map((p) => [p.label, p])).values()]
+        .filter((p) => p.label && !SKU_RE.test(p.label))
         .sort((a, b) => (parseInt(a.label) || 0) - (parseInt(b.label) || 0))
         .slice(0, 2)
     : [];
@@ -587,7 +589,7 @@ function NewProductPDP({
     <div className="min-h-dvh bg-surface pb-24">
 
       {/* ── Sticky header ── */}
-      <header className="fixed top-0 left-0 right-0 z-50" style={{ background: "linear-gradient(135deg, #004D40 0%, #00695C 60%, #00897B 100%)" }}>
+      <header className="fixed top-0 left-0 right-0 z-50 gradient-pdp-header">
         <div className="max-w-2xl mx-auto flex items-center h-14 px-4 gap-3">
           {/* Left: hamburger + logo */}
           <div className="flex items-center gap-2 flex-1">
@@ -615,7 +617,7 @@ function NewProductPDP({
             <button onClick={openCart} className="relative flex items-center justify-center w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 transition-colors cursor-pointer" aria-label="Cart">
               <ShoppingCart className="w-4 h-4 text-white" strokeWidth={1.5} />
               {cartCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-amber-400 text-[9px] font-extrabold text-white flex items-center justify-center leading-none">
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-amber-400 text-2xs font-extrabold text-white flex items-center justify-center leading-none">
                   {cartCount}
                 </span>
               )}
@@ -688,7 +690,7 @@ function NewProductPDP({
           {/* Little Joys: age badge */}
           {enriched?.ageGroup && (
             <div className="mb-2">
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-700 border border-amber-400/20">
+              <span className="inline-flex items-center gap-1.5 text-label font-bold px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-700 border border-amber-400/20">
                 👶 Ages {enriched.ageGroup}
               </span>
             </div>
@@ -713,7 +715,7 @@ function NewProductPDP({
           {/* Variant picker — shown when siblings exist (size / flavour / pack / age) */}
           {enriched?.siblings && enriched.siblings.length > 1 && (
             <div className="mt-3">
-              <p className="text-[11px] font-semibold text-on-surface-variant/60 uppercase tracking-wide mb-1.5">
+              <p className="text-label font-semibold text-on-surface-variant/60 uppercase tracking-wide mb-1.5">
                 {enriched.siblings.length > 2 ? "Choose variant" : "Choose size"}
               </p>
               <div className="flex flex-wrap gap-2">
@@ -724,10 +726,10 @@ function NewProductPDP({
                       key={s.slug}
                       onClick={() => !isCurrent && router.push(`/product/${s.slug}`)}
                       className={[
-                        "px-3.5 py-1.5 rounded-full text-[12.5px] font-semibold border transition-all",
+                        "px-3.5 py-1.5 rounded-full text-label font-semibold border transition-all",
                         isCurrent
-                          ? "bg-[#004f54] text-white border-[#004f54] shadow-sm"
-                          : "bg-white text-[#1a2e2e] border-[#c8d8d8] hover:border-[#004f54]",
+                          ? "bg-brand text-white border-brand shadow-sm"
+                          : "bg-white text-on-dark border-[#c8d8d8] hover:border-brand",
                       ].join(" ")}
                     >
                       {s.label}
@@ -741,14 +743,14 @@ function NewProductPDP({
           {/* For / With callout (Be Bodywise) */}
           {enriched?.forWith && (
             <div className="flex flex-wrap gap-2 mt-2.5">
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-surface-container border border-outline-variant/10 text-on-surface-variant">
+              <span className="inline-flex items-center gap-1.5 text-label font-semibold px-2.5 py-1 rounded-full bg-surface-container border border-outline-variant/10 text-on-surface-variant">
                 <span className="text-on-surface-variant/50 font-medium">For</span> {enriched.forWith.for}
               </span>
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-surface-container border border-outline-variant/10 text-on-surface-variant">
+              <span className="inline-flex items-center gap-1.5 text-label font-semibold px-2.5 py-1 rounded-full bg-surface-container border border-outline-variant/10 text-on-surface-variant">
                 <span className="text-on-surface-variant/50 font-medium">With</span> {enriched.forWith.with}
               </span>
               {enriched.recommendation && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">
+                <span className="inline-flex items-center gap-1 text-label font-bold px-2.5 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">
                   ✦ {enriched.recommendation} recommend
                 </span>
               )}
@@ -770,12 +772,12 @@ function NewProductPDP({
             return (
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {chips.map((c, i) => (
-                  <span key={i} className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant border border-outline-variant/10">
+                  <span key={i} className="inline-flex items-center gap-1 text-label font-medium px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant border border-outline-variant/10">
                     {c.emoji} {c.text}
                   </span>
                 ))}
                 {matchScore !== null && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">
+                  <span className="inline-flex items-center gap-1 text-label font-bold px-2.5 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">
                     ✦ {matchScore}% match
                   </span>
                 )}
@@ -786,7 +788,7 @@ function NewProductPDP({
           {/* Little Joys: allergen warning */}
           {enriched?.allergens && enriched.allergens.length > 0 && (
             <div className="flex items-center gap-1.5 mt-2">
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full bg-red-50 text-red-600 border border-red-200/60">
+              <span className="inline-flex items-center gap-1 text-icon font-semibold px-2.5 py-1 rounded-full bg-red-50 text-red-600 border border-red-200/60">
                 ⚠️ Contains: {enriched.allergens.join(", ")}
               </span>
             </div>
@@ -826,7 +828,7 @@ function NewProductPDP({
           {/* Pack size pills */}
           {packOptions.length > 0 && (
             <div className="mt-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/50 mb-2">📦 Pack size</p>
+              <p className="text-label font-semibold uppercase tracking-wider text-on-surface-variant/50 mb-2">📦 Pack size</p>
               <div className="flex gap-2">
                 {packOptions.map((p, i) => (
                   <button
@@ -851,7 +853,7 @@ function NewProductPDP({
               <span className="text-2xl shrink-0">🚚</span>
               <div>
                 <p className="text-xs font-bold text-teal-800">Free delivery across India</p>
-                <p className="text-[10px] text-teal-700/70 mt-0.5">Ships in 2–3 business days &nbsp;·&nbsp; Cash on delivery available</p>
+                <p className="text-icon text-teal-700/70 mt-0.5">Ships in 2–3 business days &nbsp;·&nbsp; Cash on delivery available</p>
               </div>
             </div>
             <div className="flex items-center gap-2 px-4 py-2.5 bg-white/70 border-t border-teal-100/80">
@@ -886,31 +888,31 @@ function NewProductPDP({
           <div className="mt-3 mx-5 flex items-center gap-3 px-4 py-3 rounded-2xl" style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)", border: "1px solid #FCD34D40" }}>
             <span className="text-2xl shrink-0">🔬</span>
             <div>
-              <p className="text-[12px] font-extrabold text-amber-800">Developed by Paediatricians</p>
-              <p className="text-[10px] text-amber-700/70 mt-0.5">Every batch lab-tested · No preservatives · No refined sugar</p>
+              <p className="text-xs font-extrabold text-amber-800">Developed by Paediatricians</p>
+              <p className="text-icon text-amber-700/70 mt-0.5">Every batch lab-tested · No preservatives · No refined sugar</p>
             </div>
           </div>
         )}
 
         {/* ── BetterHalf AI card ── */}
         {hasProfile ? (
-          <div className="mt-4 mx-5 rounded-2xl overflow-hidden" style={{ background: "linear-gradient(145deg, #00352E 0%, #004D40 60%, #00564A 100%)" }}>
+          <div className="mt-4 mx-5 rounded-2xl overflow-hidden gradient-pdp-dark">
             <div className="p-4">
               <div className="flex items-center gap-2 mb-3">
                 <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white/10">
                   <Sparkles className="w-3.5 h-3.5 text-amber-300" strokeWidth={1.5} />
                 </div>
-                <span className="text-[10px] font-extrabold text-white/50 uppercase tracking-widest">BetterHalf AI</span>
-                <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-300/10 px-2 py-0.5 rounded-full">
+                <span className="text-icon font-extrabold text-white/50 uppercase tracking-widest">BetterHalf AI</span>
+                <span className="ml-auto inline-flex items-center gap-1 text-icon font-bold text-amber-300 bg-amber-300/10 px-2 py-0.5 rounded-full">
                   <CheckCircle className="w-3 h-3" strokeWidth={2.5} />
                   Matched to your {CONCERN_DISPLAY[product.concern?.[0]?.toLowerCase() ?? ""] ?? "Health"} protocol
                 </span>
               </div>
-              <p className="text-[11px] font-bold text-amber-300/90 uppercase tracking-wider mb-3">Why we picked this for you</p>
+              <p className="text-label font-bold text-amber-300/90 uppercase tracking-wider mb-3">Why we picked this for you</p>
               <ul className="space-y-2.5">
                 {whyLines.map((line, i) => (
                   <li key={i} className="flex items-start gap-2.5">
-                    <span className="text-amber-300/50 mt-1 text-[10px] shrink-0">◆</span>
+                    <span className="text-amber-300/50 mt-1 text-icon shrink-0">◆</span>
                     <span className="text-sm text-white/90 leading-relaxed">{line}</span>
                   </li>
                 ))}
@@ -918,7 +920,7 @@ function NewProductPDP({
             </div>
             <div className="px-4 py-2.5 border-t border-white/8 bg-black/10 flex items-center gap-1.5">
               <Sparkles className="w-3 h-3 text-white/30" strokeWidth={1.5} />
-              <span className="text-[10px] text-white/30">Personalised using your health profile</span>
+              <span className="text-icon text-white/30">Personalised using your health profile</span>
             </div>
           </div>
         ) : (
@@ -928,14 +930,13 @@ function NewProductPDP({
                 <div className="flex items-center justify-center w-6 h-6 rounded-full bg-teal-600/10">
                   <Sparkles className="w-3.5 h-3.5 text-teal-600" strokeWidth={1.5} />
                 </div>
-                <span className="text-[10px] font-extrabold text-teal-600/70 uppercase tracking-widest">BetterHalf AI</span>
+                <span className="text-icon font-extrabold text-teal-600/70 uppercase tracking-widest">BetterHalf AI</span>
               </div>
               <p className="text-sm font-extrabold text-on-surface mb-1 font-[family-name:var(--font-manrope)]">Not sure if this is right for you?</p>
               <p className="text-xs text-on-surface-variant leading-relaxed mb-4">Take our free 2-min health assessment and get a protocol built specifically for your concern and stage.</p>
               <Link
                 href="/onboarding"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer"
-                style={{ background: "linear-gradient(135deg, #004D40 0%, #00897B 100%)" }}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer gradient-pdp-header"
               >
                 <Sparkles className="w-3.5 h-3.5" strokeWidth={1.5} />
                 Take the free quiz
@@ -964,9 +965,9 @@ function NewProductPDP({
                     </div>
                   ) : null}
                   <div className="p-3">
-                    <p className="text-[12.5px] font-bold text-on-surface leading-snug mb-1">{b.title}</p>
+                    <p className="text-label font-bold text-on-surface leading-snug mb-1">{b.title}</p>
                     {b.description && !/^[-\s]+$/.test(b.description) && (
-                      <p className="text-[11px] text-on-surface-variant leading-relaxed">{b.description}</p>
+                      <p className="text-label text-on-surface-variant leading-relaxed">{b.description}</p>
                     )}
                   </div>
                 </div>
@@ -980,15 +981,15 @@ function NewProductPDP({
         {enriched && (
           <div className="mt-6">
             {/* Tab bar */}
-            <div className="flex border-b-2 border-[#e2e8e8] px-5">
+            <div className="flex border-b-2 border-border-light px-5">
               {(["details", "how-to-use"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`flex-1 py-3.5 text-[14px] font-700 cursor-pointer transition-colors ${
+                  className={`flex-1 py-3.5 text-sm font-700 cursor-pointer transition-colors ${
                     activeTab === tab
-                      ? "text-[#004f54] border-b-2 border-[#004f54] -mb-[2px]"
-                      : "text-[#9ca3af]"
+                      ? "text-brand border-b-2 border-brand -mb-[2px]"
+                      : "text-gray-400"
                   }`}
                 >
                   {tab === "details" ? "Product Details" : "How to Use"}
@@ -1036,15 +1037,15 @@ function NewProductPDP({
                           const Icon = iconFor(b.title + " " + b.body);
                           return (
                             <div key={i} className={`flex items-start gap-3.5 py-4 ${i < bullets.length - 1 ? "border-b border-[#eff4f4]" : ""}`}>
-                              <div className="shrink-0 w-8 h-8 rounded-full bg-[#004f54]/8 flex items-center justify-center mt-0.5">
+                              <div className="shrink-0 w-8 h-8 rounded-full bg-brand/8 flex items-center justify-center mt-0.5">
                                 {b.emoji
                                   ? <span className="text-base leading-none">{b.emoji}</span>
-                                  : <Icon className="w-[15px] h-[15px] text-[#004f54]" strokeWidth={1.5} />
+                                  : <Icon className="w-[15px] h-[15px] text-brand" strokeWidth={1.5} />
                                 }
                               </div>
                               <div className="flex-1 min-w-0 pt-0.5">
-                                {b.title && <p className="text-[13.5px] font-bold text-[#1a2e2e] leading-snug mb-1">{b.title}</p>}
-                                <p className={`leading-relaxed ${b.title ? "text-[12.5px] text-[#6b7280]" : "text-[13.5px] text-[#1a2e2e]"}`}>{b.body}</p>
+                                {b.title && <p className="text-body font-bold text-on-dark leading-snug mb-1">{b.title}</p>}
+                                <p className={`leading-relaxed ${b.title ? "text-label text-gray-500" : "text-body text-on-dark"}`}>{b.body}</p>
                               </div>
                             </div>
                           );
@@ -1052,7 +1053,7 @@ function NewProductPDP({
                         {disclaimer && (
                           <div className="flex gap-3 px-4 py-3.5 rounded-2xl bg-blue-50 border border-blue-100 mt-2">
                             <span className="text-lg shrink-0 mt-0.5">👨‍⚕️</span>
-                            <p className="text-[12px] text-blue-700 leading-relaxed">{disclaimer}.</p>
+                            <p className="text-xs text-blue-700 leading-relaxed">{disclaimer}.</p>
                           </div>
                         )}
                       </div>
@@ -1125,12 +1126,12 @@ function NewProductPDP({
                       const body  = hasLabel ? step.slice(colonIdx + 1).trim() : step;
                       return (
                         <div key={i} className={`flex items-start gap-3.5 py-4 ${i < deduped.length - 1 ? "border-b border-[#eff4f4]" : ""}`}>
-                          <div className="shrink-0 w-8 h-8 rounded-full bg-[#004f54]/8 flex items-center justify-center mt-0.5">
-                            <span className="text-[13px] font-bold text-[#004f54]">{i + 1}</span>
+                          <div className="shrink-0 w-8 h-8 rounded-full bg-brand/8 flex items-center justify-center mt-0.5">
+                            <span className="text-body font-bold text-brand">{i + 1}</span>
                           </div>
                           <div className="flex-1 min-w-0 pt-0.5">
-                            {label && <p className="text-[13.5px] font-bold text-[#1a2e2e] leading-snug mb-1">{label}</p>}
-                            <p className={`leading-relaxed ${label ? "text-[12.5px] text-[#6b7280]" : "text-[13.5px] text-[#1a2e2e]"}`}>{body}</p>
+                            {label && <p className="text-body font-bold text-on-dark leading-snug mb-1">{label}</p>}
+                            <p className={`leading-relaxed ${label ? "text-label text-gray-500" : "text-body text-on-dark"}`}>{body}</p>
                           </div>
                         </div>
                       );
@@ -1151,7 +1152,7 @@ function NewProductPDP({
                 <div key={i} className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-surface-container-lowest border border-outline-variant/8 text-center">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={badge.icon} alt={badge.label} className="w-10 h-10 object-contain" />
-                  <span className="text-[11px] font-medium text-on-surface-variant leading-tight">{badge.label}</span>
+                  <span className="text-label font-medium text-on-surface-variant leading-tight">{badge.label}</span>
                 </div>
               ))}
             </div>
@@ -1185,7 +1186,7 @@ function NewProductPDP({
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-on-surface leading-snug">{ing.name}</p>
-                        <p className="text-[10px] text-on-surface-variant/45 mt-0.5">
+                        <p className="text-icon text-on-surface-variant/45 mt-0.5">
                           {isOpen ? "Tap to collapse" : "Tap to learn more"}
                         </p>
                       </div>
@@ -1210,12 +1211,12 @@ function NewProductPDP({
                     <div className="px-4 pb-4">
                       <div className="h-px bg-outline-variant/10 mb-3" />
                       {ing.shortDesc && (
-                        <p className="text-[13px] text-on-surface-variant leading-relaxed">
+                        <p className="text-body text-on-surface-variant leading-relaxed">
                           {ing.shortDesc.replace(/^Our paediatricians say:\s*/i, "").replace(/^Doctors? say:\s*/i, "")}
                         </p>
                       )}
                       {ing.longDesc && (
-                        <p className="text-[13px] text-on-surface-variant leading-relaxed mt-2">{ing.longDesc}</p>
+                        <p className="text-body text-on-surface-variant leading-relaxed mt-2">{ing.longDesc}</p>
                       )}
                     </div>
                   )}
@@ -1250,10 +1251,10 @@ function NewProductPDP({
                     )}
                     <div className="p-3">
                       {heading ? (
-                        <span className="inline-block text-[10px] font-bold text-primary-container bg-primary-container/10 px-2 py-0.5 rounded-full mb-1.5 leading-none">{heading}</span>
+                        <span className="inline-block text-icon font-bold text-primary-container bg-primary-container/10 px-2 py-0.5 rounded-full mb-1.5 leading-none">{heading}</span>
                       ) : null}
                       {step.description?.trim() && !/^[-\s]+$/.test(step.description.trim()) && (
-                        <p className="text-[11px] text-on-surface-variant leading-relaxed">{step.description.trim()}</p>
+                        <p className="text-label text-on-surface-variant leading-relaxed">{step.description.trim()}</p>
                       )}
                     </div>
                   </div>
@@ -1266,14 +1267,14 @@ function NewProductPDP({
 
         {/* ── Complete your routine ── */}
         {pairedItems.length > 0 && (
-          <div className="mt-8" style={{ background: "linear-gradient(145deg, #00352E 0%, #004D40 60%, #00564A 100%)" }}>
+          <div className="mt-8 gradient-pdp-dark">
             <div className="px-5 pt-5 pb-6">
               {/* Header */}
               <div className="flex items-center gap-1.5 mb-1">
                 <Sparkles className="w-3 h-3 text-amber-300/70" strokeWidth={1.5} />
-                <span className="text-[10px] font-extrabold text-white/40 uppercase tracking-widest">Pairs well with</span>
+                <span className="text-icon font-extrabold text-white/40 uppercase tracking-widest">Pairs well with</span>
               </div>
-              <h2 className="text-[18px] font-extrabold text-white font-[family-name:var(--font-manrope)] mb-4">
+              <h2 className="text-lg font-extrabold text-white font-[family-name:var(--font-manrope)] mb-4">
                 {ROUTINE_HEADER[product.concern?.[0] ?? ""] ?? "Complete your routine"}
               </h2>
 
@@ -1305,23 +1306,23 @@ function NewProductPDP({
                       </div>
                       <div className="flex flex-col flex-1 p-3">
                         <div className="flex-1 flex flex-col gap-1">
-                          <p className="text-[12px] font-semibold text-on-surface leading-snug line-clamp-2">{enriched?.name ?? product.name}</p>
-                          <span className="self-start text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full leading-snug">
+                          <p className="text-xs font-semibold text-on-surface leading-snug line-clamp-2">{enriched?.name ?? product.name}</p>
+                          <span className="self-start text-icon font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full leading-snug">
                             Your pick
                           </span>
                           {avg != null && (
                             <div className="flex items-center gap-1 mt-0.5">
                               <Star className="w-3 h-3 text-amber-400 fill-amber-400" strokeWidth={0} />
-                              <span className="text-[11px] font-semibold text-on-surface">{avg.toFixed(1)}</span>
+                              <span className="text-label font-semibold text-on-surface">{avg.toFixed(1)}</span>
                               {cnt != null && (
-                                <span className="text-[10px] text-on-surface-variant/40">
+                                <span className="text-icon text-on-surface-variant/40">
                                   ({cnt >= 1000 ? `${(cnt / 1000).toFixed(1)}k` : cnt})
                                 </span>
                               )}
                             </div>
                           )}
                           {price != null && (
-                            <p className="text-[15px] font-extrabold text-on-surface mt-0.5">₹{price}</p>
+                            <p className="text-lead font-extrabold text-on-surface mt-0.5">₹{price}</p>
                           )}
                         </div>
                       </div>
@@ -1362,23 +1363,23 @@ function NewProductPDP({
                         </div>
                         <div className="flex flex-col flex-1 p-3">
                           <div className="flex-1 flex flex-col gap-1">
-                            <p className="text-[12px] font-semibold text-on-surface leading-snug line-clamp-2">{pe.name}</p>
-                            <span className="self-start text-[10px] font-semibold text-primary-container bg-primary-container/10 px-2 py-0.5 rounded-full leading-snug">
+                            <p className="text-xs font-semibold text-on-surface leading-snug line-clamp-2">{pe.name}</p>
+                            <span className="self-start text-icon font-semibold text-primary-container bg-primary-container/10 px-2 py-0.5 rounded-full leading-snug">
                               {reason}
                             </span>
                             {avg != null && (
                               <div className="flex items-center gap-1 mt-0.5">
                                 <Star className="w-3 h-3 text-amber-400 fill-amber-400" strokeWidth={0} />
-                                <span className="text-[11px] font-semibold text-on-surface">{avg.toFixed(1)}</span>
+                                <span className="text-label font-semibold text-on-surface">{avg.toFixed(1)}</span>
                                 {cnt != null && (
-                                  <span className="text-[10px] text-on-surface-variant/40">
+                                  <span className="text-icon text-on-surface-variant/40">
                                     ({cnt >= 1000 ? `${(cnt / 1000).toFixed(1)}k` : cnt})
                                   </span>
                                 )}
                               </div>
                             )}
                             {price != null && (
-                              <p className="text-[15px] font-extrabold text-on-surface mt-0.5">₹{price}</p>
+                              <p className="text-lead font-extrabold text-on-surface mt-0.5">₹{price}</p>
                             )}
                           </div>
                         </div>
@@ -1392,7 +1393,7 @@ function NewProductPDP({
               <button
                 onClick={handleAddRoutine}
                 disabled={routineCartState !== "idle" || routineItemCount === 0}
-                className="mt-4 w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-[13px] font-bold text-white transition-all duration-200 cursor-pointer active:scale-[0.98] disabled:opacity-50"
+                className="mt-4 w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-body font-bold text-white transition-all duration-200 cursor-pointer active:scale-[0.98] disabled:opacity-50"
                 style={
                   routineCartState === "done"  ? { background: "#22c55e" } :
                   routineCartState === "error" ? { background: "#ef4444" } :
@@ -1427,7 +1428,7 @@ function NewProductPDP({
                   </div>
                   <p className="text-sm font-semibold text-on-surface mb-1">{review.title}</p>
                   <p className="text-sm text-on-surface-variant leading-relaxed">&ldquo;{review.body}&rdquo;</p>
-                  <p className="text-[11px] text-on-surface-variant/40 mt-2">{review.author}{review.verified && " · Verified"}</p>
+                  <p className="text-label text-on-surface-variant/40 mt-2">{review.author}{review.verified && " · Verified"}</p>
                 </div>
               ))}
             </div>
@@ -1488,8 +1489,8 @@ function NewProductPDP({
           <div className="mt-6 mx-5 flex gap-3 p-4 rounded-2xl bg-blue-50 border border-blue-200/60">
             <span className="text-xl shrink-0 mt-0.5">👨‍⚕️</span>
             <div>
-              <p className="text-[12px] font-bold text-blue-900">Consult before starting</p>
-              <p className="text-[11px] text-blue-800/70 mt-0.5 leading-relaxed">
+              <p className="text-xs font-bold text-blue-900">Consult before starting</p>
+              <p className="text-label text-blue-800/70 mt-0.5 leading-relaxed">
                 For children with any medical condition or dietary restriction, consult a paediatrician before use.
               </p>
             </div>
@@ -1503,7 +1504,7 @@ function NewProductPDP({
               <div className="rounded-2xl border border-outline-variant/10 overflow-hidden bg-surface-container-lowest divide-y divide-outline-variant/8">
                 {enriched.additionalInfo.map((row, i) => (
                   <div key={i} className="flex items-start gap-3 px-4 py-3">
-                    <span className="text-[11px] font-semibold text-on-surface-variant/55 uppercase tracking-wide shrink-0 w-28 leading-relaxed pt-0.5">{row.title}</span>
+                    <span className="text-label font-semibold text-on-surface-variant/55 uppercase tracking-wide shrink-0 w-28 leading-relaxed pt-0.5">{row.title}</span>
                     <span className="text-xs text-on-surface leading-relaxed flex-1">{row.content}</span>
                   </div>
                 ))}
@@ -1519,20 +1520,20 @@ function NewProductPDP({
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-surface-container-lowest border-t border-outline-variant/10">
         {/* Trust strip */}
         <div className="max-w-2xl mx-auto flex items-center justify-center gap-3 pt-2 pb-0 px-4">
-          <span className="flex items-center gap-1 text-[10px] font-medium text-on-surface-variant/50">
+          <span className="flex items-center gap-1 text-icon font-medium text-on-surface-variant/50">
             <CheckCircle className="w-3 h-3 text-green-500 shrink-0" strokeWidth={2.5} />
             Authentic product
           </span>
-          <span className="text-outline-variant/30 text-[10px]">·</span>
-          <span className="text-[10px] font-medium text-on-surface-variant/50">Free delivery</span>
-          <span className="text-outline-variant/30 text-[10px]">·</span>
-          <span className="text-[10px] font-medium text-on-surface-variant/50">Cash on delivery</span>
+          <span className="text-outline-variant/30 text-icon">·</span>
+          <span className="text-icon font-medium text-on-surface-variant/50">Free delivery</span>
+          <span className="text-outline-variant/30 text-icon">·</span>
+          <span className="text-icon font-medium text-on-surface-variant/50">Cash on delivery</span>
         </div>
         <div className="max-w-2xl mx-auto flex items-center gap-2.5 px-4 py-3">
           <div className="min-w-0 shrink-0">
             <p className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">&#8377;{product.price}</p>
             {product.mrp > product.price && (
-              <p className="text-[10px] text-on-surface-variant/40 line-through">&#8377;{product.mrp}</p>
+              <p className="text-icon text-on-surface-variant/40 line-through">&#8377;{product.mrp}</p>
             )}
           </div>
           {/* Add to Cart — outlined */}
@@ -1578,7 +1579,7 @@ function NewProductPDP({
             onClick={() => setNavOpen(false)}
           />
           {/* Drawer */}
-          <div className="fixed top-0 left-0 bottom-0 z-[61] w-[280px] max-w-[85vw] flex flex-col shadow-2xl animate-slide-in-left" style={{ background: "linear-gradient(180deg, #00352E 0%, #004D40 100%)" }}>
+          <div className="fixed top-0 left-0 bottom-0 z-[61] w-[280px] max-w-[85vw] flex flex-col shadow-2xl animate-slide-in-left gradient-pdp-dark">
             {/* Drawer header — matches main header layout exactly */}
             <div className="flex items-center gap-2 h-14 px-4 border-b border-white/8">
               <button
@@ -1613,7 +1614,7 @@ function NewProductPDP({
               <div className="flex items-center gap-3.5 px-4 py-3.5 rounded-2xl text-white/25 cursor-default select-none">
                 <Sparkles className="w-5 h-5 shrink-0" strokeWidth={1.5} />
                 <span className="text-sm font-semibold">Ask AI</span>
-                <span className="ml-auto text-[9px] font-bold text-white/25 uppercase tracking-widest">Soon</span>
+                <span className="ml-auto text-2xs font-bold text-white/25 uppercase tracking-widest">Soon</span>
               </div>
             </nav>
 
@@ -1626,7 +1627,7 @@ function NewProductPDP({
                 <User className="w-4 h-4 text-white/60 shrink-0" strokeWidth={1.5} />
                 <span className="text-sm font-semibold text-white/70">My profiles</span>
               </button>
-              <p className="text-[10px] text-white/20 uppercase tracking-widest text-center mt-4">Powered by Mosaic Wellness</p>
+              <p className="text-icon text-white/20 uppercase tracking-widest text-center mt-4">Powered by Mosaic Wellness</p>
             </div>
           </div>
         </>
@@ -1647,17 +1648,41 @@ export default function ProductPage({
   const { slug } = use(params);
   const router = useRouter();
   const { products: catalogProducts, loading: catalogLoading } = useCatalogProducts();
-  const newProduct = catalogProducts.find((p) => p.id === slug);
-  const { enriched } = useShopifyPDP(slug);
+  const catalogProduct = catalogProducts.find((p) => p.id === slug);
+  const { enriched, pdpLoading } = useShopifyPDP(slug);
 
+  // Build a synthetic product from enriched Shopify data for sibling pages that were
+  // filtered from the catalog (only the primary sibling is kept in catalog).
+  const syntheticProduct: Product | null = useMemo(() => {
+    if (catalogProduct || !enriched) return null;
+    return {
+      id:        slug,
+      brand:     enriched.brand as "Man Matters" | "Be Bodywise" | "Little Joys",
+      name:      enriched.name,
+      price:     enriched.price ?? 0,
+      mrp:       enriched.mrp ?? 0,
+      concern:   [],
+      gender:    [],
+      segment:   [],
+      followUp:  [],
+      category:  "",
+      baseScore: 0,
+      images:    enriched.images,
+      siblings:  enriched.siblings,
+    };
+  }, [catalogProduct, enriched, slug]);
+
+  const product = catalogProduct ?? syntheticProduct;
+
+  // Only redirect to explore if neither catalog nor Shopify has this product
   useEffect(() => {
-    if (!catalogLoading && !newProduct) {
+    if (!catalogLoading && !pdpLoading && !product) {
       router.replace("/explore");
     }
-  }, [newProduct, catalogLoading, router]);
+  }, [product, catalogLoading, pdpLoading, router]);
 
-  if (!newProduct) return null;
+  if (!product) return null;
 
   const handleBack = () => window.history.length > 1 ? router.back() : router.replace("/explore");
-  return <NewProductPDP product={newProduct} enriched={enriched} onBack={handleBack} />;
+  return <NewProductPDP product={product} enriched={enriched} onBack={handleBack} />;
 }

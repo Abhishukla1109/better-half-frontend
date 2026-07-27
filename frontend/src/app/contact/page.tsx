@@ -10,38 +10,38 @@ export default function ContactPage() {
         <div className="mb-8">
           <button
             onClick={() => window.history.length > 1 ? router.back() : router.replace("/")}
-            className="text-[13px] text-on-surface-variant/60 hover:text-on-surface-variant mb-6 inline-block cursor-pointer"
+            className="text-body text-on-surface-variant/60 hover:text-on-surface-variant mb-6 inline-block cursor-pointer"
           >
             ← Back
           </button>
-          <h1 className="text-[24px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-2">
+          <h1 className="text-2xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-2">
             Contact Us
           </h1>
-          <p className="text-[14px] text-on-surface-variant/70 mt-1">
+          <p className="text-sm text-on-surface-variant/70 mt-1">
             BetterHalf wants to make expert advice and healthcare more accessible — to everyone. Reach out to us for any queries or issues you might be facing.
           </p>
         </div>
 
-        <div className="space-y-6 text-[14px] text-on-surface-variant leading-relaxed">
+        <div className="space-y-6 text-sm text-on-surface-variant leading-relaxed">
 
           <div className="bg-surface-container rounded-2xl p-5 space-y-1">
-            <p className="font-bold text-on-surface text-[15px]">📞 Call us</p>
-            <a href="tel:+917607027607" className="text-primary-container underline text-[15px] font-semibold">
+            <p className="font-bold text-on-surface text-lead">📞 Call us</p>
+            <a href="tel:+917607027607" className="text-primary-container underline text-lead font-semibold">
               +91 76070 27607
             </a>
-            <p className="text-[13px] text-on-surface-variant/60">Mon – Sat, 9 AM to 6 PM</p>
+            <p className="text-body text-on-surface-variant/60">Mon – Sat, 9 AM to 6 PM</p>
           </div>
 
           <div className="bg-surface-container rounded-2xl p-5 space-y-1">
-            <p className="font-bold text-on-surface text-[15px]">✉️ Email us</p>
+            <p className="font-bold text-on-surface text-lead">✉️ Email us</p>
             <a href="mailto:support@betterhalforyou.com" className="text-primary-container underline">
               support@betterhalforyou.com
             </a>
-            <p className="text-[13px] text-on-surface-variant/60">We typically respond within 24–48 hours.</p>
+            <p className="text-body text-on-surface-variant/60">We typically respond within 24–48 hours.</p>
           </div>
 
           <div className="bg-surface-container rounded-2xl p-5 space-y-1">
-            <p className="font-bold text-on-surface text-[15px]">📍 Address</p>
+            <p className="font-bold text-on-surface text-lead">📍 Address</p>
             <p>Mosaic Wellness Pvt. Ltd.</p>
             <p>Lodha iThink, 6th Floor,</p>
             <p>Chirak Nagar, Thane West,</p>
@@ -49,12 +49,12 @@ export default function ContactPage() {
           </div>
 
           <div className="bg-surface-container rounded-2xl p-5 space-y-1">
-            <p className="font-bold text-on-surface text-[15px]">⚠️ Grievance Officer</p>
+            <p className="font-bold text-on-surface text-lead">⚠️ Grievance Officer</p>
             <p className="font-semibold text-on-surface">Mr. Mridul Muralidharan</p>
             <p>Senior Director, Mosaic Wellness Private Limited</p>
             <p>Phone: <a href="tel:+918128688128" className="text-primary-container underline">+91 81286 88128</a></p>
             <p>Email: <a href="mailto:grievances@mosaicwellness.in" className="text-primary-container underline">grievances@mosaicwellness.in</a></p>
-            <p className="text-[13px] text-on-surface-variant/60">Mon – Sat, 09:00 – 18:00</p>
+            <p className="text-body text-on-surface-variant/60">Mon – Sat, 09:00 – 18:00</p>
           </div>
 
         </div>

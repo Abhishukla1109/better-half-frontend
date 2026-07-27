@@ -30,7 +30,7 @@ export default function AnnouncementBar() {
   if (!visible) return null;
 
   return (
-    <div className="bg-[#004f54] text-white text-xs md:text-sm font-medium px-4 py-2.5 flex items-center justify-center gap-3 relative">
+    <div className="bg-brand text-white text-xs md:text-sm font-medium px-4 py-2.5 flex items-center justify-center gap-3 relative">
       <span
         className={`transition-opacity duration-300 text-center ${animating ? 'opacity-0' : 'opacity-100'}`}
       >

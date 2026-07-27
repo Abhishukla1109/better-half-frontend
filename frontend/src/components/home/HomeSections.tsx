@@ -35,7 +35,7 @@ export function HeroCarousel() {
       onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       <div className="px-5 py-7 flex items-center gap-4">
         <div className="flex-1 text-white">
-          <div className="text-[11px] font-bold uppercase tracking-widest opacity-70 mb-2">{s.eyebrow}</div>
+          <div className="text-label font-bold uppercase tracking-widest opacity-70 mb-2">{s.eyebrow}</div>
           <h2 className="text-xl font-extrabold leading-tight whitespace-pre-line mb-2">{s.headline}</h2>
           <p className="text-white/75 text-xs leading-relaxed mb-4">{s.sub}</p>
           <Link href={s.cta.href}
@@ -66,7 +66,7 @@ export function HeroCarousel() {
 // ── Category Grid ─────────────────────────────────────────────
 
 const CATS = [
-  { key: 'hair', emoji: '💇', label: 'Hair', bg: 'bg-[#e8f5f5]' },
+  { key: 'hair', emoji: '💇', label: 'Hair', bg: 'bg-surface-teal' },
   { key: 'skin', emoji: '✨', label: 'Skin', bg: 'bg-[#f5eafa]' },
   { key: 'energy', emoji: '⚡', label: 'Energy', bg: 'bg-[#fff8e7]' },
   { key: 'sleep', emoji: '😴', label: 'Sleep', bg: 'bg-[#ede8f5]' },
@@ -79,7 +79,7 @@ const CATS = [
 export function CategoryGrid() {
   return (
     <div className="px-4">
-      <h2 className="text-base font-extrabold text-[#1a2e2e] mb-3">Shop by concern</h2>
+      <h2 className="text-base font-extrabold text-on-dark mb-3">Shop by concern</h2>
       <div className="grid grid-cols-4 gap-2.5">
         {CATS.map(c => (
           <Link key={c.key} href={`/explore?filter=${c.key}`}
@@ -87,7 +87,7 @@ export function CategoryGrid() {
             <div className={`w-full aspect-square ${c.bg} rounded-2xl flex items-center justify-center text-2xl transition-transform group-hover:-translate-y-0.5 group-active:scale-95`}>
               {c.emoji}
             </div>
-            <span className="text-[11px] font-semibold text-[#374151] text-center">{c.label}</span>
+            <span className="text-label font-semibold text-gray-700 text-center">{c.label}</span>
           </Link>
         ))}
       </div>
@@ -117,8 +117,8 @@ export function SpotlightSection() {
   return (
     <div className="px-4">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base font-extrabold text-[#1a2e2e]">Today&apos;s Spotlight</h2>
-        <Link href="/explore" className="text-xs font-semibold text-[#004f54]">View all →</Link>
+        <h2 className="text-base font-extrabold text-on-dark">Today&apos;s Spotlight</h2>
+        <Link href="/explore" className="text-xs font-semibold text-brand">View all →</Link>
       </div>
 
       {/* Tabs */}
@@ -126,7 +126,7 @@ export function SpotlightSection() {
         {SPOTLIGHT_TABS.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition-all border ${
-              tab === t.key ? 'bg-[#1a2e2e] text-white border-[#1a2e2e]' : 'bg-white text-[#374151] border-[#e2e8e8]'
+              tab === t.key ? 'bg-on-dark text-white border-on-dark' : 'bg-white text-gray-700 border-border-light'
             }`}>
             {t.label}
           </button>
@@ -136,7 +136,7 @@ export function SpotlightSection() {
       {/* Horizontal scroll */}
       <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x">
         {loading && [...Array(4)].map((_, i) => (
-          <div key={i} className="flex-shrink-0 w-40 h-56 rounded-2xl bg-white border border-[#e2e8e8] animate-pulse" />
+          <div key={i} className="flex-shrink-0 w-40 h-56 rounded-2xl bg-white border border-border-light animate-pulse" />
         ))}
         {!loading && products.map(p => (
           <SpotlightCard key={p.id} product={p}
@@ -144,7 +144,7 @@ export function SpotlightSection() {
             onWishlist={() => setWishlist(prev => { const n = new Set(prev); n.has(p.id) ? n.delete(p.id) : n.add(p.id); return n; })} />
         ))}
         {!loading && products.length === 0 && (
-          <p className="text-sm text-[#9ca3af] py-4">No products in this category yet.</p>
+          <p className="text-sm text-gray-400 py-4">No products in this category yet.</p>
         )}
       </div>
     </div>
@@ -155,16 +155,16 @@ function SpotlightCard({ product: p, wishlisted, onWishlist }: { product: Produc
   const discountPct = p.mrp > p.price ? Math.round((1 - p.price / p.mrp) * 100) : 0;
 
   return (
-    <div className="flex-shrink-0 w-40 snap-start bg-white rounded-2xl border border-[#e2e8e8] overflow-hidden group hover:shadow-md transition-shadow">
-      <Link href={`/product/${p.id}`} className="relative block aspect-square bg-[#f7fafa] overflow-hidden">
+    <div className="flex-shrink-0 w-40 snap-start bg-white rounded-2xl border border-border-light overflow-hidden group hover:shadow-md transition-shadow">
+      <Link href={`/product/${p.id}`} className="relative block aspect-square bg-surface-teal overflow-hidden">
         {discountPct > 0 && (
-          <span className="absolute top-1.5 left-1.5 z-10 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+          <span className="absolute top-1.5 left-1.5 z-10 bg-red-500 text-white text-2xs font-bold px-1.5 py-0.5 rounded">
             {discountPct}% off
           </span>
         )}
         <button onClick={e => { e.preventDefault(); onWishlist(); }}
           className={`absolute top-1.5 right-1.5 z-10 w-6 h-6 flex items-center justify-center rounded-full transition-all
-            ${wishlisted ? 'bg-red-50 text-red-500' : 'bg-white/80 text-[#9ca3af] opacity-0 group-hover:opacity-100'}`}>
+            ${wishlisted ? 'bg-red-50 text-red-500' : 'bg-white/80 text-gray-400 opacity-0 group-hover:opacity-100'}`}>
           <Heart size={11} fill={wishlisted ? 'currentColor' : 'none'} />
         </button>
         {p.image && (
@@ -173,18 +173,18 @@ function SpotlightCard({ product: p, wishlisted, onWishlist }: { product: Produc
         )}
       </Link>
       <div className="p-3">
-        <p className="text-[10px] font-bold text-[#004f54] uppercase tracking-wide">{p.brand}</p>
+        <p className="text-icon font-bold text-brand uppercase tracking-wide">{p.brand}</p>
         <Link href={`/product/${p.id}`}>
-          <p className="text-[11px] font-semibold text-[#1a2e2e] line-clamp-2 leading-snug mt-0.5 mb-2">{p.name}</p>
+          <p className="text-label font-semibold text-on-dark line-clamp-2 leading-snug mt-0.5 mb-2">{p.name}</p>
         </Link>
         <div className="flex items-center gap-1 mb-2">
-          <span className="text-sm font-extrabold text-[#004f54]">₹{p.price.toLocaleString('en-IN')}</span>
+          <span className="text-sm font-extrabold text-brand">₹{p.price.toLocaleString('en-IN')}</span>
           {p.mrp > p.price && (
-            <span className="text-[10px] text-[#9ca3af] line-through">₹{p.mrp.toLocaleString('en-IN')}</span>
+            <span className="text-icon text-gray-400 line-through">₹{p.mrp.toLocaleString('en-IN')}</span>
           )}
         </div>
         <Link href={`/product/${p.id}`}
-          className="w-full flex items-center justify-center gap-1 py-1.5 rounded-xl text-[11px] font-bold bg-[#004f54] text-white hover:bg-[#01696f] active:scale-95 transition-all">
+          className="w-full flex items-center justify-center gap-1 py-1.5 rounded-xl text-label font-bold bg-brand text-white hover:bg-brand-hover active:scale-95 transition-all">
           View
         </Link>
       </div>
@@ -202,19 +202,19 @@ export function BestSellersStrip() {
   return (
     <div className="px-4">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base font-extrabold text-[#1a2e2e]">🏆 Bestsellers</h2>
-        <Link href="/explore" className="text-xs font-semibold text-[#004f54]">View all →</Link>
+        <h2 className="text-base font-extrabold text-on-dark">🏆 Bestsellers</h2>
+        <Link href="/explore" className="text-xs font-semibold text-brand">View all →</Link>
       </div>
       <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x">
         {loading && [...Array(5)].map((_, i) => (
-          <div key={i} className="flex-shrink-0 w-36 h-48 rounded-2xl bg-white border border-[#e2e8e8] animate-pulse" />
+          <div key={i} className="flex-shrink-0 w-36 h-48 rounded-2xl bg-white border border-border-light animate-pulse" />
         ))}
         {bestsellers.map((p, i) => (
           <Link key={p.id} href={`/product/${p.id}`}
-            className="flex-shrink-0 w-36 snap-start bg-white rounded-2xl border border-[#e2e8e8] overflow-hidden hover:shadow-md transition-shadow group">
-            <div className="relative aspect-square bg-[#f7fafa]">
+            className="flex-shrink-0 w-36 snap-start bg-white rounded-2xl border border-border-light overflow-hidden hover:shadow-md transition-shadow group">
+            <div className="relative aspect-square bg-surface-teal">
               {i < 3 && (
-                <span className="absolute top-1.5 left-1.5 z-10 bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                <span className="absolute top-1.5 left-1.5 z-10 bg-amber-500 text-white text-2xs font-bold px-1.5 py-0.5 rounded-full">
                   #{i + 1} Best
                 </span>
               )}
@@ -224,12 +224,12 @@ export function BestSellersStrip() {
               )}
             </div>
             <div className="p-2.5">
-              <p className="text-[10px] font-bold text-[#004f54] uppercase">{p.brand}</p>
-              <p className="text-[11px] font-semibold text-[#1a2e2e] line-clamp-2 leading-snug mt-0.5">{p.name}</p>
+              <p className="text-icon font-bold text-brand uppercase">{p.brand}</p>
+              <p className="text-label font-semibold text-on-dark line-clamp-2 leading-snug mt-0.5">{p.name}</p>
               <div className="flex items-center gap-1 mt-1.5">
-                <span className="text-xs font-extrabold text-[#004f54]">₹{p.price.toLocaleString('en-IN')}</span>
+                <span className="text-xs font-extrabold text-brand">₹{p.price.toLocaleString('en-IN')}</span>
                 {p.mrp > p.price && (
-                  <span className="text-[10px] text-[#9ca3af] line-through">₹{p.mrp.toLocaleString('en-IN')}</span>
+                  <span className="text-icon text-gray-400 line-through">₹{p.mrp.toLocaleString('en-IN')}</span>
                 )}
               </div>
             </div>

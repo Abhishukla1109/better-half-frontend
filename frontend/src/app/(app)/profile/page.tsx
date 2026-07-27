@@ -3,10 +3,10 @@ import Link from "next/link";
 export default function ProfilePage() {
   return (
     <div className="px-6 pt-8">
-      <h1 className="text-2xl font-extrabold text-primary tracking-tight font-[family-name:var(--font-manrope)]">
+      <h1 className="text-title font-extrabold text-primary tracking-tight font-[family-name:var(--font-manrope)]">
         Profile
       </h1>
-      <p className="text-on-surface-variant mt-2 mb-8">
+      <p className="text-body text-on-surface-variant mt-2 mb-8">
         Your health profile builds progressively across sessions.
       </p>
 
@@ -32,7 +32,7 @@ export default function ProfilePage() {
             </div>
             <div className="flex-1">
               <p className="font-semibold text-on-surface">{item.label}</p>
-              <p className="text-sm text-on-surface-variant">{item.desc}</p>
+              <p className="text-lead text-on-surface-variant">{item.desc}</p>
             </div>
             <span className="material-symbols-outlined text-outline-variant">
               chevron_right
@@ -50,11 +50,11 @@ export default function ProfilePage() {
           { label: "Contact Us",      href: "/contact" },
           { label: "About Us",        href: "/about" },
         ].map((link) => (
-          <Link key={link.href} href={link.href} className="text-[12px] text-on-surface-variant/40 hover:text-on-surface-variant transition-colors">
+          <Link key={link.href} href={link.href} className="text-label text-on-surface-variant/40 hover:text-on-surface-variant transition-colors">
             {link.label}
           </Link>
         ))}
-        <span className="w-full text-center text-[11px] text-on-surface-variant/25 mt-1">v1.0</span>
+        <span className="w-full text-center text-label text-on-surface-variant/25 mt-1">v1.0</span>
       </div>
     </div>
   );

@@ -10,11 +10,11 @@ export default function AIPage() {
           >
             auto_awesome
           </span>
-          <h1 className="text-2xl font-extrabold text-primary tracking-tight font-[family-name:var(--font-manrope)]">
+          <h1 className="text-title font-extrabold text-primary tracking-tight font-[family-name:var(--font-manrope)]">
             AI Companion
           </h1>
         </div>
-        <p className="text-on-surface-variant mt-2">
+        <p className="text-body text-on-surface-variant mt-2">
           Your personalised health assistant with full context.
         </p>
       </div>
@@ -25,7 +25,7 @@ export default function AIPage() {
           <span className="material-symbols-outlined text-6xl text-outline-variant/30 mb-4 block">
             chat_bubble
           </span>
-          <p className="text-on-surface-variant text-sm">
+          <p className="text-lead text-on-surface-variant">
             AI chat coming soon. Ask about nutrition, protocols, or symptoms.
           </p>
         </div>

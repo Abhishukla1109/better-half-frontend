@@ -18,7 +18,7 @@ export default function MealPhotoCard({ mealType, onPhotoTap, onTextSubmit, dela
       className="feed-card p-5 animate-fade-in-up"
       style={{ animationDelay: `${delay}ms` }}
     >
-      <p className="text-[11px] font-semibold uppercase tracking-[0.5px] text-on-surface-variant/50 mb-2">
+      <p className="text-label font-semibold uppercase tracking-[0.5px] text-on-surface-variant/50 mb-2">
         Diet &middot; {mealType}
       </p>
       <p className="text-base text-on-surface leading-relaxed">

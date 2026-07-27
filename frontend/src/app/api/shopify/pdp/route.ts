@@ -19,7 +19,7 @@ const QUERY = `
       handle
       title
       vendor
-      variants(first: 20) { edges { node { title priceV2 { amount } } } }
+      variants(first: 20) { edges { node { title priceV2 { amount } compareAtPriceV2 { amount } } } }
       images(first: 10) { nodes { url } }
       metafields(identifiers: [
         { namespace: "custom", key: "bh_subtitle" }
@@ -109,6 +109,8 @@ export async function GET(req: NextRequest) {
       : allVariants[0];
     const rawPrice = matchedVariant?.node?.priceV2?.amount ?? allVariants[0]?.node?.priceV2?.amount;
     const price = rawPrice ? Math.round(parseFloat(rawPrice)) : undefined;
+    const rawMrp = matchedVariant?.node?.compareAtPriceV2?.amount ?? allVariants[0]?.node?.compareAtPriceV2?.amount;
+    const mrp = rawMrp ? Math.round(parseFloat(rawMrp)) : undefined;
 
     // Use stored MM url_key for correct brand API rating fetch
     const mmUrlKey = text(mf, "bh_mm_url_key") ?? "";
@@ -120,6 +122,7 @@ export async function GET(req: NextRequest) {
       brand:           p.vendor ?? "",
       name:            p.title ?? "",
       price,
+      mrp,
       subtitle:        text(mf, "bh_subtitle") ?? "",
       metaDescription: "",
       rating,

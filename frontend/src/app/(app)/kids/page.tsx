@@ -3,6 +3,8 @@
 import { useMemo, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShoppingBag, X } from "lucide-react";
+import { motion } from "framer-motion";
+import { FluentEmoji } from "@/components/ui";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import type { Product } from "@/lib/protocolEngine";
@@ -364,23 +366,22 @@ export default function KidsHomePage() {
       <div className="pt-4 lg:pt-8 space-y-4">
 
         {/* ── Hero ── */}
-        <div className="mx-4 rounded-3xl overflow-hidden relative" style={{ background: "linear-gradient(145deg, #fff3e0 0%, #ffe0b2 55%, #fff8f0 100%)", border: "1px solid #fed7aa" }}>
+        <div className="mx-4 rounded-3xl overflow-hidden relative gradient-kids-hero border border-orange-200">
           {/* Decorative blobs */}
-          <div className="absolute -right-10 -top-10 w-44 h-44 rounded-full opacity-20 pointer-events-none" style={{ background: "#f97316" }} />
-          <div className="absolute right-0 bottom-0 w-24 h-24 rounded-full opacity-10 pointer-events-none" style={{ background: "#fb923c" }} />
+          <div className="absolute -right-10 -top-10 w-44 h-44 rounded-full opacity-20 pointer-events-none bg-orange-500" />
+          <div className="absolute right-0 bottom-0 w-24 h-24 rounded-full opacity-10 pointer-events-none bg-orange-400" />
 
           {/* Top row: brand label + edit button */}
           <div className="relative z-10 flex items-center justify-between px-5 pt-5 mb-4">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: "#ea580c" }}>Little Joys</span>
-              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ color: "#c2410c", background: "rgba(255,255,255,0.75)", border: "1px solid #fed7aa" }}>
+              <span className="text-label font-black uppercase tracking-widest text-orange-600">Little Joys</span>
+              <span className="text-2xs font-bold px-2 py-0.5 rounded-full text-orange-700 bg-white/75 border border-orange-200">
                 {ageLabel}
               </span>
             </div>
             <button
               onClick={openEdit}
-              className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-opacity hover:opacity-70"
-              style={{ background: "rgba(255,255,255,0.75)", border: "1px solid #fed7aa" }}
+              className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-opacity hover:opacity-70 bg-white/75 border border-orange-200"
             >
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="#c2410c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
@@ -390,11 +391,11 @@ export default function KidsHomePage() {
 
           {/* Child name + headline */}
           <div className="relative z-10 px-5 pb-5">
-            <h1 className="text-[34px] font-black text-on-surface font-[family-name:var(--font-manrope)] leading-[1.0] tracking-tight mb-2">
+            <h1 className="text-hero font-black text-on-surface font-[family-name:var(--font-manrope)] leading-[1.0] tracking-tight mb-2">
               {childName ? `${childName}'s` : "Your child's"}<br />wellness
             </h1>
-            <p className="text-[14px] font-semibold mb-4" style={{ color: "#c2410c" }}>{headline}</p>
-            <span className="inline-flex items-center gap-1.5 text-[12px] font-bold px-3.5 py-1.5 rounded-full" style={{ color: "#c2410c", background: "rgba(255,255,255,0.82)", border: "1px solid #fed7aa" }}>
+            <p className="text-lead font-semibold mb-4 text-orange-700">{headline}</p>
+            <span className="inline-flex items-center gap-1.5 text-label font-bold px-3.5 py-1.5 rounded-full text-orange-700 bg-white/82 border border-orange-200">
               🎯 {concerns.map(c => CONCERN_LABEL[c] ?? c).join(" · ")}
             </span>
           </div>
@@ -402,15 +403,16 @@ export default function KidsHomePage() {
           {/* Habits grid */}
           {habits.length > 0 && (
             <>
-              <div className="mx-4 h-px" style={{ background: "rgba(249,115,22,0.18)" }} />
+              <div className="mx-4 h-px bg-orange-500/20" />
               <div className="px-4 pt-4 pb-5">
-                <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: "#c2410c", opacity: 0.6 }}>Today&apos;s habits</p>
+                <p className="text-icon font-bold uppercase tracking-widest mb-3 text-orange-700/60">Today&apos;s habits</p>
                 <div className="grid grid-cols-3 gap-2">
                   {habits.map((h, i) => (
-                    <div key={i} className="flex flex-col items-center gap-1.5 px-2 py-3 rounded-2xl text-center" style={{ background: "rgba(255,255,255,0.72)", border: "1px solid #fed7aa" }}>
-                      <span className="text-[22px] leading-none">{h.emoji}</span>
-                      <p className="text-[9.5px] font-semibold text-on-surface leading-snug">{h.text}</p>
-                    </div>
+                    <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: i * 0.07, ease: "easeOut" }}
+                      className="flex flex-col items-center gap-1.5 px-2 py-3 rounded-2xl text-center bg-white/70 border border-orange-200">
+                      <FluentEmoji emoji={h.emoji} size={24} />
+                      <p className="text-2xs font-semibold text-on-surface leading-snug">{h.text}</p>
+                    </motion.div>
                   ))}
                 </div>
               </div>
@@ -420,26 +422,25 @@ export default function KidsHomePage() {
 
         {/* ── Progressive nudge card ── */}
         {currentNudge && (
-          <div className="mx-4 rounded-3xl p-4 animate-fade-in-up" style={{ background: "linear-gradient(135deg, #fff8f0, #fff3e0)", border: "1px solid #fed7aa" }}>
+          <div className="mx-4 rounded-3xl p-4 animate-fade-in-up gradient-kids-card border border-orange-200">
             <div className="flex items-start justify-between gap-2 mb-3">
               <div className="flex items-start gap-2.5">
-                <span className="text-[22px] leading-none mt-0.5">{currentNudge.emoji}</span>
+                <FluentEmoji emoji={currentNudge.emoji} size={24} className="mt-0.5" />
                 <div>
-                  <p className="text-[9px] font-bold uppercase tracking-widest mb-0.5" style={{ color: "#f97316" }}>Quick question</p>
-                  <p className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug">
+                  <p className="text-2xs font-bold uppercase tracking-widest mb-0.5 text-orange-500">Quick question</p>
+                  <p className="text-body font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug">
                     {currentNudge.question.replace("[name]", childName ?? "your child")}
                   </p>
                 </div>
               </div>
               <button onClick={() => handleNudgeDismiss(currentNudge.id)} className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer hover:bg-orange-100 transition-colors mt-0.5">
-                <X className="w-3.5 h-3.5" style={{ color: "#c2410c", opacity: 0.5 }} />
+                <X className="w-3.5 h-3.5 text-orange-700/50" />
               </button>
             </div>
             <div className="flex flex-wrap gap-2">
               {currentNudge.options.map(opt => (
                 <button key={opt} onClick={() => handleNudgeAnswer(currentNudge.id, opt)}
-                  className="px-3 py-1.5 rounded-full text-[12px] font-semibold cursor-pointer transition-all active:scale-95"
-                  style={{ background: "rgba(255,255,255,0.85)", border: "1px solid #fed7aa", color: "#c2410c" }}>
+                  className="px-3 py-1.5 rounded-full text-label font-semibold cursor-pointer transition-all active:scale-95 bg-white/85 border border-orange-200 text-orange-700">
                   {opt}
                 </button>
               ))}
@@ -450,24 +451,25 @@ export default function KidsHomePage() {
         {/* ── Primary picks section header ── */}
         <div className="px-4 flex items-center justify-between pt-1">
           <div>
-            <p className="text-[19px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-tight">
+            <p className="text-title-sm font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-tight">
               {displayName === "your child" ? "Top picks" : `${displayName}'s picks`}
             </p>
-            <p className="text-[11px] mt-0.5" style={{ color: "#c2410c", opacity: 0.65 }}>
+            <p className="text-label mt-0.5 text-orange-700/65">
               Little Joys · AI-matched · {ageLabel}
             </p>
           </div>
-          <span className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full" style={{ color: "#f97316", background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.18)" }}>
+          <span className="flex items-center gap-1 text-icon font-bold px-2.5 py-1 rounded-full text-orange-500 bg-orange-500/10 border border-orange-500/20">
             ✦ AI-matched
           </span>
         </div>
 
         {/* ── Primary picks — 2-column grid ── */}
         <div className="px-4 grid grid-cols-2 gap-3">
-          {primary.map(p => {
+          {primary.map((p, idx) => {
             const sty = getStyle(p.category);
             return (
-              <div key={p.id} className="rounded-2xl overflow-hidden flex flex-col" style={{ background: `linear-gradient(160deg, ${sty.bgFrom}, #ffffff)`, border: `1px solid ${sty.border}` }}>
+              <motion.div key={p.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: idx * 0.07, ease: "easeOut" }}
+                className="rounded-2xl overflow-hidden flex flex-col" style={{ background: `linear-gradient(160deg, ${sty.bgFrom}, #ffffff)`, border: `1px solid ${sty.border}` }}>
                 <div className="h-44 flex items-center justify-center p-3 bg-white/40">
                   {p.image && (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -475,24 +477,24 @@ export default function KidsHomePage() {
                   )}
                 </div>
                 <div className="px-3 pb-4 pt-2.5 flex flex-col flex-1">
-                  <p className="text-[8px] font-black uppercase tracking-widest mb-0.5" style={{ color: sty.accent }}>Little Joys</p>
-                  <p className="text-[12.5px] font-extrabold text-on-surface leading-snug font-[family-name:var(--font-manrope)] flex-1 mb-1">{p.name}</p>
-                  <p className="text-[10px] text-on-surface-variant/40 leading-snug mb-3">{getBenefit(p)}</p>
+                  <p className="text-3xs font-black uppercase tracking-widest mb-0.5" style={{ color: sty.accent }}>Little Joys</p>
+                  <p className="text-body font-extrabold text-on-surface leading-snug font-[family-name:var(--font-manrope)] flex-1 mb-1">{p.name}</p>
+                  <p className="text-icon text-on-surface-variant/40 leading-snug mb-3">{getBenefit(p)}</p>
                   <div className="flex items-end justify-between">
                     <div>
-                      <p className="text-[16px] font-extrabold text-on-surface leading-none">₹{p.price}</p>
-                      {p.mrp > p.price && <p className="text-[9px] text-on-surface-variant/35 line-through mt-0.5">₹{p.mrp}</p>}
+                      <p className="text-lead font-extrabold text-on-surface leading-none">₹{p.price}</p>
+                      {p.mrp > p.price && <p className="text-2xs text-on-surface-variant/35 line-through mt-0.5">₹{p.mrp}</p>}
                     </div>
                     {p.url && (
                       <a href={p.url} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[10px] font-bold"
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-icon font-bold"
                         style={{ color: "white", background: sty.accent }}>
                         <ShoppingBag className="w-2.5 h-2.5" strokeWidth={2.5} /> Shop
                       </a>
                     )}
                   </div>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>
@@ -501,16 +503,17 @@ export default function KidsHomePage() {
         {rest.length > 0 && (
           <div className="px-4">
             <div className="flex items-baseline justify-between mb-3">
-              <p className="text-[15px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
+              <p className="text-lead font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
                 Complete {childName ? `${childName}'s` : "the"} kit
               </p>
-              <span className="text-[11px] font-semibold" style={{ color: "#f97316" }}>{rest.length} more</span>
+              <span className="text-label font-semibold text-orange-500">{rest.length} more</span>
             </div>
             <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4" style={{ scrollbarWidth: "none" }}>
-              {rest.map(p => {
+              {rest.map((p, idx) => {
                 const sty = getStyle(p.category);
                 return (
-                  <div key={p.id} className="shrink-0 w-[148px] rounded-2xl overflow-hidden flex flex-col" style={{ background: `linear-gradient(160deg, ${sty.bgFrom}, white)`, border: `1px solid ${sty.border}` }}>
+                  <motion.div key={p.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: idx * 0.07, ease: "easeOut" }}
+                    className="shrink-0 w-[148px] rounded-2xl overflow-hidden flex flex-col" style={{ background: `linear-gradient(160deg, ${sty.bgFrom}, white)`, border: `1px solid ${sty.border}` }}>
                     <div className="h-36 flex items-center justify-center p-2.5 bg-white/40">
                       {p.image && (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -518,20 +521,20 @@ export default function KidsHomePage() {
                       )}
                     </div>
                     <div className="px-3 pb-3.5 pt-2 flex flex-col flex-1">
-                      <p className="text-[8px] font-black uppercase tracking-widest mb-0.5" style={{ color: sty.accent }}>Little Joys</p>
-                      <p className="text-[11px] font-extrabold text-on-surface leading-snug font-[family-name:var(--font-manrope)] flex-1 mb-1">{p.name}</p>
+                      <p className="text-3xs font-black uppercase tracking-widest mb-0.5" style={{ color: sty.accent }}>Little Joys</p>
+                      <p className="text-label font-extrabold text-on-surface leading-snug font-[family-name:var(--font-manrope)] flex-1 mb-1">{p.name}</p>
                       <div className="flex items-center justify-between mt-1">
-                        <p className="text-[13px] font-extrabold text-on-surface">₹{p.price}</p>
+                        <p className="text-body font-extrabold text-on-surface">₹{p.price}</p>
                         {p.url && (
                           <a href={p.url} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-bold"
+                            className="flex items-center gap-1 px-2 py-1 rounded-lg text-2xs font-bold"
                             style={{ color: sty.accent, background: sty.bgFrom, border: `1px solid ${sty.border}` }}>
                             <ShoppingBag className="w-2 h-2" strokeWidth={2.5} /> Shop
                           </a>
                         )}
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
@@ -539,13 +542,13 @@ export default function KidsHomePage() {
         )}
 
         {/* ── Educational tip ── */}
-        <div className="mx-4 rounded-3xl p-5" style={{ background: "linear-gradient(135deg, #fff8f0, #fff3e0)", border: "1px solid #fed7aa" }}>
+        <div className="mx-4 rounded-3xl p-5 gradient-kids-card border border-orange-200">
           <div className="flex items-start gap-4">
-            <span className="text-[32px] leading-none shrink-0 mt-0.5">{tip.emoji}</span>
+            <FluentEmoji emoji={tip.emoji} size={44} className="shrink-0 mt-0.5" />
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#f97316" }}>Good to know</p>
-              <p className="text-[14px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-2">{tip.title}</p>
-              <p className="text-[12px] text-on-surface-variant/55 leading-relaxed">{tip.body}</p>
+              <p className="text-icon font-bold uppercase tracking-widest mb-1.5 text-orange-500">Good to know</p>
+              <p className="text-lead font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-2">{tip.title}</p>
+              <p className="text-label text-on-surface-variant/55 leading-relaxed">{tip.body}</p>
             </div>
           </div>
         </div>
@@ -554,12 +557,11 @@ export default function KidsHomePage() {
         <div className="mx-4 mb-2">
           <button
             onClick={() => router.push("/explore")}
-            className="w-full flex items-center justify-between px-5 py-4 rounded-2xl cursor-pointer hover:opacity-90 transition-opacity"
-            style={{ background: "#f97316" }}
+            className="w-full flex items-center justify-between px-5 py-4 rounded-2xl cursor-pointer hover:opacity-90 transition-opacity bg-orange-500"
           >
             <div className="text-left">
-              <p className="text-[14px] font-extrabold text-white font-[family-name:var(--font-manrope)]">Browse all Little Joys</p>
-              <p className="text-[11px] text-white/70 mt-0.5">Gummies, nutrition, personal care &amp; more</p>
+              <p className="text-lead font-extrabold text-white font-[family-name:var(--font-manrope)]">Browse all Little Joys</p>
+              <p className="text-label text-white/70 mt-0.5">Gummies, nutrition, personal care &amp; more</p>
             </div>
             <ShoppingBag className="w-5 h-5 text-white/80 shrink-0" strokeWidth={2} />
           </button>
@@ -575,18 +577,17 @@ export default function KidsHomePage() {
         <div className="fixed bottom-0 left-0 right-0 z-[61] rounded-t-3xl max-w-xl mx-auto shadow-2xl animate-fade-in-up overflow-hidden">
 
           {/* Warm header */}
-          <div className="px-5 pt-4 pb-4" style={{ background: "linear-gradient(135deg, #fff3e0, #ffe8cc)" }}>
-            <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "rgba(194,65,12,0.2)" }} />
+          <div className="px-5 pt-4 pb-4 gradient-kids-card">
+            <div className="w-10 h-1 rounded-full mx-auto mb-4 bg-orange-700/20" />
             <div className="flex items-center justify-between">
-              <h2 className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
+              <h2 className="text-title-sm font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
                 Edit {childName ? `${childName}'s` : "child's"} profile
               </h2>
               <button
                 onClick={() => setShowEdit(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
-                style={{ background: "rgba(194,65,12,0.1)" }}
+                className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer bg-orange-700/10"
               >
-                <X className="w-4 h-4" style={{ color: "#c2410c" }} />
+                <X className="w-4 h-4 text-orange-700" />
               </button>
             </div>
           </div>
@@ -596,25 +597,25 @@ export default function KidsHomePage() {
 
             {/* Name */}
             <div className="mb-4">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant/45 mb-1.5">Name</p>
+              <p className="text-label font-bold uppercase tracking-widest text-on-surface-variant/45 mb-1.5">Name</p>
               <input
                 type="text"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 placeholder={childName ?? "Their name"}
-                className="w-full bg-surface-container-low rounded-xl px-4 py-3 border border-outline-variant/15 text-sm text-on-surface outline-none"
+                className="w-full bg-surface-container-low rounded-xl px-4 py-3 border border-outline-variant/15 text-lead text-on-surface outline-none"
               />
             </div>
 
             {/* Age group */}
             <div className="mb-4">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant/45 mb-1.5">Age group</p>
+              <p className="text-label font-bold uppercase tracking-widest text-on-surface-variant/45 mb-1.5">Age group</p>
               <div className="flex gap-2">
                 {(["2-5", "6-12", "13+"] as const).map(age => (
                   <button
                     key={age}
                     onClick={() => handleEditAgeChange(age)}
-                    className={`flex-1 py-2.5 rounded-xl border-2 text-[13px] font-bold cursor-pointer transition-all ${
+                    className={`flex-1 py-2.5 rounded-xl border-2 text-body font-bold cursor-pointer transition-all ${
                       editAge === age
                         ? "border-orange-400 bg-orange-50 text-orange-700"
                         : "border-outline-variant/15 bg-surface-container-lowest text-on-surface-variant/60"
@@ -628,19 +629,19 @@ export default function KidsHomePage() {
 
             {/* Main focus */}
             <div className="mb-6">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant/45 mb-2">Main focus</p>
+              <p className="text-label font-bold uppercase tracking-widest text-on-surface-variant/45 mb-2">Main focus</p>
               <div className={`grid gap-2 ${(EDIT_CONCERNS[editAge] ?? []).length > 4 ? "grid-cols-3" : "grid-cols-2"}`}>
                 {(EDIT_CONCERNS[editAge] ?? EDIT_CONCERNS["6-12"]).map(c => (
                   <button
                     key={c.key}
                     onClick={() => setEditConcern(c.key)}
-                    className={`flex items-center gap-1.5 px-2.5 py-2.5 rounded-2xl border-2 text-left cursor-pointer transition-all text-[12px] font-semibold ${
+                    className={`flex items-center gap-1.5 px-2.5 py-2.5 rounded-2xl border-2 text-left cursor-pointer transition-all text-label font-semibold ${
                       editConcern === c.key
                         ? "border-orange-400 bg-orange-50 text-orange-700"
                         : "border-outline-variant/15 bg-surface-container-lowest text-on-surface"
                     }`}
                   >
-                    <span className="text-base leading-none shrink-0">{c.emoji}</span>
+                    <FluentEmoji emoji={c.emoji} size={20} />
                     <span className="leading-tight">{c.label}</span>
                   </button>
                 ))}
@@ -649,8 +650,7 @@ export default function KidsHomePage() {
 
             <button
               onClick={saveEdit}
-              className="w-full py-4 rounded-2xl text-white font-bold text-sm cursor-pointer hover:opacity-90 transition-opacity"
-              style={{ background: "#f97316" }}
+              className="w-full py-4 rounded-2xl text-white font-bold text-lead cursor-pointer hover:opacity-90 transition-opacity bg-orange-500"
             >
               Save changes
             </button>

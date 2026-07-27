@@ -11,29 +11,29 @@ export default function PrivacyPage() {
         <div className="mb-8">
           <button
             onClick={() => window.history.length > 1 ? router.back() : router.replace("/")}
-            className="text-[13px] text-on-surface-variant/60 hover:text-on-surface-variant mb-6 inline-block cursor-pointer"
+            className="text-body text-on-surface-variant/60 hover:text-on-surface-variant mb-6 inline-block cursor-pointer"
           >
             ← Back
           </button>
-          <h1 className="text-[24px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-2">
+          <h1 className="text-2xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-2">
             Privacy Policy
           </h1>
-          <p className="text-[13px] text-on-surface-variant/60">
+          <p className="text-body text-on-surface-variant/60">
             Last updated: June 2026
           </p>
         </div>
 
-        <div className="space-y-8 text-[14px] text-on-surface-variant leading-relaxed">
+        <div className="space-y-8 text-sm text-on-surface-variant leading-relaxed">
 
           <section>
-            <h2 className="text-[16px] font-bold text-on-surface mb-3">Who we are</h2>
+            <h2 className="text-base font-bold text-on-surface mb-3">Who we are</h2>
             <p>
               BetterHalf is a personalised health and wellness platform operated by Mosaic Wellness Pvt. Ltd., Mumbai, India. We help you discover supplement protocols tailored to your health goals across our brands — Man Matters, Be Bodywise, and Little Joys.
             </p>
           </section>
 
           <section>
-            <h2 className="text-[16px] font-bold text-on-surface mb-3">What data we collect</h2>
+            <h2 className="text-base font-bold text-on-surface mb-3">What data we collect</h2>
             <ul className="space-y-2 list-none">
               {[
                 { label: "Email address", reason: "To create and identify your account" },
@@ -45,14 +45,14 @@ export default function PrivacyPage() {
               ].map((item) => (
                 <li key={item.label} className="flex flex-col gap-0.5 pl-3 border-l-2 border-primary-container/20">
                   <span className="font-semibold text-on-surface">{item.label}</span>
-                  <span className="text-[13px]">{item.reason}</span>
+                  <span className="text-body">{item.reason}</span>
                 </li>
               ))}
             </ul>
           </section>
 
           <section>
-            <h2 className="text-[16px] font-bold text-on-surface mb-3">How we use your data</h2>
+            <h2 className="text-base font-bold text-on-surface mb-3">How we use your data</h2>
             <p className="mb-3">We use your data solely to:</p>
             <ul className="space-y-1.5 list-disc list-inside">
               <li>Generate and personalise your health protocol</li>
@@ -67,7 +67,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-[16px] font-bold text-on-surface mb-3">Third party services</h2>
+            <h2 className="text-base font-bold text-on-surface mb-3">Third party services</h2>
             <p className="mb-3">We use the following services to operate BetterHalf:</p>
             <ul className="space-y-2">
               {[
@@ -87,14 +87,14 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-[16px] font-bold text-on-surface mb-3">Health data</h2>
+            <h2 className="text-base font-bold text-on-surface mb-3">Health data</h2>
             <p>
               Information you share about your health concerns, goals, and body is sensitive. We treat it as such. This data is used exclusively to generate your personalised protocol and is never shared with advertisers, insurers, or any third party outside the services listed above. You can delete your profile and all associated health data at any time from the Profile section.
             </p>
           </section>
 
           <section>
-            <h2 className="text-[16px] font-bold text-on-surface mb-3">Your rights</h2>
+            <h2 className="text-base font-bold text-on-surface mb-3">Your rights</h2>
             <p className="mb-3">Under India&apos;s Digital Personal Data Protection Act (DPDP) 2023, you have the right to:</p>
             <ul className="space-y-1.5 list-disc list-inside">
               <li>Know what data we hold about you</li>
@@ -112,14 +112,14 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-[16px] font-bold text-on-surface mb-3">Data retention</h2>
+            <h2 className="text-base font-bold text-on-surface mb-3">Data retention</h2>
             <p>
               We retain your data for as long as your account is active. If you delete your account, your personal data is removed within 30 days. Anonymous usage analytics (Mixpanel) are retained for 12 months.
             </p>
           </section>
 
           <section>
-            <h2 className="text-[16px] font-bold text-on-surface mb-3">Contact</h2>
+            <h2 className="text-base font-bold text-on-surface mb-3">Contact</h2>
             <p>
               Questions about this policy? Reach us at{" "}
               <a href="mailto:abhishek.shukla@mosaicwellness.in" className="text-primary-container underline">

@@ -56,6 +56,7 @@ export type EnrichedPDP = {
   worksBestWith: Array<{ title: string; description: string; image?: string }>;
   additionalInfo: Array<{ title: string; content: string }>;
   price?: number;
+  mrp?: number;
   forWith?: { for: string; with: string };
   recommendation?: string;
   ageGroup?: string;

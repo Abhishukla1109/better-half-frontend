@@ -23,7 +23,7 @@ export default function AIProtocolBanner() {
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/home"
-                className="px-7 py-3.5 bg-white text-[#004f54] font-extrabold rounded-xl hover:bg-white/90 active:scale-95 transition-all"
+                className="px-7 py-3.5 bg-white text-brand font-extrabold rounded-xl hover:bg-white/90 active:scale-95 transition-all"
               >
                 Start free assessment →
               </Link>
@@ -46,7 +46,7 @@ export default function AIProtocolBanner() {
               <div key={item.label} className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 flex flex-col items-center gap-2 w-28 border border-white/10">
                 <span className="text-2xl">{item.icon}</span>
                 <span className="text-xs font-bold text-white">{item.label}</span>
-                <span className="text-[10px] text-white/60 bg-white/10 rounded-full px-2 py-0.5">{item.detail}</span>
+                <span className="text-icon text-white/60 bg-white/10 rounded-full px-2 py-0.5">{item.detail}</span>
               </div>
             ))}
           </div>

@@ -217,7 +217,7 @@ function ProgressDots({ current, total }: { current: number; total: number }) {
         return (
           <div
             key={i}
-            className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-300 ${
+            className={`w-7 h-7 rounded-full flex items-center justify-center text-label font-bold transition-all duration-300 ${
               done || active
                 ? "bg-primary-container text-white"
                 : "border-2 border-outline-variant/25 text-on-surface-variant/30"
@@ -530,7 +530,7 @@ export default function HomePage() {
         : ["Reading your health profile", "Matching products to your needs", "Crafting your daily habits"];
 
     return (
-      <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center px-6" style={{ background: "#004034" }}>
+      <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center px-6 bg-primary">
         {generatingPhase === "generating" && (
           <div className="flex flex-col items-center text-center animate-fade-in-up w-full max-w-xs">
             <div className="relative flex items-center justify-center w-24 h-24 mb-8">
@@ -541,7 +541,7 @@ export default function HomePage() {
               <div className="absolute inset-2.5 rounded-full" style={{ background: "rgba(147,211,192,0.12)" }} />
               {isKids ? <span className="relative text-4xl leading-none">🧒</span> : <Sparkles className="relative w-9 h-9 text-white" strokeWidth={1.5} />}
             </div>
-            <h2 className="text-[28px] font-extrabold text-white font-[family-name:var(--font-manrope)] mb-2 leading-tight">
+            <h2 className="text-display font-extrabold text-white font-[family-name:var(--font-manrope)] mb-2 leading-tight">
               {isKids ? "Finding their picks…" : `Building ${name ? `${name}'s` : "your"} protocol…`}
             </h2>
             <p className="text-sm leading-relaxed mb-6" style={{ color: "rgba(255,255,255,0.6)" }}>
@@ -552,7 +552,7 @@ export default function HomePage() {
                 {selectedConcerns.map((c) => {
                   const m = CONCERN_META[c];
                   return m ? (
-                    <span key={c} className="text-[11px] font-semibold px-2.5 py-1 rounded-full border" style={{ background: "rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.85)", borderColor: "rgba(255,255,255,0.18)" }}>
+                    <span key={c} className="text-label font-semibold px-2.5 py-1 rounded-full border bg-white/10 text-white/85 border-white/20">
                       {m.emoji} {m.label}
                     </span>
                   ) : null;
@@ -583,7 +583,7 @@ export default function HomePage() {
               <div className="absolute inset-2 rounded-full" style={{ background: "rgba(147,211,192,0.14)" }} />
               {isKids ? <span className="relative text-4xl leading-none">🧒</span> : <Check className="relative w-9 h-9 text-white" strokeWidth={2.5} />}
             </div>
-            <h2 className="text-[28px] font-extrabold text-white font-[family-name:var(--font-manrope)] mb-2 leading-tight">
+            <h2 className="text-display font-extrabold text-white font-[family-name:var(--font-manrope)] mb-2 leading-tight">
               {isKids ? `${childName ? `${childName}'s` : "Their"} picks are ready!` : `${name ? `${name}, your` : "Your"} protocol is ready`}
             </h2>
             <p className="text-sm leading-relaxed mb-6" style={{ color: "rgba(255,255,255,0.6)" }}>
@@ -594,7 +594,7 @@ export default function HomePage() {
                 {selectedConcerns.map((c) => {
                   const m = CONCERN_META[c];
                   return m ? (
-                    <span key={c} className="text-[11px] font-semibold px-2.5 py-1 rounded-full border" style={{ background: "rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.85)", borderColor: "rgba(255,255,255,0.18)" }}>
+                    <span key={c} className="text-label font-semibold px-2.5 py-1 rounded-full border bg-white/10 text-white/85 border-white/20">
                       {m.emoji} {m.label}
                     </span>
                   ) : null;
@@ -603,12 +603,11 @@ export default function HomePage() {
             )}
             <button
               onClick={() => router.replace(isKids ? "/kids" : "/protocol")}
-              className="w-full py-4 rounded-2xl font-bold text-base cursor-pointer mb-3 transition-opacity hover:opacity-90"
-              style={{ background: "#ffffff", color: "#004034" }}
+              className="w-full py-4 rounded-2xl font-bold text-base cursor-pointer mb-3 transition-opacity hover:opacity-90 bg-white text-primary"
             >
               {isKids ? `Set up ${childName ? `${childName}'s` : "their"} wellness →` : memberFlow === "partner" ? `View ${name ? `${name}'s` : "their"} protocol →` : "View my protocol →"}
             </button>
-            {!isKids && <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>Free · Personalized · Updates as you share more</p>}
+            {!isKids && <p className="text-label text-white/35">Free · Personalized · Updates as you share more</p>}
           </div>
         )}
       </div>
@@ -633,7 +632,7 @@ export default function HomePage() {
           </div>
         )}
         {!isAddMode && (
-          <div className="relative overflow-hidden" style={{ height: "30vh", minHeight: "200px", background: "#1a5243" }}>
+          <div className="relative overflow-hidden bg-brand-mid" style={{ height: "30vh", minHeight: "200px" }}>
             <img src="/onboarding/entry.png" alt="" className="w-full h-full object-cover" style={{ objectPosition: "center 20%" }} />
             <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t from-[#fbf9f5] to-transparent pointer-events-none" />
           </div>
@@ -667,8 +666,8 @@ export default function HomePage() {
           >
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 ${meDisabled ? "bg-surface-container-high" : "bg-white/15"}`}>👤</div>
             <div className="text-left flex-1 min-w-0">
-              <p className={`font-bold text-[13px] ${meDisabled ? "text-on-surface-variant" : "text-white"}`}>Just me</p>
-              <p className={`text-[11px] mt-0.5 ${meDisabled ? "text-on-surface-variant/40" : "text-white/60"}`}>{meDisabled ? "Already set up" : "Full protocol · curated picks · coaching"}</p>
+              <p className={`font-bold text-body ${meDisabled ? "text-on-surface-variant" : "text-white"}`}>Just me</p>
+              <p className={`text-label mt-0.5 ${meDisabled ? "text-on-surface-variant/40" : "text-white/60"}`}>{meDisabled ? "Already set up" : "Full protocol · curated picks · coaching"}</p>
             </div>
             {meDisabled ? <Check className="w-4 h-4 text-on-surface-variant/30 shrink-0" strokeWidth={2.5} /> : <ChevronRight className="w-4 h-4 text-white/60 shrink-0" />}
           </button>
@@ -680,8 +679,8 @@ export default function HomePage() {
           >
             <div className="w-10 h-10 rounded-xl bg-primary-container/10 flex items-center justify-center text-xl shrink-0">💑</div>
             <div className="text-left flex-1 min-w-0">
-              <p className={`font-bold text-[13px] ${partnerDisabled ? "text-on-surface-variant" : "text-on-surface"}`}>My partner</p>
-              <p className={`text-[11px] mt-0.5 ${partnerDisabled ? "text-on-surface-variant/40" : "text-on-surface-variant/60"}`}>{partnerDisabled ? "Already set up" : "Their own personalised protocol"}</p>
+              <p className={`font-bold text-body ${partnerDisabled ? "text-on-surface-variant" : "text-on-surface"}`}>My partner</p>
+              <p className={`text-label mt-0.5 ${partnerDisabled ? "text-on-surface-variant/40" : "text-on-surface-variant/60"}`}>{partnerDisabled ? "Already set up" : "Their own personalised protocol"}</p>
             </div>
             {partnerDisabled ? <Check className="w-4 h-4 text-on-surface-variant/30 shrink-0" strokeWidth={2.5} /> : <ChevronRight className="w-4 h-4 text-on-surface-variant/35 shrink-0" />}
           </button>
@@ -692,15 +691,15 @@ export default function HomePage() {
           >
             <div className="w-10 h-10 rounded-xl bg-primary-container/10 flex items-center justify-center text-xl shrink-0">🧒</div>
             <div className="text-left flex-1 min-w-0">
-              <p className="font-bold text-[13px] text-on-surface">My kids</p>
-              <p className="text-[11px] text-on-surface-variant/60 mt-0.5">
+              <p className="font-bold text-body text-on-surface">My kids</p>
+              <p className="text-label text-on-surface-variant/60 mt-0.5">
                 {kidsProfiles.length > 0 ? `${kidsProfiles.length} child${kidsProfiles.length > 1 ? "ren" : ""} added · Add another` : "Age-matched essentials · Little Joys picks"}
               </p>
             </div>
             <ChevronRight className="w-4 h-4 text-on-surface-variant/35 shrink-0" />
           </button>
         </div>
-        <p className="text-center text-[11px] text-on-surface-variant/30 mt-8 px-5 pb-6">Manage profiles anytime from the menu in the top right.</p>
+        <p className="text-center text-label text-on-surface-variant/30 mt-8 px-5 pb-6">Manage profiles anytime from the menu in the top right.</p>
       </div>
     );
   }
@@ -718,7 +717,7 @@ export default function HomePage() {
   const heroSrc = heroImg(currentStep, profile.sex, selectedConcerns[0]);
 
   const HeroImage = () => (
-    <div className="overflow-hidden relative" style={{ height: "30vh", minHeight: "200px", background: "#1a5243" }}>
+    <div className="overflow-hidden relative bg-brand-mid" style={{ height: "30vh", minHeight: "200px" }}>
       <img src={heroSrc} alt="" className="w-full h-full object-cover" style={{ objectPosition: "center 20%" }} />
       <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t from-[#fbf9f5] to-transparent pointer-events-none" />
     </div>
@@ -729,13 +728,13 @@ export default function HomePage() {
     <div className="flex items-center justify-between px-5 pt-5 pb-2 shrink-0">
       <button
         onClick={goBack}
-        className={`flex items-center gap-1 text-[13px] font-medium text-on-surface-variant/50 hover:text-on-surface-variant transition-colors cursor-pointer ${!showBack ? "invisible" : ""}`}
+        className={`flex items-center gap-1 text-body font-medium text-on-surface-variant/50 hover:text-on-surface-variant transition-colors cursor-pointer ${!showBack ? "invisible" : ""}`}
       >
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
       {currentNum !== null ? <ProgressDots current={currentNum} total={total} /> : <div />}
       {onSkip
-        ? <button onClick={onSkip} className="text-[13px] font-semibold cursor-pointer" style={{ color: "var(--color-primary-container)" }}>Skip</button>
+        ? <button onClick={onSkip} className="text-body font-semibold cursor-pointer" style={{ color: "var(--color-primary-container)" }}>Skip</button>
         : <div className="w-8" />
       }
     </div>
@@ -743,8 +742,8 @@ export default function HomePage() {
 
   const QuestionBlock = ({ q, sub }: { q: string; sub?: string }) => (
     <div className="px-5 pt-3 pb-1">
-      <h2 className="text-[22px] font-extrabold text-on-surface leading-tight font-[family-name:var(--font-manrope)]">{q}</h2>
-      {sub && <p className="text-[12px] text-on-surface-variant/55 mt-1 leading-relaxed">{sub}</p>}
+      <h2 className="text-title font-extrabold text-on-surface leading-tight font-[family-name:var(--font-manrope)]">{q}</h2>
+      {sub && <p className="text-xs text-on-surface-variant/55 mt-1 leading-relaxed">{sub}</p>}
     </div>
   );
 
@@ -756,8 +755,8 @@ export default function HomePage() {
         <NavBar showBack onSkip={() => { setNameText(""); handleNameSubmit(); }} />
         <HeroImage />
         <div className="px-5 pt-4 pb-1">
-          <p className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">{getGreeting()}</p>
-          <p className="text-[13px] text-on-surface-variant/60 mt-0.5">
+          <p className="text-lg font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">{getGreeting()}</p>
+          <p className="text-body text-on-surface-variant/60 mt-0.5">
             {memberFlow === "partner"
               ? "Now let's personalise things for your partner too."
               : "Welcome to BetterHalf — your personalised health journey starts here."}
@@ -773,7 +772,7 @@ export default function HomePage() {
               onChange={(e) => setNameText(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && nameText.trim()) handleNameSubmit(); }}
               placeholder={memberFlow === "partner" ? "Their first name" : "Your first name"}
-              className="w-full bg-transparent text-[22px] font-semibold text-on-surface placeholder:text-on-surface-variant/30 outline-none"
+              className="w-full bg-transparent text-title font-semibold text-on-surface placeholder:text-on-surface-variant/30 outline-none"
             />
           </div>
         </div>
@@ -803,7 +802,7 @@ export default function HomePage() {
               <div className="w-14 h-14 rounded-2xl bg-primary-container/10 flex items-center justify-center">
                 <span className="text-4xl leading-none">{opt.emoji}</span>
               </div>
-              <p className="text-[16px] font-extrabold text-on-surface">{opt.label}</p>
+              <p className="text-base font-extrabold text-on-surface">{opt.label}</p>
             </button>
           ))}
         </div>
@@ -824,7 +823,7 @@ export default function HomePage() {
             <button key={opt.value} onClick={() => handleAgeSelect(opt.value)}
               className="flex items-center justify-center py-8 rounded-2xl bg-white shadow-[0_2px_16px_rgba(0,58,45,0.08)] hover:shadow-[0_4px_24px_rgba(0,58,45,0.13)] transition-all duration-200 cursor-pointer active:scale-[0.97]"
             >
-              <p className="text-[22px] font-extrabold text-on-surface">{opt.label}</p>
+              <p className="text-title font-extrabold text-on-surface">{opt.label}</p>
             </button>
           ))}
         </div>
@@ -861,15 +860,15 @@ export default function HomePage() {
                   {sel && <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary-container flex items-center justify-center"><Check className="w-2.5 h-2.5 text-white" strokeWidth={3} /></div>}
                 </div>
                 <div className="text-center">
-                  <p className="text-[13px] font-extrabold text-on-surface leading-snug">{displayLabel}</p>
-                  <p className="text-[10px] text-on-surface-variant/50 mt-0.5">{displayDesc}</p>
+                  <p className="text-body font-extrabold text-on-surface leading-snug">{displayLabel}</p>
+                  <p className="text-icon text-on-surface-variant/50 mt-0.5">{displayDesc}</p>
                 </div>
               </button>
             );
           })}
         </div>
         {selectedConcerns.length === 0 && (
-          <p className="text-center text-[11px] text-on-surface-variant/40 mt-4 px-4">Select at least one to continue</p>
+          <p className="text-center text-label text-on-surface-variant/40 mt-4 px-4">Select at least one to continue</p>
         )}
       </>
     );
@@ -906,7 +905,7 @@ export default function HomePage() {
                       <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
                     </div>
                   )}
-                  <p className="text-[14px] font-bold text-on-surface leading-snug">{opt.label}</p>
+                  <p className="text-sm font-bold text-on-surface leading-snug">{opt.label}</p>
                 </button>
               );
             })}
@@ -915,7 +914,7 @@ export default function HomePage() {
             <button
               onClick={() => handleQualifierAnswer(qualifier!.key, selectedQualifiers.join(","))}
               disabled={selectedQualifiers.length === 0}
-              className="w-full py-4 bg-[#004f54] text-white rounded-2xl font-extrabold text-base disabled:opacity-40 transition-opacity"
+              className="w-full py-4 bg-brand text-white rounded-2xl font-extrabold text-base disabled:opacity-40 transition-opacity"
             >
               Continue →
             </button>
@@ -943,7 +942,7 @@ export default function HomePage() {
               <div className="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center">
                 <span className="text-2xl leading-none">{opt.emoji}</span>
               </div>
-              <p className="text-[15px] font-extrabold text-on-surface">{opt.label}</p>
+              <p className="text-lead font-extrabold text-on-surface">{opt.label}</p>
             </button>
           ))}
         </div>
@@ -965,7 +964,7 @@ export default function HomePage() {
               onChange={(e) => setChildName(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") advance("child-age"); }}
               placeholder="Their name"
-              className="w-full bg-transparent text-[22px] font-semibold text-on-surface placeholder:text-on-surface-variant/30 outline-none"
+              className="w-full bg-transparent text-title font-semibold text-on-surface placeholder:text-on-surface-variant/30 outline-none"
             />
           </div>
         </div>
@@ -989,8 +988,8 @@ export default function HomePage() {
             >
               <span className="text-3xl leading-none shrink-0">{opt.emoji}</span>
               <div className="flex-1 text-left">
-                <p className="font-bold text-[16px] text-on-surface">{opt.label}</p>
-                <p className="text-[12px] text-on-surface-variant/50 mt-0.5">{opt.desc}</p>
+                <p className="font-bold text-base text-on-surface">{opt.label}</p>
+                <p className="text-xs text-on-surface-variant/50 mt-0.5">{opt.desc}</p>
               </div>
               <ChevronRight className="w-5 h-5 text-on-surface-variant/30 shrink-0" />
             </button>
@@ -1016,19 +1015,19 @@ export default function HomePage() {
                 )}
                   className={`relative flex flex-col items-center justify-center gap-2.5 p-5 rounded-2xl transition-all cursor-pointer active:scale-[0.97] min-h-[110px] ${
                     sel
-                      ? "bg-[#004f54] shadow-[0_4px_24px_rgba(0,79,84,0.22)]"
+                      ? "bg-brand shadow-[0_4px_24px_rgba(0,79,84,0.22)]"
                       : "bg-white shadow-[0_2px_16px_rgba(0,58,45,0.08)] hover:shadow-[0_4px_24px_rgba(0,58,45,0.12)]"
                   }`}
                 >
                   {sel && (
                     <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-white flex items-center justify-center">
-                      <Check className="w-3 h-3 text-[#004f54]" />
+                      <Check className="w-3 h-3 text-brand" />
                     </div>
                   )}
                   <span className="text-3xl leading-none">{c.emoji}</span>
                   <div className="text-center">
-                    <p className={`text-[13px] font-extrabold leading-snug ${sel ? "text-white" : "text-on-surface"}`}>{c.label}</p>
-                    <p className={`text-[10px] mt-0.5 ${sel ? "text-white/70" : "text-on-surface-variant/45"}`}>{c.sub}</p>
+                    <p className={`text-body font-extrabold leading-snug ${sel ? "text-white" : "text-on-surface"}`}>{c.label}</p>
+                    <p className={`text-icon mt-0.5 ${sel ? "text-white/70" : "text-on-surface-variant/45"}`}>{c.sub}</p>
                   </div>
                 </button>
               );
@@ -1055,7 +1054,7 @@ export default function HomePage() {
                 className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-white shadow-[0_2px_16px_rgba(0,58,45,0.08)] hover:shadow-[0_4px_24px_rgba(0,58,45,0.13)] transition-all cursor-pointer active:scale-[0.98]"
               >
                 <span className="text-3xl leading-none shrink-0">{opt.emoji}</span>
-                <p className="text-[16px] font-semibold text-on-surface">{opt.label}</p>
+                <p className="text-base font-semibold text-on-surface">{opt.label}</p>
               </button>
             ))}
           </div>
@@ -1101,7 +1100,7 @@ export default function HomePage() {
         <div className="max-w-[420px] mx-auto flex items-center justify-between px-5 py-4">
         <button
           onClick={goBack}
-          className="flex items-center gap-1 text-[13px] font-bold cursor-pointer transition-opacity hover:opacity-70"
+          className="flex items-center gap-1 text-body font-bold cursor-pointer transition-opacity hover:opacity-70"
           style={{ color: "#8c4c4d" }}
         >
           <ChevronLeft className="w-4 h-4" />
@@ -1111,7 +1110,7 @@ export default function HomePage() {
           <button
             onClick={onContinueClick}
             disabled={!continueEnabled}
-            className="flex items-center gap-1.5 font-bold text-[14px] px-6 py-3 rounded-full text-white cursor-pointer disabled:opacity-35 transition-opacity hover:opacity-90"
+            className="flex items-center gap-1.5 font-bold text-sm px-6 py-3 rounded-full text-white cursor-pointer disabled:opacity-35 transition-opacity hover:opacity-90"
             style={{ background: "var(--color-primary-container)" }}
           >
             Continue <ChevronRight className="w-4 h-4" />

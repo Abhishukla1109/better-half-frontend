@@ -42,8 +42,8 @@ export default function ProductForm({ product }: Props) {
 
         return (
           <div key={optionName}>
-            <p className="text-sm font-600 text-[#1a2e2e] mb-2">
-              {optionName}: <span className="font-400 text-[#6b7280]">{selectedVariant.selectedOptions.find(o => o.name === optionName)?.value}</span>
+            <p className="text-sm font-600 text-on-dark mb-2">
+              {optionName}: <span className="font-400 text-gray-500">{selectedVariant.selectedOptions.find(o => o.name === optionName)?.value}</span>
             </p>
             <div className="flex flex-wrap gap-2">
               {values.map(val => {
@@ -54,8 +54,8 @@ export default function ProductForm({ product }: Props) {
                     onClick={() => selectOption(optionName, val)}
                     className={`px-4 py-2 rounded-xl text-sm font-600 border transition-all ${
                       isSelected
-                        ? 'border-[#004f54] bg-[#004f54] text-white'
-                        : 'border-[#e2e8e8] text-[#374151] hover:border-[#004f54]'
+                        ? 'border-brand bg-brand text-white'
+                        : 'border-border-light text-gray-700 hover:border-brand'
                     }`}
                   >
                     {val}
@@ -69,11 +69,11 @@ export default function ProductForm({ product }: Props) {
 
       {/* Quantity */}
       <div className="flex items-center gap-4">
-        <p className="text-sm font-600 text-[#1a2e2e]">Qty</p>
-        <div className="flex items-center border border-[#e2e8e8] rounded-xl overflow-hidden">
+        <p className="text-sm font-600 text-on-dark">Qty</p>
+        <div className="flex items-center border border-border-light rounded-xl overflow-hidden">
           <button
             onClick={() => setQuantity(q => Math.max(1, q - 1))}
-            className="w-10 h-10 flex items-center justify-center text-[#004f54] hover:bg-[#f0f5f5] transition-colors"
+            className="w-10 h-10 flex items-center justify-center text-brand hover:bg-surface-teal transition-colors"
             aria-label="Decrease"
           >
             <Minus size={14} />
@@ -81,13 +81,13 @@ export default function ProductForm({ product }: Props) {
           <span className="w-10 text-center text-sm font-700">{quantity}</span>
           <button
             onClick={() => setQuantity(q => q + 1)}
-            className="w-10 h-10 flex items-center justify-center text-[#004f54] hover:bg-[#f0f5f5] transition-colors"
+            className="w-10 h-10 flex items-center justify-center text-brand hover:bg-surface-teal transition-colors"
             aria-label="Increase"
           >
             <Plus size={14} />
           </button>
         </div>
-        <span className="text-sm text-[#9ca3af]">{formatPrice(selectedVariant.price)} each</span>
+        <span className="text-sm text-gray-400">{formatPrice(selectedVariant.price)} each</span>
       </div>
 
       {/* Add to cart */}

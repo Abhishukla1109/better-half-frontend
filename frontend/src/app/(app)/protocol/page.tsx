@@ -17,6 +17,7 @@ import {
   Minus,
   Plus,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import type { GeneratedProtocol, UserProfile, ProtocolSupplement } from "@/lib/ai/types";
 import { calculateProfileDepth } from "@/lib/ai/profile-depth";
 import { selectNextQuestion, countFollowUpAnswers } from "@/lib/ai/question-bank";
@@ -26,6 +27,8 @@ import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import { supabase } from "@/lib/supabase/client";
 import { getProductRating } from "@/data/ratingsLookup";
 import { track } from "@/lib/mixpanel";
+import { getConcernCategoryStyle, getConcernCardBg, getConcernTagStyle, getSupplementEmoji, getHabitStyle } from "@/lib/concern-styles";
+import { DiscountBadge, FluentEmoji, MatchScoreBadge, RatingPill, TrustBadge } from "@/components/ui";
 
 /* ── Emoji per question key (for the AI question popup) ──── */
 const QUESTION_EMOJI: Record<string, string> = {
@@ -281,27 +284,6 @@ function formatTiming(timing: string): string {
   return `${emoji} ${label}`;
 }
 
-/* Keyword-based emoji for supplement / ingredient types */
-function getSupplementEmoji(name: string): string {
-  const n = name.toLowerCase();
-  if (n.includes("biotin") || n.includes("dht") || n.includes("keratin")) return "💊";
-  if (n.includes("ashwagandha") || n.includes("shilajit") || n.includes("adaptogen")) return "🌿";
-  if (n.includes("whey") || n.includes("protein") || n.includes("bcaa")) return "🥛";
-  if (n.includes("creatine")) return "💪";
-  if (n.includes("probiotic") || n.includes("gut") || n.includes("digestive")) return "🦠";
-  if (n.includes("iron") || n.includes("ferrous")) return "🩸";
-  if (n.includes("magnesium")) return "💤";
-  if (n.includes("melatonin") || n.includes("theanine")) return "🌙";
-  if (n.includes("coenzyme") || n.includes("coq10") || n.includes("q10")) return "⚡";
-  if (n.includes("l-carnitine") || n.includes("carnitine")) return "🔥";
-  if (n.includes("vitamin") || n.includes("multivitamin") || n.includes("niacin") || n.includes("b12")) return "✨";
-  if (n.includes("collagen") || n.includes("glow") || n.includes("skin")) return "✨";
-  if (n.includes("omega") || n.includes("fish oil")) return "🐟";
-  if (n.includes("zinc") || n.includes("selenium") || n.includes("chromium")) return "🔬";
-  if (n.includes("hair") || n.includes("serum") || n.includes("scalp")) return "💆";
-  return "💊";
-}
-
 /* ── Ingredient recommendations by concern ─────────────────── */
 interface IngredientRec {
   name: string;
@@ -448,67 +430,6 @@ function firstSentence(text: string): string {
   return m ? m[0].trim() : text;
 }
 
-function getConcernCategoryStyle(label: string): { text: string; line: string } {
-  const k = label.toLowerCase();
-  if (k.includes("hair") || k.includes("beard")) return { text: "text-rose-600", line: "bg-rose-500/20" };
-  if (k.includes("skin") || k.includes("acne")) return { text: "text-amber-600", line: "bg-amber-500/20" };
-  if (k.includes("weight")) return { text: "text-orange-600", line: "bg-orange-500/20" };
-  if (k.includes("energy") || k.includes("gut")) return { text: "text-yellow-700", line: "bg-yellow-500/20" };
-  if (k.includes("sleep") || k.includes("mind")) return { text: "text-indigo-600", line: "bg-indigo-500/20" };
-  if (k.includes("hormone")) return { text: "text-teal-600", line: "bg-teal-500/20" };
-  return { text: "text-on-surface", line: "bg-outline-variant/15" };
-}
-
-function getConcernCardBg(concern: string): string {
-  const k = concern.toLowerCase();
-  if (k.includes("hair") || k.includes("beard")) return "bg-rose-500/8 border-rose-500/15";
-  if (k.includes("skin") || k.includes("acne")) return "bg-amber-500/8 border-amber-500/15";
-  if (k.includes("weight")) return "bg-orange-500/8 border-orange-500/15";
-  if (k.includes("energy") || k.includes("gut")) return "bg-emerald-500/8 border-emerald-500/15";
-  if (k.includes("sleep") || k.includes("mind")) return "bg-indigo-500/8 border-indigo-500/15";
-  if (k.includes("hormone")) return "bg-teal-500/8 border-teal-500/15";
-  return "bg-surface-container-low border-outline-variant/10";
-}
-
-function getConcernTagStyle(c: string): string {
-  const k = c.toLowerCase();
-  if (k.includes("hair") || k.includes("beard")) return "bg-rose-500/10 text-rose-700 border-rose-500/20";
-  if (k.includes("skin") || k.includes("acne")) return "bg-amber-500/10 text-amber-700 border-amber-500/20";
-  if (k.includes("energy") || k.includes("gut")) return "bg-yellow-500/10 text-yellow-700 border-yellow-500/20";
-  if (k.includes("weight")) return "bg-orange-500/10 text-orange-700 border-orange-500/20";
-  if (k.includes("sleep") || k.includes("mind")) return "bg-indigo-500/10 text-indigo-700 border-indigo-500/20";
-  if (k.includes("hormone")) return "bg-teal-500/10 text-teal-700 border-teal-500/20";
-  return "bg-primary-container/10 text-primary-container border-primary-container/20";
-}
-
-/* Keyword-based emoji + background for habit tiles.
-   Domain-specific checks come first so "Avoid tight hairstyles" → hair, not "avoid".
-   isVeg: true for vegetarian/vegan users — protein tips get 🌱 instead of 🥩. */
-function getHabitStyle(tip: string, isVeg = false): { emoji: string; bg: string } {
-  const t = tip.toLowerCase();
-  if (t.includes("hair") || t.includes("scalp") || t.includes("hairstyle") || t.includes("dandruff"))
-    return { emoji: "💆", bg: "bg-rose-500/12" };
-  if (t.includes("skin") || t.includes("acne") || t.includes("moistur") || t.includes("sunscreen") || t.includes("face wash"))
-    return { emoji: "🧴", bg: "bg-amber-500/12" };
-  if (t.includes("sleep") || t.includes("bed") || t.includes("screen time"))
-    return { emoji: "😴", bg: "bg-indigo-500/12" };
-  if (t.includes("protein"))
-    return { emoji: isVeg ? "🥚" : "💪", bg: "bg-emerald-500/12" };
-  if (t.includes("water") || t.includes("rinse") || t.includes("cold shower") || t.includes("hydrat"))
-    return { emoji: "💧", bg: "bg-sky-500/12" };
-  if (t.includes("exercise") || t.includes("workout") || t.includes("walk") || t.includes("step") || t.includes("gym"))
-    return { emoji: "🏃", bg: "bg-orange-500/12" };
-  if (t.includes("stress") || t.includes("meditat") || t.includes("breath") || t.includes("mind"))
-    return { emoji: "🧘", bg: "bg-violet-500/12" };
-  if (t.includes("sun") || t.includes("vitamin d") || t.includes("morning light"))
-    return { emoji: "☀️", bg: "bg-amber-500/12" };
-  if (t.includes("sugar") || t.includes("dairy") || t.includes("junk") || t.includes("avoid") || t.includes("cut "))
-    return { emoji: "✋", bg: "bg-red-500/10" };
-  if (t.includes("eat") || t.includes("meal") || t.includes("diet") || t.includes("food") || t.includes("nutrient"))
-    return { emoji: "🥗", bg: "bg-emerald-500/10" };
-  return { emoji: "⚡", bg: "bg-surface-container-low" };
-}
-
 /* ── Loading skeleton ──────────────────────────────────────── */
 function ProtocolSkeleton() {
   return (
@@ -548,7 +469,7 @@ function ProtocolGate({ onUnlock }: { onUnlock: () => void }) {
         <div className="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center mx-auto mb-3">
           <Lock className="w-4.5 h-4.5 text-primary-container" strokeWidth={1.5} />
         </div>
-        <p className="text-[15px] font-extrabold text-on-surface mb-1 font-[family-name:var(--font-manrope)]">
+        <p className="text-lead font-extrabold text-on-surface mb-1 font-[family-name:var(--font-manrope)]">
           Your full protocol is ready
         </p>
         <p className="text-xs text-on-surface-variant/70 leading-relaxed mb-4">
@@ -560,7 +481,7 @@ function ProtocolGate({ onUnlock }: { onUnlock: () => void }) {
         >
           Create Free Account
         </button>
-        <p className="text-[10px] text-on-surface-variant/40 mt-2.5">
+        <p className="text-icon text-on-surface-variant/40 mt-2.5">
           Free forever · Phone OTP · 30 seconds
         </p>
       </div>
@@ -1276,15 +1197,15 @@ export default function ProtocolPage() {
                 {image
                   // eslint-disable-next-line @next/next/no-img-element
                   ? <img src={image} alt={name} className="w-full h-full object-cover" loading="lazy" />
-                  : <div className="w-full h-full flex items-center justify-center text-3xl leading-none">{getSupplementEmoji(name)}</div>
+                  : <div className="w-full h-full flex items-center justify-center"><FluentEmoji emoji={getSupplementEmoji(name)} size={44} /></div>
                 }
                 {discountPct > 0 && (
-                  <span className="absolute top-2 left-2 bg-primary-container text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-md leading-none">
+                  <span className="absolute top-2 left-2 bg-primary-container text-white text-2xs font-extrabold px-1.5 py-0.5 rounded-md leading-none">
                     {discountPct}% OFF
                   </span>
                 )}
                 {isPrimary && (
-                  <span className="absolute top-2 right-2 bg-black/40 backdrop-blur-sm text-white text-[8px] font-bold px-1.5 py-0.5 rounded-md leading-none flex items-center gap-0.5">
+                  <span className="absolute top-2 right-2 bg-black/40 backdrop-blur-sm text-white text-3xs font-bold px-1.5 py-0.5 rounded-md leading-none flex items-center gap-0.5">
                     <Sparkles className="w-2 h-2" strokeWidth={2} />Top pick
                   </span>
                 )}
@@ -1293,21 +1214,21 @@ export default function ProtocolPage() {
               {/* Card body */}
               <div className="p-2.5 pt-2">
                 {/* Brand pill */}
-                <span className={`inline-block px-1.5 py-0.5 rounded-md text-[8px] font-bold mb-1.5 ${pill.bg} ${pill.text}`}>
+                <span className={`inline-block px-1.5 py-0.5 rounded-md text-3xs font-bold mb-1.5 ${pill.bg} ${pill.text}`}>
                   {brand}
                 </span>
 
                 {/* Name */}
-                <p className="text-[11px] font-bold text-on-surface leading-snug line-clamp-2 min-h-[28px] mb-1.5">{name}</p>
+                <p className="text-label font-bold text-on-surface leading-snug line-clamp-2 min-h-[28px] mb-1.5">{name}</p>
 
                 {/* Price + rating on same row */}
                 <div className="flex items-center justify-between mb-2.5">
                   <div className="flex items-baseline gap-1">
-                    <span className="text-[13px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">₹{price}</span>
-                    {mrp > price && <span className="text-[9px] text-on-surface-variant/35 line-through">₹{mrp}</span>}
+                    <span className="text-body font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">₹{price}</span>
+                    {mrp > price && <span className="text-2xs text-on-surface-variant/35 line-through">₹{mrp}</span>}
                   </div>
                   {ratingData ? (
-                    <span className="flex items-center gap-0.5 text-[10px] font-semibold text-on-surface-variant/60">
+                    <span className="flex items-center gap-0.5 text-icon font-semibold text-on-surface-variant/60">
                       <span className="text-amber-400">★</span>{ratingData.rating.toFixed(1)}
                     </span>
                   ) : null}
@@ -1326,7 +1247,7 @@ export default function ProtocolPage() {
                     >
                       <Minus className="w-3 h-3" strokeWidth={2.5} />
                     </button>
-                    <span className="text-[11px] font-bold">{cartQty}</span>
+                    <span className="text-label font-bold">{cartQty}</span>
                     <button
                       onClick={() => { if (cartLineId) void updateItem(cartLineId, cartQty + 1); }}
                       className="w-8 h-8 flex items-center justify-center hover:bg-primary active:bg-primary transition-colors"
@@ -1339,7 +1260,7 @@ export default function ProtocolPage() {
                   <button
                     onClick={(e) => { e.stopPropagation(); void handleAddToCart(id); }}
                     disabled={!!isLoading}
-                    className={`w-full py-2 rounded-xl text-[10px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer disabled:cursor-default active:scale-[0.98] ${
+                    className={`w-full py-2 rounded-xl text-icon font-bold flex items-center justify-center gap-1 transition-all cursor-pointer disabled:cursor-default active:scale-[0.98] ${
                       isPrimary
                         ? "bg-primary-container text-white hover:bg-primary"
                         : "bg-surface-container border border-outline-variant/20 text-on-surface-variant hover:bg-surface-container-high"
@@ -1359,7 +1280,7 @@ export default function ProtocolPage() {
         // Row section label component
         const RowLabel = ({ children }: { children: React.ReactNode }) => (
           <div className="flex items-center gap-2.5 px-5 mb-3">
-            <span className="text-[13px] font-extrabold text-on-surface">{children}</span>
+            <span className="text-body font-extrabold text-on-surface">{children}</span>
             <div className="flex-1 h-px bg-outline-variant/12" />
           </div>
         );
@@ -1383,12 +1304,12 @@ export default function ProtocolPage() {
                   <div>
                     <div className="flex items-center gap-1.5 mb-1">
                       <Sparkles className="w-3 h-3 text-primary-container" strokeWidth={1.5} />
-                      <span className="text-[10px] font-bold text-primary-container uppercase tracking-wider">Your Protocol</span>
+                      <span className="text-icon font-bold text-primary-container uppercase tracking-wider">Your Protocol</span>
                     </div>
-                    <h2 className="text-[18px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
+                    <h2 className="text-lg font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
                       Shop Your Protocol
                     </h2>
-                    <p className="text-[11px] text-on-surface-variant/50 mt-0.5">
+                    <p className="text-label text-on-surface-variant/50 mt-0.5">
                       {protocol.supplements.length} pick{protocol.supplements.length !== 1 ? "s" : ""} · scroll each row to explore
                     </p>
                   </div>
@@ -1438,8 +1359,8 @@ export default function ProtocolPage() {
                       {/* Concern group header — bigger + bolder when multi-concern */}
                       {protocolCartGroups.length > 1 && (
                         <div className="flex items-center gap-2.5 px-5 mb-4">
-                          <span className="text-xl leading-none">{group.emoji}</span>
-                          <span className="text-[15px] font-extrabold text-on-surface">{group.label}</span>
+                          <FluentEmoji emoji={group.emoji} size={22} />
+                          <span className="text-lead font-extrabold text-on-surface">{group.label}</span>
                           <div className="flex-1 h-px bg-outline-variant/15" />
                         </div>
                       )}
@@ -1487,7 +1408,7 @@ export default function ProtocolPage() {
                   <button
                     onClick={handleAddAllPrimaries}
                     disabled={addingAll}
-                    className="w-full py-2.5 rounded-xl border border-outline-variant/20 text-on-surface-variant text-[12px] font-bold hover:bg-surface-container transition-colors cursor-pointer disabled:opacity-60 flex items-center justify-center gap-1.5"
+                    className="w-full py-2.5 rounded-xl border border-outline-variant/20 text-on-surface-variant text-xs font-bold hover:bg-surface-container transition-colors cursor-pointer disabled:opacity-60 flex items-center justify-center gap-1.5"
                   >
                     {addingAll
                       ? <><Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2} />Adding all picks…</>
@@ -1506,7 +1427,7 @@ export default function ProtocolPage() {
                   <ShoppingBag className="w-4 h-4" strokeWidth={2} />
                   {cartCount > 0 ? `Go to Cart · ${cartCount} item${cartCount !== 1 ? "s" : ""}` : "Go to Cart →"}
                 </button>
-                <p className="text-[10px] text-on-surface-variant/40 text-center">
+                <p className="text-icon text-on-surface-variant/40 text-center">
                   Free delivery · Doctor-approved · Made for Indian bodies
                 </p>
               </div>
@@ -1541,7 +1462,7 @@ export default function ProtocolPage() {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-1.5 bg-white/10 rounded-full px-3 py-1">
                     <Sparkles className="w-3 h-3 text-primary-fixed" strokeWidth={2} />
-                    <span className="text-[10px] font-bold text-primary-fixed uppercase tracking-widest">BetterHalf AI</span>
+                    <span className="text-icon font-bold text-primary-fixed uppercase tracking-widest">BetterHalf AI</span>
                   </div>
                   <button
                     onClick={() => setShowQuestionSheet(false)}
@@ -1559,13 +1480,13 @@ export default function ProtocolPage() {
                       <Check className="w-6 h-6 text-white" strokeWidth={2.5} />
                     </div>
                     <div>
-                      <p className="text-white font-extrabold text-[18px] font-[family-name:var(--font-manrope)] leading-tight">Protocol deepened</p>
-                      <p className="text-primary-fixed/70 text-[12px] mt-0.5">
+                      <p className="text-white font-extrabold text-lg font-[family-name:var(--font-manrope)] leading-tight">Protocol deepened</p>
+                      <p className="text-primary-fixed/70 text-xs mt-0.5">
                         {depthGain > 0 ? `+${depthGain}% more precise` : "Your answer has been factored in"}
                       </p>
                     </div>
                     {depthGain > 0 && (
-                      <span className="ml-auto text-[22px] font-extrabold text-primary-fixed font-[family-name:var(--font-manrope)] shrink-0">
+                      <span className="ml-auto text-title font-extrabold text-primary-fixed font-[family-name:var(--font-manrope)] shrink-0">
                         +{depthGain}%
                       </span>
                     )}
@@ -1573,15 +1494,15 @@ export default function ProtocolPage() {
                 ) : sessionLimitReached ? (
                   <div>
                     <span className="text-[38px] leading-none block mb-2">✅</span>
-                    <p className="text-white font-extrabold text-[20px] font-[family-name:var(--font-manrope)] leading-tight">That&apos;s good for today</p>
-                    <p className="text-primary-fixed/60 text-[12px] mt-1">Come back tomorrow for more</p>
+                    <p className="text-white font-extrabold text-xl font-[family-name:var(--font-manrope)] leading-tight">That&apos;s good for today</p>
+                    <p className="text-primary-fixed/60 text-xs mt-1">Come back tomorrow for more</p>
                   </div>
                 ) : currentQuestion ? (
                   <div>
                     <span className="text-[40px] leading-none block mb-3">
                       {QUESTION_EMOJI[currentQuestion.key] ?? "💬"}
                     </span>
-                    <p className="text-white font-extrabold text-[20px] font-[family-name:var(--font-manrope)] leading-snug">
+                    <p className="text-white font-extrabold text-xl font-[family-name:var(--font-manrope)] leading-snug">
                       {currentQuestion.question}
                     </p>
                   </div>
@@ -1592,19 +1513,19 @@ export default function ProtocolPage() {
               <div className="px-5 pt-4 pb-5">
                 {showingUpdate ? (
                   <div className="py-2 text-center">
-                    <p className="text-[13px] text-on-surface-variant/60 leading-relaxed">
+                    <p className="text-body text-on-surface-variant/60 leading-relaxed">
                       Every answer makes your recommendations more precise. Keep going.
                     </p>
                   </div>
                 ) : sessionLimitReached ? (
                   <div className="space-y-4">
-                    <p className="text-[13px] text-on-surface-variant/65 leading-relaxed">
+                    <p className="text-body text-on-surface-variant/65 leading-relaxed">
                       {possUpper} protocol gets sharper every time you return. Come back tomorrow for one more question.
                     </p>
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[11px] font-semibold text-on-surface-variant/50">Protocol depth</span>
-                        <span className="text-[11px] font-bold text-primary-container">{liveDepth}%</span>
+                        <span className="text-label font-semibold text-on-surface-variant/50">Protocol depth</span>
+                        <span className="text-label font-bold text-primary-container">{liveDepth}%</span>
                       </div>
                       <div className="h-1.5 bg-surface-container-high rounded-full overflow-hidden">
                         <div className="h-full bg-gradient-to-r from-primary-container/60 to-primary-container rounded-full transition-all duration-700 ease-out" style={{ width: `${liveDepth}%` }} />
@@ -1613,7 +1534,7 @@ export default function ProtocolPage() {
                     {!bonusUnlocked && currentQuestion && (
                       <button
                         onClick={() => setBonusUnlocked(true)}
-                        className="w-full py-3 rounded-2xl border border-primary-container/25 text-[13px] font-semibold text-primary-container hover:bg-primary-container/8 transition-colors cursor-pointer"
+                        className="w-full py-3 rounded-2xl border border-primary-container/25 text-body font-semibold text-primary-container hover:bg-primary-container/8 transition-colors cursor-pointer"
                       >
                         Actually, one more thing →
                       </button>
@@ -1626,7 +1547,7 @@ export default function ProtocolPage() {
                         <button
                           key={opt.value}
                           onClick={() => handleAnswer(currentQuestion.key, opt.value)}
-                          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border text-[13px] font-semibold text-on-surface text-left cursor-pointer transition-all duration-200 active:scale-[0.98] group"
+                          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border text-body font-semibold text-on-surface text-left cursor-pointer transition-all duration-200 active:scale-[0.98] group"
                           style={{ background: "#f8f8f6", borderColor: "rgba(0,0,0,0.07)" }}
                           onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(0,64,52,0.35)"; (e.currentTarget as HTMLButtonElement).style.background = "rgba(0,64,52,0.04)"; }}
                           onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(0,0,0,0.07)"; (e.currentTarget as HTMLButtonElement).style.background = "#f8f8f6"; }}
@@ -1647,7 +1568,7 @@ export default function ProtocolPage() {
                       </div>
                       <button
                         onClick={() => handleSkip(currentQuestion.key)}
-                        className="text-[11px] font-medium text-on-surface-variant/35 hover:text-on-surface-variant/65 transition-colors cursor-pointer"
+                        className="text-label font-medium text-on-surface-variant/35 hover:text-on-surface-variant/65 transition-colors cursor-pointer"
                       >
                         Skip
                       </button>
@@ -1674,13 +1595,15 @@ export default function ProtocolPage() {
 
         {/* ── Unified protocol header card ── */}
         <div
-          className="mb-4 rounded-2xl overflow-hidden animate-fade-in-up"
-          style={{ background: "linear-gradient(160deg, #002b22 0%, #004034 40%, #1a6b58 100%)" }}
+          className="mb-4 rounded-2xl overflow-hidden animate-fade-in-up relative"
+          style={{ background: "linear-gradient(140deg, #001810 0%, #002b22 25%, #004034 55%, #176050 82%, #1d7560 100%)" }}
         >
-          <div className="p-5">
+          {/* Subtle dot texture overlay */}
+          <div className="absolute inset-0 opacity-[0.035]" style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "18px 18px" }} />
+          <div className="p-5 relative">
 
             {/* Title */}
-            <h1 className="text-[30px] font-extrabold text-white font-[family-name:var(--font-manrope)] leading-tight mb-3">
+            <h1 className="text-3xl font-extrabold text-white font-[family-name:var(--font-manrope)] leading-tight mb-3">
               {possUpper} Protocol
             </h1>
 
@@ -1688,7 +1611,7 @@ export default function ProtocolPage() {
             {concernList.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-4">
                 {concernList.map((c) => (
-                  <span key={c} className="flex items-center gap-1.5 text-[13px] font-bold px-3.5 py-1.5 rounded-full bg-white/10 text-white border border-white/20">
+                  <span key={c} className="flex items-center gap-1.5 text-body font-bold px-3.5 py-1.5 rounded-full bg-white/10 text-white border border-white/20">
                     <span className="text-base leading-none">{getConcernEmoji([c], profile?.sex)}</span>
                     {CONCERN_TITLE_MAP[c] ?? c.toLowerCase()}
                   </span>
@@ -1704,11 +1627,11 @@ export default function ProtocolPage() {
                   style={{ width: `${displayDepth}%`, background: "linear-gradient(90deg, #7fffd4, #ffffff)" }}
                 />
               </div>
-              <span className="text-[15px] font-extrabold text-white font-[family-name:var(--font-manrope)] tabular-nums shrink-0">
+              <span className="text-lead font-extrabold text-white font-[family-name:var(--font-manrope)] tabular-nums shrink-0">
                 {displayDepth}%
               </span>
             </div>
-            <p className="text-[11px] text-white/50 mb-4">
+            <p className="text-label text-white/50 mb-4">
               Built from your profile · answer more to refine
             </p>
 
@@ -1733,8 +1656,8 @@ export default function ProtocolPage() {
               return (
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {chips.slice(0, 2).map((chip, i) => (
-                    <span key={i} className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white/10 text-white/75 border border-white/12">
-                      <span className="text-[10px] leading-none">{chip.icon}</span>
+                    <span key={i} className="flex items-center gap-1 text-label font-semibold px-2.5 py-1 rounded-full bg-white/10 text-white/75 border border-white/12">
+                      <span className="text-icon leading-none">{chip.icon}</span>
                       {chip.label}
                     </span>
                   ))}
@@ -1746,7 +1669,7 @@ export default function ProtocolPage() {
             {allAnswered ? (
               <div className="mt-3 flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/10">
                 <Check className="w-3.5 h-3.5 text-primary-fixed shrink-0" strokeWidth={2.5} />
-                <p className="text-[12px] font-bold text-white">Protocol fully personalised</p>
+                <p className="text-xs font-bold text-white">Protocol fully personalised</p>
               </div>
             ) : (
               <button
@@ -1756,10 +1679,10 @@ export default function ProtocolPage() {
                 <div className="flex items-center gap-2.5">
                   <Sparkles className="w-4 h-4 text-primary-fixed shrink-0" strokeWidth={1.5} />
                   <div className="text-left">
-                    <p className="text-[14px] font-extrabold text-white leading-none">
+                    <p className="text-sm font-extrabold text-white leading-none">
                       {sessionLimitReached ? "That's good for today" : "Sharpen your protocol"}
                     </p>
-                    <p className="text-[11px] text-white/55 mt-1">
+                    <p className="text-label text-white/55 mt-1">
                       {sessionLimitReached ? `${liveDepth}% · Come back tomorrow` : "Answer more to sharpen more"}
                     </p>
                   </div>
@@ -1774,7 +1697,7 @@ export default function ProtocolPage() {
         {/* Habits before supplements — on main background, horizontal scroll */}
         {protocol.lifestyle.length > 0 && (
           <div className="mb-4 mt-4 rounded-2xl border border-outline-variant/10 p-4" style={{ background: "linear-gradient(175deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.015) 50%, rgba(0,0,0,0.00) 100%)" }}>
-            <p className="text-[15px] font-extrabold text-on-surface mb-3">
+            <p className="text-base font-extrabold text-on-surface mb-3 tracking-tight">
               Habits before supplements
             </p>
             <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-1 -mx-1 px-1">
@@ -1782,12 +1705,18 @@ export default function ProtocolPage() {
                 const { action } = splitRoutineText(tip);
                 const profileDiet = String(profile?.diet || "").toLowerCase();
                 const isVeg = !profileDiet.includes("non") && (profileDiet.includes("veg") || profileDiet.includes("vegan") || profileDiet.includes("egg"));
-                const { emoji } = getHabitStyle(tip, isVeg);
+                const { emoji, bg } = getHabitStyle(tip, isVeg);
                 return (
-                  <div key={i} className="flex flex-col gap-2.5 rounded-2xl border border-outline-variant/20 px-3 py-3.5 flex-shrink-0 w-[42vw] max-w-[170px]" style={{ background: "linear-gradient(to bottom, #ffffff, #efefef)" }}>
-                    <span className="text-[32px] leading-none">{emoji}</span>
-                    <p className="text-[12px] font-bold text-on-surface leading-snug">{compressHabit(action)}</p>
-                  </div>
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.28, delay: i * 0.07 }}
+                    className={`flex flex-col gap-2.5 rounded-2xl border border-outline-variant/15 px-3 py-3.5 flex-shrink-0 w-[42vw] max-w-[170px] ${bg}`}
+                  >
+                    <FluentEmoji emoji={emoji} size={32} />
+                    <p className="text-xs font-bold text-on-surface leading-snug">{compressHabit(action)}</p>
+                  </motion.div>
                 );
               })}
             </div>
@@ -1796,11 +1725,11 @@ export default function ProtocolPage() {
 
         {/* ── Product picks — right after habits ── */}
         {protocol.supplements.length > 0 && (
-          <div className="flex items-center gap-2 px-1 mb-3">
-            <p className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">
+          <div className="flex items-center gap-2.5 px-1 mb-3">
+            <p className="text-lg font-extrabold text-on-surface font-[family-name:var(--font-manrope)] tracking-tight">
               Picked for {profile?.name ? profile.name : "you"}
             </p>
-            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold text-white" style={{ background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)" }}>
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-icon font-bold text-white shrink-0" style={{ background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)", boxShadow: "0 1px 6px rgba(0,64,52,0.3)" }}>
               <Sparkles className="w-2.5 h-2.5" strokeWidth={2} />
               AI matched
             </span>
@@ -1819,16 +1748,15 @@ export default function ProtocolPage() {
                 {groupedSupplements.map((group) => (
                   <div key={group.label}>
                     <div className="flex items-center gap-2 px-4 mb-2.5">
-                      <span className="text-[16px] leading-none">{group.emoji}</span>
-                      <span className={`text-[14px] font-extrabold ${getConcernCategoryStyle(group.displayLabel).text}`}>{group.displayLabel}</span>
-                      <span className="text-[11px] font-semibold text-on-surface-variant/50">· {group.supplements.length} matched</span>
+                      <FluentEmoji emoji={group.emoji} size={20} />
+                      <span className={`text-sm font-extrabold ${getConcernCategoryStyle(group.displayLabel).text}`}>{group.displayLabel}</span>
+                      <span className="text-label font-semibold text-on-surface-variant/50">· {group.supplements.length} matched</span>
                       <div className={`flex-1 h-px ${getConcernCategoryStyle(group.displayLabel).line}`} />
                     </div>
                     <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-1 pl-4">
-                      {group.supplements.map((s) => {
+                      {group.supplements.map((s, idx) => {
                         const discountPct = s.mrp && s.mrp > s.price ? Math.round((1 - s.price / s.mrp) * 100) : 0;
                         const ratingData = getProductRating(s.id);
-                        const reviewLabel = ratingData?.count ? (ratingData.count >= 1000 ? `${(ratingData.count / 1000).toFixed(1)}k` : `${ratingData.count}`) : null;
                         const trustBadge = getTrustBadge(s);
                         const displayScore = displayScoreMap.get(s.id) ?? s.matchScore;
                         const activeSlug = selectedVariants.get(s.id) ?? s.id;
@@ -1840,10 +1768,13 @@ export default function ProtocolPage() {
                         const cartQtyMC = cartItemMC?.quantity ?? 0;
                         const cartLineIdMC = cartItemMC?.lineId;
                         return (
-                          <div
+                          <motion.div
                             key={s.id}
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: idx * 0.07, ease: "easeOut" }}
                             onClick={() => { track("Product Card Tapped", { product_id: s.id, product_name: s.name, brand: s.brand, source: "protocol" }); router.push(`/product/${activeSlug}`); }}
-                            className="flex flex-col flex-shrink-0 w-[52vw] max-w-[200px] min-w-[160px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 overflow-hidden cursor-pointer hover:border-primary-container/30 transition-all duration-200 active:scale-[0.98]"
+                            className="flex flex-col flex-shrink-0 w-[52vw] max-w-[200px] min-w-[160px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 overflow-hidden cursor-pointer hover:border-primary-container/30 transition-colors duration-200 active:scale-[0.98]"
                           >
                             <div className="relative w-full h-[164px] bg-surface-container-low">
                               {s.image ? (
@@ -1851,22 +1782,15 @@ export default function ProtocolPage() {
                                 <img src={s.image} alt={s.name} className="w-full h-full object-cover" loading="lazy" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center">
-                                  <span className="text-5xl leading-none">{getSupplementEmoji(s.name)}</span>
+                                  <FluentEmoji emoji={getSupplementEmoji(s.name)} size={56} />
                                 </div>
                               )}
-                              {discountPct >= 5 && (
-                                <span className="absolute top-2 left-2 bg-primary-container text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-md leading-none">{discountPct}% OFF</span>
-                              )}
-                              {displayScore >= 70 && (
-                                <div className="absolute top-2 right-2 bg-amber-500 text-white rounded-full px-2 py-1 flex flex-col items-center leading-none">
-                                  <span className="text-[11px] font-extrabold tabular-nums">{displayScore}%</span>
-                                  <span className="text-[7px] font-bold opacity-80">match</span>
-                                </div>
-                              )}
+                              <DiscountBadge pct={discountPct} />
+                              <MatchScoreBadge score={displayScore} />
                             </div>
                             <div className="p-3 flex flex-col flex-1">
-                              <p className="text-[11px] font-bold text-primary-container/70 uppercase tracking-wider mb-0.5">{s.brand}</p>
-                              <p className="text-[15px] font-bold text-on-surface leading-snug line-clamp-2 mb-1.5">{displayName}</p>
+                              <p className="text-label font-bold text-primary-container/70 uppercase tracking-wider mb-0.5">{s.brand}</p>
+                              <p className="text-lead font-bold text-on-surface leading-snug line-clamp-2 mb-1.5">{displayName}</p>
                               {siblings && siblings.length > 1 && (
                                 <div className="flex flex-wrap gap-1 mb-2" onClick={e => e.stopPropagation()}>
                                   {siblings.map(sib => {
@@ -1875,7 +1799,7 @@ export default function ProtocolPage() {
                                       <button
                                         key={sib.slug}
                                         onClick={() => setSelectedVariants(prev => new Map(prev).set(s.id, sib.slug))}
-                                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border leading-none transition-all ${isActive ? "bg-[#004f54] text-white border-[#004f54]" : "text-on-surface-variant/70 border-outline-variant/30 hover:border-[#004f54]/40"}`}
+                                        className={`text-icon font-bold px-2 py-0.5 rounded-full border leading-none transition-all ${isActive ? "bg-brand text-white border-brand" : "text-on-surface-variant/70 border-outline-variant/30 hover:border-brand/40"}`}
                                       >
                                         {sib.label}
                                       </button>
@@ -1886,32 +1810,22 @@ export default function ProtocolPage() {
                               {s.reasonTags && s.reasonTags.length > 0 && (
                                 <div className="flex flex-wrap gap-1 mb-2">
                                   {s.reasonTags.slice(0, 2).map((tag, i) => (
-                                    <span key={i} className={`text-[11px] font-semibold px-2 py-1 rounded-full border leading-none whitespace-nowrap ${getConcernTagStyle(catalogProducts.find(p => p.id === s.id)?.category ?? "")}`}>
+                                    <span key={i} className={`text-label font-semibold px-2 py-1 rounded-full border leading-none whitespace-nowrap ${getConcernTagStyle(catalogProducts.find(p => p.id === s.id)?.category ?? "")}`}>
                                       {tag}
                                     </span>
                                   ))}
                                 </div>
                               )}
-                              {trustBadge && (
-                                <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-1.5 leading-none ${trustBadge.style}`}>{trustBadge.label}</span>
-                              )}
+                              <TrustBadge badge={trustBadge} />
                               {s.timing && !skipTiming(displayName) && (
-                                <p className="text-[10px] font-semibold text-on-surface-variant/55 mb-1.5 leading-none">
+                                <p className="text-icon font-semibold text-on-surface-variant/55 mb-1.5 leading-none">
                                   {formatTiming(s.timing)}
                                 </p>
                               )}
-                              {ratingData && (
-                                <div className="flex items-center gap-1.5 mb-2">
-                                  <span className="flex items-center gap-1 bg-amber-400/15 border border-amber-400/25 rounded-full px-2 py-0.5">
-                                    <span className="text-amber-500 text-[11px] leading-none">★</span>
-                                    <span className="text-[11px] font-bold text-amber-700">{ratingData.rating.toFixed(1)}</span>
-                                  </span>
-                                  {reviewLabel && <span className="text-[10px] text-on-surface-variant/40">({reviewLabel})</span>}
-                                </div>
-                              )}
+                              {ratingData && <RatingPill rating={ratingData.rating} count={ratingData.count} className="mb-2" />}
                               <div className="mt-auto">
-                                <p className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
-                                {s.mrp && s.mrp > s.price && <p className="text-[9px] text-on-surface-variant/35 line-through mt-0.5">₹{s.mrp}</p>}
+                                <p className="text-title-sm font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
+                                {s.mrp && s.mrp > s.price && <p className="text-2xs text-on-surface-variant/35 line-through mt-0.5">₹{s.mrp}</p>}
                                 {addedIds.has(activeSlug) && cartLineIdMC && cartQtyMC > 0 ? (
                                   <div
                                     onClick={e => e.stopPropagation()}
@@ -1924,7 +1838,7 @@ export default function ProtocolPage() {
                                     >
                                       <Minus className="w-3.5 h-3.5" strokeWidth={2.5} />
                                     </button>
-                                    <span className="text-[12px] font-bold">{cartQtyMC}</span>
+                                    <span className="text-xs font-bold">{cartQtyMC}</span>
                                     <button
                                       onClick={() => { if (cartLineIdMC) void updateItem(cartLineIdMC, cartQtyMC + 1); }}
                                       className="w-8 h-8 flex items-center justify-center hover:bg-primary active:bg-primary transition-colors"
@@ -1937,7 +1851,7 @@ export default function ProtocolPage() {
                                   <button
                                     onClick={(e) => { e.stopPropagation(); void handleAddToCart(activeSlug); }}
                                     disabled={addingId === activeSlug}
-                                    className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-[12px] font-bold transition-all duration-200 cursor-pointer active:scale-[0.98] text-white"
+                                    className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer active:scale-[0.98] text-white"
                                     style={{ background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)" }}
                                     aria-label="Add to cart"
                                   >
@@ -1946,7 +1860,7 @@ export default function ProtocolPage() {
                                 )}
                               </div>
                             </div>
-                          </div>
+                          </motion.div>
                         );
                       })}
                     </div>
@@ -1959,7 +1873,7 @@ export default function ProtocolPage() {
                       const picks = protocol.supplements.slice(0, 5).map((s) => s.id).join(",");
                       router.push(`/explore?picks=${encodeURIComponent(picks)}`);
                     }}
-                    className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-primary-container/20 border-dashed text-[12px] font-semibold text-primary-container/70 hover:bg-primary-container/5 transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-primary-container/20 border-dashed text-xs font-semibold text-primary-container/70 hover:bg-primary-container/5 transition-colors cursor-pointer"
                   >
                     <ShoppingBag className="w-3.5 h-3.5" strokeWidth={1.5} />
                     View all matched products
@@ -1971,17 +1885,16 @@ export default function ProtocolPage() {
               <div className="pt-4 pb-4">
               {concernList.length === 1 && (
                 <div className="flex items-center gap-2 px-4 mb-2.5">
-                  <span className="text-[16px] leading-none">{CONCERN_EMOJI[concernList[0]] ?? "✦"}</span>
-                  <span className={`text-[12px] font-bold ${getConcernCategoryStyle(concernList[0]).text}`}>{CONCERN_DISPLAY[concernList[0]] ?? concernList[0]}</span>
-                  <span className="text-[10px] text-on-surface-variant/40">· {protocol.supplements.length} matched</span>
+                  <span className="text-base leading-none">{CONCERN_EMOJI[concernList[0]] ?? "✦"}</span>
+                  <span className={`text-xs font-bold ${getConcernCategoryStyle(concernList[0]).text}`}>{CONCERN_DISPLAY[concernList[0]] ?? concernList[0]}</span>
+                  <span className="text-icon text-on-surface-variant/40">· {protocol.supplements.length} matched</span>
                   <div className={`flex-1 h-px ${getConcernCategoryStyle(concernList[0]).line}`} />
                 </div>
               )}
               <div className="flex gap-3 overflow-x-auto overscroll-x-contain hide-scrollbar pb-2 pl-4">
-                {protocol.supplements.slice(0, 5).map((s) => {
+                {protocol.supplements.slice(0, 5).map((s, idx) => {
                   const discountPct = s.mrp && s.mrp > s.price ? Math.round((1 - s.price / s.mrp) * 100) : 0;
                   const ratingData = getProductRating(s.id);
-                  const reviewLabel = ratingData?.count ? (ratingData.count >= 1000 ? `${(ratingData.count / 1000).toFixed(1)}k` : `${ratingData.count}`) : null;
                   const trustBadge = getTrustBadge(s);
                   const displayScore = displayScoreMap.get(s.id) ?? s.matchScore;
                   const activeSlug = selectedVariants.get(s.id) ?? s.id;
@@ -1993,10 +1906,13 @@ export default function ProtocolPage() {
                   const cartQtySC = cartItemSC?.quantity ?? 0;
                   const cartLineIdSC = cartItemSC?.lineId;
                   return (
-                    <div
+                    <motion.div
                       key={s.id}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: idx * 0.07, ease: "easeOut" }}
                       onClick={() => { track("Product Card Tapped", { product_id: s.id, product_name: s.name, brand: s.brand, source: "protocol" }); router.push(`/product/${activeSlug}`); }}
-                      className="flex flex-col flex-shrink-0 w-[52vw] max-w-[200px] min-w-[160px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 overflow-hidden cursor-pointer hover:border-primary-container/30 transition-all duration-200 active:scale-[0.98]"
+                      className="flex flex-col flex-shrink-0 w-[52vw] max-w-[200px] min-w-[160px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 overflow-hidden cursor-pointer hover:border-primary-container/30 transition-colors duration-200 active:scale-[0.98]"
                     >
                       <div className="relative w-full h-[164px] bg-surface-container-low">
                         {s.image ? (
@@ -2007,19 +1923,12 @@ export default function ProtocolPage() {
                             <span className="text-5xl leading-none">{getSupplementEmoji(s.name)}</span>
                           </div>
                         )}
-                        {discountPct >= 5 && (
-                          <span className="absolute top-2 left-2 bg-primary-container text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-md leading-none">{discountPct}% OFF</span>
-                        )}
-                        {displayScore >= 70 && (
-                          <div className="absolute top-2 right-2 bg-amber-500 text-white rounded-full px-2 py-1 flex flex-col items-center leading-none">
-                            <span className="text-[11px] font-extrabold tabular-nums">{displayScore}%</span>
-                            <span className="text-[7px] font-bold opacity-80">match</span>
-                          </div>
-                        )}
+                        <DiscountBadge pct={discountPct} />
+                        <MatchScoreBadge score={displayScore} />
                       </div>
                       <div className="p-3 flex flex-col flex-1">
-                        <p className="text-[11px] font-bold text-primary-container/70 uppercase tracking-wider mb-0.5">{s.brand}</p>
-                        <p className="text-[15px] font-bold text-on-surface leading-snug line-clamp-2 mb-1.5">{displayName}</p>
+                        <p className="text-label font-bold text-primary-container/70 uppercase tracking-wider mb-0.5">{s.brand}</p>
+                        <p className="text-lead font-bold text-on-surface leading-snug line-clamp-2 mb-1.5">{displayName}</p>
                         {siblings && siblings.length > 1 && (
                           <div className="flex flex-wrap gap-1 mb-2" onClick={e => e.stopPropagation()}>
                             {siblings.map(sib => {
@@ -2028,7 +1937,7 @@ export default function ProtocolPage() {
                                 <button
                                   key={sib.slug}
                                   onClick={() => setSelectedVariants(prev => new Map(prev).set(s.id, sib.slug))}
-                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full border leading-none transition-all ${isActive ? "bg-[#004f54] text-white border-[#004f54]" : "text-on-surface-variant/70 border-outline-variant/30 hover:border-[#004f54]/40"}`}
+                                  className={`text-icon font-bold px-2 py-0.5 rounded-full border leading-none transition-all ${isActive ? "bg-brand text-white border-brand" : "text-on-surface-variant/70 border-outline-variant/30 hover:border-brand/40"}`}
                                 >
                                   {sib.label}
                                 </button>
@@ -2039,32 +1948,22 @@ export default function ProtocolPage() {
                         {s.reasonTags && s.reasonTags.length > 0 && (
                           <div className="flex flex-wrap gap-1 mb-2">
                             {s.reasonTags.slice(0, 2).map((tag, i) => (
-                              <span key={i} className={`text-[11px] font-semibold px-2 py-1 rounded-full border leading-none whitespace-nowrap ${getConcernTagStyle(catalogProducts.find(p => p.id === s.id)?.category ?? "")}`}>
+                              <span key={i} className={`text-label font-semibold px-2 py-1 rounded-full border leading-none whitespace-nowrap ${getConcernTagStyle(catalogProducts.find(p => p.id === s.id)?.category ?? "")}`}>
                                 {tag}
                               </span>
                             ))}
                           </div>
                         )}
-                        {trustBadge && (
-                          <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-1.5 leading-none ${trustBadge.style}`}>{trustBadge.label}</span>
-                        )}
+                        <TrustBadge badge={trustBadge} />
                         {s.timing && !skipTiming(displayName) && (
-                          <p className="text-[10px] font-semibold text-on-surface-variant/55 mb-1.5 leading-none">
+                          <p className="text-icon font-semibold text-on-surface-variant/55 mb-1.5 leading-none">
                             {formatTiming(s.timing)}
                           </p>
                         )}
-                        {ratingData && (
-                          <div className="flex items-center gap-1.5 mb-2">
-                            <span className="flex items-center gap-1 bg-amber-400/15 border border-amber-400/25 rounded-full px-2 py-0.5">
-                              <span className="text-amber-500 text-[11px] leading-none">★</span>
-                              <span className="text-[11px] font-bold text-amber-700">{ratingData.rating.toFixed(1)}</span>
-                            </span>
-                            {reviewLabel && <span className="text-[10px] text-on-surface-variant/40">({reviewLabel})</span>}
-                          </div>
-                        )}
+                        {ratingData && <RatingPill rating={ratingData.rating} count={ratingData.count} className="mb-2" />}
                         <div className="mt-auto">
-                          <p className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
-                          {s.mrp && s.mrp > s.price && <p className="text-[9px] text-on-surface-variant/35 line-through mt-0.5">₹{s.mrp}</p>}
+                          <p className="text-title-sm font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">₹{s.price}</p>
+                          {s.mrp && s.mrp > s.price && <p className="text-2xs text-on-surface-variant/35 line-through mt-0.5">₹{s.mrp}</p>}
                           {addedIds.has(activeSlug) && cartLineIdSC && cartQtySC > 0 ? (
                             <div
                               onClick={e => e.stopPropagation()}
@@ -2077,7 +1976,7 @@ export default function ProtocolPage() {
                               >
                                 <Minus className="w-3.5 h-3.5" strokeWidth={2.5} />
                               </button>
-                              <span className="text-[12px] font-bold">{cartQtySC}</span>
+                              <span className="text-xs font-bold">{cartQtySC}</span>
                               <button
                                 onClick={() => { if (cartLineIdSC) void updateItem(cartLineIdSC, cartQtySC + 1); }}
                                 className="w-8 h-8 flex items-center justify-center hover:bg-primary active:bg-primary transition-colors"
@@ -2090,7 +1989,7 @@ export default function ProtocolPage() {
                             <button
                               onClick={(e) => { e.stopPropagation(); void handleAddToCart(activeSlug); }}
                               disabled={addingId === activeSlug}
-                              className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-[12px] font-bold transition-all duration-200 cursor-pointer active:scale-[0.98] text-white"
+                              className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer active:scale-[0.98] text-white"
                               style={{ background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)" }}
                               aria-label="Add to cart"
                             >
@@ -2099,7 +1998,7 @@ export default function ProtocolPage() {
                           )}
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   );
                 })}
 
@@ -2116,8 +2015,8 @@ export default function ProtocolPage() {
                     <ShoppingBag className="w-4 h-4 text-primary-container/70" strokeWidth={1.5} />
                   </div>
                   <div className="text-center px-2">
-                    <p className="text-[10px] font-bold text-primary-container/80 leading-snug">View all</p>
-                    <p className="text-[9px] text-on-surface-variant/40 mt-0.5">50+ products</p>
+                    <p className="text-icon font-bold text-primary-container/80 leading-snug">View all</p>
+                    <p className="text-2xs text-on-surface-variant/40 mt-0.5">50+ products</p>
                   </div>
                 </div>
               </div>
@@ -2128,17 +2027,17 @@ export default function ProtocolPage() {
             <div className="mt-2">
               <button
                 onClick={() => setShowProtocolCart(true)}
-                className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-primary-container text-sm font-bold text-white hover:bg-primary transition-colors duration-200 cursor-pointer"
+                className="flex items-center justify-center gap-2 w-full py-[15px] rounded-2xl text-lead font-bold text-white cursor-pointer protocol-cta"
               >
                 <ShoppingBag className="w-4 h-4" strokeWidth={2} />
                 Shop {possUpper} Protocol
               </button>
-              <p className="text-[11px] text-on-surface-variant text-center mt-2">
+              <p className="text-label text-on-surface-variant/65 text-center mt-2.5">
                 Free shipping · Doctor-approved · Made for Indian bodies
               </p>
               <button
                 onClick={() => router.push("/explore")}
-                className="flex items-center justify-center gap-1 w-full mt-2.5 text-[12px] font-semibold text-on-surface-variant/50 hover:text-primary-container transition-colors cursor-pointer"
+                className="flex items-center justify-center gap-1 w-full mt-2.5 text-xs font-semibold text-on-surface-variant/50 hover:text-primary-container transition-colors cursor-pointer"
               >
                 Browse all products
                 <ChevronRight className="w-3.5 h-3.5" strokeWidth={2} />
@@ -2154,7 +2053,7 @@ export default function ProtocolPage() {
             {/* Why these work — 2×2 grid */}
             {ingredientList.length > 0 && (
               <div className="mb-4 mt-2 animate-fade-in-up">
-                <p className="text-[15px] font-extrabold text-on-surface mb-3 px-1">
+                <p className="text-base font-extrabold text-on-surface mb-3 px-1 tracking-tight">
                   Why these work
                 </p>
                 <div className="grid grid-cols-2 gap-2">
@@ -2175,23 +2074,22 @@ export default function ProtocolPage() {
                       <button
                         key={item.name}
                         onClick={() => toggleReasoning(item.name)}
-                        className="w-full text-left rounded-2xl border border-outline-variant/20 p-3 transition-all duration-200 cursor-pointer active:scale-[0.98]"
-                        style={{ background: "linear-gradient(to bottom, #ffffff, #efefef)" }}
+                        className={`w-full text-left rounded-2xl border p-3 transition-all duration-200 cursor-pointer active:scale-[0.98] ${cardStyle}`}
                       >
                         <div className="flex items-start justify-between mb-2">
-                          <span className="text-xl leading-none">{getSupplementEmoji(item.name)}</span>
+                          <FluentEmoji emoji={getSupplementEmoji(item.name)} size={24} />
                           <ChevronDown
                             className={`w-3.5 h-3.5 text-on-surface-variant/40 shrink-0 transition-transform duration-200 mt-0.5 ${isExpanded ? "rotate-180" : ""}`}
                             strokeWidth={2.5}
                           />
                         </div>
-                        <p className="text-[13px] font-extrabold text-on-surface leading-snug mb-1.5">{item.name}</p>
-                        <span className={`text-[8px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${badgeStyle}`}>
+                        <p className="text-body font-extrabold text-on-surface leading-snug mb-1.5">{item.name}</p>
+                        <span className={`text-3xs font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${badgeStyle}`}>
                           {item.priority}
                         </span>
-                        <p className="text-[11px] text-on-surface-variant/65 mt-1.5 leading-relaxed font-medium">{item.timing}</p>
+                        <p className="text-label text-on-surface-variant/65 mt-1.5 leading-relaxed font-medium">{item.timing}</p>
                         {isExpanded && (
-                          <p className="text-[11px] text-on-surface-variant/80 mt-2 leading-relaxed border-t border-outline-variant/15 pt-2">
+                          <p className="text-label text-on-surface-variant/80 mt-2 leading-relaxed border-t border-outline-variant/15 pt-2">
                             {item.why}
                           </p>
                         )}
@@ -2223,10 +2121,10 @@ export default function ProtocolPage() {
               <div className="mb-4 animate-fade-in-up">
                 <div className="rounded-2xl border border-outline-variant/12 bg-surface-container-lowest overflow-hidden">
                   <div className="p-4">
-                    <p className="text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-widest mb-2">
+                    <p className="text-icon font-bold text-on-surface-variant/40 uppercase tracking-widest mb-2">
                       Level up {possLower} protocol
                     </p>
-                    <p className="text-[15px] font-extrabold text-on-surface leading-snug mb-1.5 font-[family-name:var(--font-manrope)]">
+                    <p className="text-lead font-extrabold text-on-surface leading-snug mb-1.5 font-[family-name:var(--font-manrope)]">
                       {possUpper} protocol is based on {profile?.name ? "their" : "your"} profile. A blood report makes it exact.
                     </p>
                     <p className="text-xs text-on-surface-variant/65 leading-relaxed mb-3">
@@ -2234,12 +2132,12 @@ export default function ProtocolPage() {
                     </p>
                     <div className="flex gap-1.5 flex-wrap mb-4">
                       {["Vitamin D", "Iron", "B12", "Thyroid"].map((b) => (
-                        <span key={b} className="text-[10px] font-semibold text-primary-container bg-primary-container/10 px-2.5 py-1 rounded-full border border-primary-container/15">
+                        <span key={b} className="text-icon font-semibold text-primary-container bg-primary-container/10 px-2.5 py-1 rounded-full border border-primary-container/15">
                           {b}
                         </span>
                       ))}
                     </div>
-                    <button className="flex items-center gap-1 text-[12px] font-bold text-primary-container cursor-pointer hover:gap-2 transition-all duration-200">
+                    <button className="flex items-center gap-1 text-xs font-bold text-primary-container cursor-pointer hover:gap-2 transition-all duration-200">
                       How it works <ChevronRight className="w-3.5 h-3.5" strokeWidth={2.5} />
                     </button>
                   </div>
@@ -2255,11 +2153,11 @@ export default function ProtocolPage() {
                     <div className="w-7 h-7 rounded-full bg-primary-container/15 flex items-center justify-center shrink-0">
                       <Stethoscope className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
                     </div>
-                    <p className="text-[11px] font-semibold text-primary-container uppercase tracking-wider">
+                    <p className="text-label font-semibold text-primary-container uppercase tracking-wider">
                       Based on your answers
                     </p>
                   </div>
-                  <p className="text-[15px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-1.5">
+                  <p className="text-lead font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-snug mb-1.5">
                     A specialist can help more than supplements alone
                   </p>
                   <p className="text-xs text-on-surface-variant/70 leading-relaxed mb-3">
@@ -2271,7 +2169,7 @@ export default function ProtocolPage() {
                   >
                     Book a free consult
                   </button>
-                  <p className="text-[10px] text-on-surface-variant/40 text-center mt-2">
+                  <p className="text-icon text-on-surface-variant/40 text-center mt-2">
                     Our in-house health coaches respond within the hour
                   </p>
                 </div>
@@ -2288,8 +2186,8 @@ export default function ProtocolPage() {
                   👨‍👩‍👧
                 </div>
                 <div className="flex-1">
-                  <p className="text-[13px] font-bold text-on-surface">Build a protocol for family</p>
-                  <p className="text-[11px] text-on-surface-variant/50 mt-0.5">Add your partner or kids — each gets their own personalised plan</p>
+                  <p className="text-body font-bold text-on-surface">Build a protocol for family</p>
+                  <p className="text-label text-on-surface-variant/50 mt-0.5">Add your partner or kids — each gets their own personalised plan</p>
                 </div>
                 <ChevronRight className="w-4 h-4 text-on-surface-variant/30 shrink-0" strokeWidth={1.5} />
               </button>

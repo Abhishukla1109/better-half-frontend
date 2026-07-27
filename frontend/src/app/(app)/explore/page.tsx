@@ -3,6 +3,8 @@
 import { useState, useEffect, useMemo, useCallback, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Sparkles, ExternalLink, ArrowRight, ShoppingBag, Loader2, Check, X, ChevronDown, Search, Minus, Plus } from "lucide-react";
+import { motion } from "framer-motion";
+import { RatingPill, DiscountBadge, FluentEmoji } from "@/components/ui";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { resolveSegment } from "@/lib/protocolEngine";
 import type { Product, MatchedProduct } from "@/lib/protocolEngine";
@@ -289,12 +291,6 @@ function ProductCard({
     ? { rating: product.rating, count: product.reviewCount ?? 0 }
     : getProductRating(product.id);
 
-  const reviewLabel = ratingData?.count
-    ? ratingData.count >= 1000
-      ? `${(ratingData.count / 1000).toFixed(1)}k`
-      : `${ratingData.count}`
-    : null;
-
   // Pills: all concern labels + match %
   const concernPills = (product.concern ?? []).map((c) => CONCERN_CHIP[c]).filter(Boolean) as string[];
   const matchPill = matchPct !== undefined && matchPct >= 75 ? `${matchPct}% match` : null;
@@ -325,15 +321,11 @@ function ProductCard({
         )}
 
         {/* Discount badge */}
-        {discountPct >= 5 && (
-          <span className="absolute top-2.5 left-2.5 bg-primary-container text-white text-[10px] font-extrabold px-2 py-0.5 rounded-md leading-none shadow-sm">
-            {discountPct}% OFF
-          </span>
-        )}
+        <DiscountBadge pct={discountPct} />
 
         {/* Top-pick badge */}
         {isTopPick && matchPct === undefined && (
-          <div className="absolute top-2.5 right-2.5 flex items-center gap-0.5 bg-primary-container/90 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full leading-none shadow-sm">
+          <div className="absolute top-2.5 right-2.5 flex items-center gap-0.5 bg-primary-container/90 text-white text-2xs font-extrabold px-1.5 py-0.5 rounded-full leading-none shadow-sm">
             <Sparkles className="w-2.5 h-2.5" strokeWidth={2} />
             Top pick
           </div>
@@ -360,30 +352,20 @@ function ProductCard({
       {/* Content */}
       <div className="p-3.5 flex flex-col flex-1 gap-1.5">
         {/* Rating row */}
-        {ratingData && (
-          <div className="flex items-center gap-1">
-            <span className="flex items-center gap-0.5 bg-amber-400/15 border border-amber-400/25 rounded-full px-1.5 py-0.5">
-              <span className="text-amber-500 text-[10px] leading-none">★</span>
-              <span className="text-[10px] font-bold text-amber-700">{ratingData.rating.toFixed(1)}</span>
-            </span>
-            {reviewLabel && (
-              <span className="text-[9px] text-on-surface-variant/35">({reviewLabel})</span>
-            )}
-          </div>
-        )}
+        {ratingData && <RatingPill rating={ratingData.rating} count={ratingData.count} />}
 
         {/* Product name */}
-        <p className="text-[13px] font-bold text-on-surface leading-snug line-clamp-2 flex-1">
+        <p className="text-body font-bold text-on-surface leading-snug line-clamp-2 flex-1">
           {product.name}
         </p>
 
         {/* Price row */}
         <div className="flex items-baseline gap-1.5">
-          <span className="text-[17px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">
+          <span className="text-title-sm font-extrabold text-on-surface font-[family-name:var(--font-manrope)] leading-none">
             &#8377;{product.price}
           </span>
           {product.mrp > product.price && (
-            <span className="text-[10px] text-on-surface-variant/35 line-through">
+            <span className="text-icon text-on-surface-variant/35 line-through">
               &#8377;{product.mrp}
             </span>
           )}
@@ -393,12 +375,12 @@ function ProductCard({
         {(concernPills.length > 0 || matchPill) && (
           <div className="flex flex-wrap gap-1 mt-0.5">
             {concernPills.map((pill) => (
-              <span key={pill} className="text-[10px] font-semibold px-2 py-1 rounded-full bg-surface-container border border-outline-variant/15 text-on-surface-variant/70 leading-none">
+              <span key={pill} className="text-icon font-semibold px-2 py-1 rounded-full bg-surface-container border border-outline-variant/15 text-on-surface-variant/70 leading-none">
                 {pill}
               </span>
             ))}
             {matchPill && (
-              <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-primary-container/10 border border-primary-container/20 text-primary-container leading-none">
+              <span className="text-icon font-bold px-2 py-1 rounded-full bg-primary-container/10 border border-primary-container/20 text-primary-container leading-none">
                 ✦ {matchPill}
               </span>
             )}
@@ -415,7 +397,7 @@ function ProductCard({
             >
               <Minus className="w-3.5 h-3.5" strokeWidth={2.5} />
             </button>
-            <span className="text-[12px] font-bold">{cartQty}</span>
+            <span className="text-xs font-bold">{cartQty}</span>
             <button
               onClick={(e) => { e.stopPropagation(); void updateItem(cartLineId, cartQty + 1); }}
               className="w-9 h-9 flex items-center justify-center hover:bg-primary active:bg-primary transition-colors"
@@ -428,8 +410,7 @@ function ProductCard({
           <button
             onClick={handleAddToCart}
             disabled={isAdding}
-            className="mt-1 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[12px] font-bold transition-all duration-200 cursor-pointer active:scale-[0.97] disabled:cursor-default text-white"
-            style={{ background: "linear-gradient(135deg, #004034 0%, #1a6b58 100%)" }}
+            className="mt-1 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer active:scale-[0.97] disabled:cursor-default text-white gradient-brand-pill"
           >
             {isAdding ? <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2.5} /> : <ShoppingBag className="w-3.5 h-3.5" strokeWidth={2} />}
             {isAdding ? "Adding…" : "Add to Cart"}
@@ -450,7 +431,7 @@ function NoProfileState() {
       </div>
       <div>
         <p className="text-sm font-bold text-on-surface mb-1">Your picks aren&apos;t ready yet</p>
-        <p className="text-[12px] text-on-surface-variant/60 leading-relaxed max-w-[220px] mx-auto">
+        <p className="text-xs text-on-surface-variant/60 leading-relaxed max-w-[220px] mx-auto">
           Answer 3 quick questions and we&apos;ll show you products matched to your health goals.
         </p>
       </div>
@@ -911,7 +892,7 @@ function ExplorePageContent() {
                 : "bg-surface-container border-outline-variant/20 hover:bg-surface-container-high"
             }`}
           >
-            <span className={`text-[12px] font-bold ${BRAND_STYLE[selectedBrand ?? ""]?.text ?? "text-on-surface"}`}>
+            <span className={`text-xs font-bold ${BRAND_STYLE[selectedBrand ?? ""]?.text ?? "text-on-surface"}`}>
               {selectedBrand ?? "All Brands"}
             </span>
             <ChevronDown className={`w-3 h-3 ${BRAND_STYLE[selectedBrand ?? ""]?.text ?? "text-on-surface-variant/60"}`} />
@@ -939,7 +920,7 @@ function ExplorePageContent() {
                 placeholder={`Search in ${selectedBrand ?? "all brands"}…`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-8 py-2 bg-surface-container border border-outline-variant/20 rounded-xl text-[13px] text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary-container/40 transition-colors"
+                className="w-full pl-8 pr-8 py-2 bg-surface-container border border-outline-variant/20 rounded-xl text-body text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary-container/40 transition-colors"
               />
               {searchQuery && (
                 <button
@@ -961,13 +942,13 @@ function ExplorePageContent() {
               <button
                 key={chip.key}
                 onClick={() => handleChipClick(chip.key)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-body font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
                   active
                     ? "bg-primary-container text-white shadow-sm"
                     : "bg-surface-container border border-outline-variant/20 text-on-surface-variant hover:bg-surface-container-high"
                 }`}
               >
-                <span className="text-[12px] leading-none">{chip.icon}</span>
+                <span className="text-xs leading-none">{chip.icon}</span>
                 {chip.label}
                 {chip.isSheet && <ChevronDown className="w-3 h-3 opacity-60" />}
               </button>
@@ -980,7 +961,7 @@ function ExplorePageContent() {
           <div className="flex gap-1.5 px-4 pb-3 overflow-x-auto hide-scrollbar">
             <button
               onClick={() => setSelectedSubConcern(null)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all cursor-pointer border ${
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-label font-semibold whitespace-nowrap transition-all cursor-pointer border ${
                 selectedSubConcern === null
                   ? "bg-on-surface/90 text-surface border-transparent"
                   : "bg-transparent border-outline-variant/25 text-on-surface-variant/60 hover:border-outline-variant/50"
@@ -992,13 +973,13 @@ function ExplorePageContent() {
               <button
                 key={sub.key}
                 onClick={() => setSelectedSubConcern(sub.key === selectedSubConcern ? null : sub.key)}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all cursor-pointer border ${
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-label font-semibold whitespace-nowrap transition-all cursor-pointer border ${
                   selectedSubConcern === sub.key
                     ? "bg-on-surface/90 text-surface border-transparent"
                     : "bg-transparent border-outline-variant/25 text-on-surface-variant/60 hover:border-outline-variant/50"
                 }`}
               >
-                <span className="text-[10px] leading-none">{sub.emoji}</span>
+                <FluentEmoji emoji={sub.emoji} size={12} />
                 {sub.label}
               </button>
             ))}
@@ -1022,12 +1003,12 @@ function ExplorePageContent() {
         {profileLoaded && !profile && (
           <div className="mx-4 mt-4 mb-1 bg-primary-container/8 border border-primary-container/15 rounded-2xl px-4 py-3.5 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[13px] font-semibold text-on-surface leading-snug">Not sure what to buy?</p>
-              <p className="text-[11px] text-on-surface-variant/55 mt-0.5 leading-relaxed">A 2-min check-in personalises your picks</p>
+              <p className="text-body font-semibold text-on-surface leading-snug">Not sure what to buy?</p>
+              <p className="text-label text-on-surface-variant/55 mt-0.5 leading-relaxed">A 2-min check-in personalises your picks</p>
             </div>
             <button
               onClick={() => router.push("/home")}
-              className="shrink-0 text-[11px] font-bold text-white bg-primary-container px-3.5 py-2 rounded-full cursor-pointer hover:bg-primary transition-colors whitespace-nowrap"
+              className="shrink-0 text-label font-bold text-white bg-primary-container px-3.5 py-2 rounded-full cursor-pointer hover:bg-primary transition-colors whitespace-nowrap"
             >
               Personalise →
             </button>
@@ -1037,7 +1018,7 @@ function ExplorePageContent() {
         {/* Section header — subtext + badge only (title duplicates the active tab) */}
         {!showNoProfile && (
           <div className="px-4 pt-3 pb-2 flex items-center justify-between gap-2">
-            <p className="text-[12px] text-on-surface-variant/50 truncate">
+            <p className="text-xs text-on-surface-variant/50 truncate">
               {isForYou && isKid
                 ? (() => {
                     const concern = (activeMember?.profile as Record<string, unknown>)?.concern as string | undefined;
@@ -1055,7 +1036,7 @@ function ExplorePageContent() {
                   : `${displayedProducts.length} product${displayedProducts.length !== 1 ? "s" : ""}`}
             </p>
             {isForYou && (
-              <div className="flex items-center gap-1 text-[10px] text-primary-container/80 bg-primary-container/8 px-2.5 py-1 rounded-full shrink-0">
+              <div className="flex items-center gap-1 text-icon text-primary-container/80 bg-primary-container/8 px-2.5 py-1 rounded-full shrink-0">
                 <Sparkles className="w-2.5 h-2.5" strokeWidth={2} />
                 <span className="font-semibold">AI-matched</span>
               </div>
@@ -1072,14 +1053,18 @@ function ExplorePageContent() {
               <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
                 <div className="flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-primary-container" strokeWidth={1.5} />
-                  <span className="text-[11px] font-bold text-primary-container uppercase tracking-wider">Your protocol picks</span>
+                  <span className="text-label font-bold text-primary-container uppercase tracking-wider">Your protocol picks</span>
                 </div>
                 <button onClick={() => setPicksVisible(false)} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors cursor-pointer">
                   <X className="w-3.5 h-3.5 text-on-surface-variant/40" strokeWidth={2} />
                 </button>
               </div>
               <div className="px-3 pb-3 grid grid-cols-2 lg:grid-cols-3 gap-3">
-                {pinnedPicks.map((p) => <ProductCard key={p.id} product={p} isTopPick={true} />)}
+                {pinnedPicks.map((p, idx) => (
+                  <motion.div key={p.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: idx * 0.07, ease: "easeOut" }}>
+                    <ProductCard product={p} isTopPick={true} />
+                  </motion.div>
+                ))}
               </div>
             </div>
           </div>
@@ -1094,11 +1079,15 @@ function ExplorePageContent() {
                 {forYouGrouped.map((group) => (
                   <div key={group.label}>
                     <div className="flex items-center gap-2 px-1 mb-3">
-                      <span className="text-[11px] font-bold text-primary-container tracking-wide uppercase">For your {concernLabel(group.label)}</span>
+                      <span className="text-label font-bold text-primary-container tracking-wide uppercase">For your {concernLabel(group.label)}</span>
                       <div className="flex-1 h-px bg-outline-variant/15" />
                     </div>
                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                      {group.products.map((p) => <ProductCard key={p.id} product={p} matchPct={(p as MatchedProduct).matchScore} />)}
+                      {group.products.map((p, idx) => (
+                        <motion.div key={p.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: idx * 0.07, ease: "easeOut" }}>
+                          <ProductCard product={p} matchPct={(p as MatchedProduct).matchScore} />
+                        </motion.div>
+                      ))}
                     </div>
                   </div>
                 ))}
@@ -1107,18 +1096,24 @@ function ExplorePageContent() {
               <div className="px-3 pb-6">
                 {showPinnedPicks && products.length > 0 && (
                   <div className="flex items-center gap-2 px-1 mb-3 pt-1">
-                    <span className="text-[11px] font-bold text-on-surface-variant/50 tracking-wide uppercase">You might also like</span>
+                    <span className="text-label font-bold text-on-surface-variant/50 tracking-wide uppercase">You might also like</span>
                     <div className="flex-1 h-px bg-outline-variant/15" />
                   </div>
                 )}
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                  {products.map((p) => (
-                    <ProductCard
+                  {products.map((p, idx) => (
+                    <motion.div
                       key={p.id}
-                      product={p}
-                      isTopPick={!isForYou && (p as MatchedProduct).matchScore >= 85}
-                      matchPct={isForYou ? (p as MatchedProduct).matchScore : undefined}
-                    />
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: idx * 0.07, ease: "easeOut" }}
+                    >
+                      <ProductCard
+                        product={p}
+                        isTopPick={!isForYou && (p as MatchedProduct).matchScore >= 85}
+                        matchPct={isForYou ? (p as MatchedProduct).matchScore : undefined}
+                      />
+                    </motion.div>
                   ))}
                 </div>
               </div>
@@ -1128,7 +1123,7 @@ function ExplorePageContent() {
 
         {!showNoProfile && displayedProducts.length > 0 && (
           <div className="mx-4 mb-6 px-3 py-2.5 rounded-xl bg-surface-container/60 border border-outline-variant/10">
-            <p className="text-[10px] text-on-surface-variant/45 text-center leading-relaxed">
+            <p className="text-icon text-on-surface-variant/45 text-center leading-relaxed">
               Tapping a product opens the brand&apos;s store &middot; Free shipping on most orders &middot; Doctor-formulated
             </p>
           </div>
@@ -1150,7 +1145,7 @@ function ExplorePageContent() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-10 h-1 bg-outline-variant/30 rounded-full mx-auto mb-5" />
-            <p className="font-extrabold text-[16px] text-on-surface font-[family-name:var(--font-manrope)] mb-4">Shop by Brand</p>
+            <p className="font-extrabold text-base text-on-surface font-[family-name:var(--font-manrope)] mb-4">Shop by Brand</p>
             <div className="flex flex-col gap-3">
               {[
                 { name: "Man Matters", desc: "Men's health & grooming", emoji: "💪" },
@@ -1170,12 +1165,12 @@ function ExplorePageContent() {
                       : "border-outline-variant/10 bg-surface-container-low hover:bg-surface-container"
                   }`}
                 >
-                  <span className="text-2xl leading-none shrink-0">{brand.emoji}</span>
+                  <FluentEmoji emoji={brand.emoji} size={28} />
                   <div className="min-w-0 flex-1">
-                    <p className={`text-[13px] font-bold ${selectedBrand === brand.name ? "text-primary-container" : "text-on-surface"}`}>
+                    <p className={`text-body font-bold ${selectedBrand === brand.name ? "text-primary-container" : "text-on-surface"}`}>
                       {brand.name}
                     </p>
-                    <p className="text-[11px] text-on-surface-variant/50 mt-0.5">{brand.desc}</p>
+                    <p className="text-label text-on-surface-variant/50 mt-0.5">{brand.desc}</p>
                   </div>
                   {selectedBrand === brand.name && (
                     <Check className="w-4 h-4 text-primary-container shrink-0" strokeWidth={2.5} />
@@ -1200,7 +1195,7 @@ function ExplorePageContent() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-10 h-1 bg-outline-variant/30 rounded-full mx-auto mb-5" />
-            <p className="font-extrabold text-[16px] text-on-surface font-[family-name:var(--font-manrope)] mb-4">Shop by Category</p>
+            <p className="font-extrabold text-base text-on-surface font-[family-name:var(--font-manrope)] mb-4">Shop by Category</p>
 
             {showKidsFilters ? (
               <div className="grid grid-cols-2 gap-3">
@@ -1214,8 +1209,8 @@ function ExplorePageContent() {
                         : "border-outline-variant/12 bg-surface-container-low hover:bg-surface-container"
                     }`}
                   >
-                    <span className="text-3xl leading-none">{cat.emoji}</span>
-                    <span className={`text-[13px] font-bold ${activeCategory === cat.key ? "text-amber-700" : "text-on-surface"}`}>{cat.label}</span>
+                    <FluentEmoji emoji={cat.emoji} size={36} />
+                    <span className={`text-body font-bold ${activeCategory === cat.key ? "text-amber-700" : "text-on-surface"}`}>{cat.label}</span>
                   </button>
                 ))}
               </div>
@@ -1234,7 +1229,7 @@ function ExplorePageContent() {
                     {/* Gradient background */}
                     <div className={`absolute inset-0 bg-gradient-to-br ${cat.gradient} opacity-60`} />
                     <span className="relative text-3xl leading-none">{cat.emoji}</span>
-                    <span className={`relative text-[13px] font-bold ${activeCategory === cat.key ? "text-primary-container" : "text-on-surface"}`}>
+                    <span className={`relative text-body font-bold ${activeCategory === cat.key ? "text-primary-container" : "text-on-surface"}`}>
                       {cat.label}
                     </span>
                   </button>
@@ -1258,7 +1253,7 @@ function ExplorePageContent() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-10 h-1 bg-outline-variant/30 rounded-full mx-auto mb-5" />
-            <p className="font-extrabold text-[16px] text-on-surface font-[family-name:var(--font-manrope)] mb-4">
+            <p className="font-extrabold text-base text-on-surface font-[family-name:var(--font-manrope)] mb-4">
               {showKidsFilters
                 ? (ljMode === "mom" ? "Shop by Concern" : "Shop by Concern")
                 : (CATEGORY_SUB_CONCERNS[activeCategory]?.length ?? 0) > 0 ? "Refine by Concern" : "Shop by Concern"}
@@ -1276,10 +1271,10 @@ function ExplorePageContent() {
                           : "border-outline-variant/10 bg-surface-container-low hover:bg-surface-container"
                       }`}
                     >
-                      <span className="text-2xl leading-none shrink-0">{concern.emoji}</span>
+                      <FluentEmoji emoji={concern.emoji} size={28} />
                       <div className="min-w-0">
-                        <p className={`text-[13px] font-bold ${activeCategory === concern.key ? "text-amber-700" : "text-on-surface"}`}>{concern.label}</p>
-                        <p className="text-[11px] text-on-surface-variant/50 mt-0.5">{concern.desc}</p>
+                        <p className={`text-body font-bold ${activeCategory === concern.key ? "text-amber-700" : "text-on-surface"}`}>{concern.label}</p>
+                        <p className="text-label text-on-surface-variant/50 mt-0.5">{concern.desc}</p>
                       </div>
                     </button>
                   ))
@@ -1294,10 +1289,10 @@ function ExplorePageContent() {
                           : "border-outline-variant/10 bg-surface-container-low hover:bg-surface-container"
                       }`}
                     >
-                      <span className="text-2xl leading-none shrink-0">{concern.emoji}</span>
+                      <FluentEmoji emoji={concern.emoji} size={28} />
                       <div className="min-w-0">
-                        <p className={`text-[13px] font-bold ${activeCategory === concern.key ? "text-amber-700" : "text-on-surface"}`}>{concern.label}</p>
-                        <p className="text-[11px] text-on-surface-variant/50 mt-0.5">{concern.desc}</p>
+                        <p className={`text-body font-bold ${activeCategory === concern.key ? "text-amber-700" : "text-on-surface"}`}>{concern.label}</p>
+                        <p className="text-label text-on-surface-variant/50 mt-0.5">{concern.desc}</p>
                       </div>
                     </button>
                   ))
@@ -1305,7 +1300,7 @@ function ExplorePageContent() {
               ) : (CATEGORY_SUB_CONCERNS[activeCategory]?.length ?? 0) > 0 ? (
                 // Sub-concerns for the active category
                 <>
-                  <p className="text-[11px] text-on-surface-variant/50 mb-3">
+                  <p className="text-label text-on-surface-variant/50 mb-3">
                     Filtering within <span className="font-bold text-primary-container">{activeCategoryDef?.label}</span>
                   </p>
                   {/* "All" option */}
@@ -1319,10 +1314,10 @@ function ExplorePageContent() {
                   >
                     <span className="text-2xl leading-none shrink-0">✦</span>
                     <div className="min-w-0 flex-1">
-                      <p className={`text-[13px] font-bold ${!selectedSubConcern ? "text-primary-container" : "text-on-surface"}`}>
+                      <p className={`text-body font-bold ${!selectedSubConcern ? "text-primary-container" : "text-on-surface"}`}>
                         All {activeCategoryDef?.label} products
                       </p>
-                      <p className="text-[11px] text-on-surface-variant/50 mt-0.5">Show everything in this category</p>
+                      <p className="text-label text-on-surface-variant/50 mt-0.5">Show everything in this category</p>
                     </div>
                     {!selectedSubConcern && <Check className="w-4 h-4 text-primary-container shrink-0" strokeWidth={2.5} />}
                   </button>
@@ -1336,10 +1331,10 @@ function ExplorePageContent() {
                           : "border-outline-variant/10 bg-surface-container-low hover:bg-surface-container"
                       }`}
                     >
-                      <span className="text-2xl leading-none shrink-0">{sub.emoji}</span>
+                      <FluentEmoji emoji={sub.emoji} size={28} />
                       <div className="min-w-0 flex-1">
-                        <p className={`text-[13px] font-bold ${selectedSubConcern === sub.key ? "text-primary-container" : "text-on-surface"}`}>{sub.label}</p>
-                        <p className="text-[11px] text-on-surface-variant/50 mt-0.5">{sub.desc}</p>
+                        <p className={`text-body font-bold ${selectedSubConcern === sub.key ? "text-primary-container" : "text-on-surface"}`}>{sub.label}</p>
+                        <p className="text-label text-on-surface-variant/50 mt-0.5">{sub.desc}</p>
                       </div>
                       {selectedSubConcern === sub.key && <Check className="w-4 h-4 text-primary-container shrink-0" strokeWidth={2.5} />}
                     </button>
@@ -1362,10 +1357,10 @@ function ExplorePageContent() {
                             : cc ? cc.idle : "border-outline-variant/10 bg-surface-container-low hover:opacity-80"
                         }`}
                       >
-                        <span className="text-2xl leading-none shrink-0">{concern.emoji}</span>
+                        <FluentEmoji emoji={concern.emoji} size={28} />
                         <div className="min-w-0">
-                          <p className={`text-[13px] font-bold ${isActive ? (cc?.text ?? "text-primary-container") : "text-on-surface"}`}>{concern.label}</p>
-                          <p className="text-[11px] text-on-surface-variant/50 mt-0.5">{concern.desc}</p>
+                          <p className={`text-body font-bold ${isActive ? (cc?.text ?? "text-primary-container") : "text-on-surface"}`}>{concern.label}</p>
+                          <p className="text-label text-on-surface-variant/50 mt-0.5">{concern.desc}</p>
                         </div>
                         {isActive && <Check className="w-4 h-4 shrink-0 ml-auto" strokeWidth={2.5} style={{ color: "currentColor" }} />}
                       </button>

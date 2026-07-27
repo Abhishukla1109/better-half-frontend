@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="text-[16px] font-bold text-on-surface mb-3">{title}</h2>
+      <h2 className="text-base font-bold text-on-surface mb-3">{title}</h2>
       <div className="space-y-3">{children}</div>
     </section>
   );
@@ -19,17 +19,17 @@ export default function ReturnsPage() {
         <div className="mb-8">
           <button
             onClick={() => window.history.length > 1 ? router.back() : router.replace("/")}
-            className="text-[13px] text-on-surface-variant/60 hover:text-on-surface-variant mb-6 inline-block cursor-pointer"
+            className="text-body text-on-surface-variant/60 hover:text-on-surface-variant mb-6 inline-block cursor-pointer"
           >
             ← Back
           </button>
-          <h1 className="text-[24px] font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-2">
+          <h1 className="text-2xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-2">
             Cancellations &amp; Refunds Policy
           </h1>
-          <p className="text-[13px] text-on-surface-variant/60">Last updated: June 2026</p>
+          <p className="text-body text-on-surface-variant/60">Last updated: June 2026</p>
         </div>
 
-        <div className="space-y-8 text-[14px] text-on-surface-variant leading-relaxed">
+        <div className="space-y-8 text-sm text-on-surface-variant leading-relaxed">
 
           <Section title="How can I cancel my order?">
             <p>
