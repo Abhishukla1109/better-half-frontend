@@ -69,30 +69,6 @@ interface ProductInfo {
 
 // ── Helpers ──────────────────────────────────────────────────
 
-// Delete the Shopify Storefront cart so the next BetterHalf page load sees null
-// and clears localStorage — backup for the frontend bh_checkout_started flag approach.
-async function deleteShopifyCart(cartId: string): Promise<void> {
-  const storeUrl = (process.env.NEXT_PUBLIC_SHOPIFY_STORE_URL ?? "").replace(/\/$/, "");
-  const token    = process.env.SHOPIFY_STOREFRONT_PRIVATE_TOKEN ?? "";
-  if (!storeUrl || !token || !cartId) return;
-  try {
-    await fetch(`${storeUrl}/api/2025-01/graphql.json`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Shopify-Storefront-Private-Token": token,
-      },
-      body: JSON.stringify({
-        query: `mutation DeleteCart($cartId: ID!) { cartDelete(cartId: $cartId) { deletedCartId } }`,
-        variables: { cartId },
-      }),
-    });
-    console.log("[order-webhook] Shopify cart deleted:", cartId);
-  } catch {
-    console.warn("[order-webhook] Failed to delete Shopify cart:", cartId);
-  }
-}
-
 // Fix 6: Verify Shopify webhook HMAC signature to reject forged requests
 async function verifyWebhookSignature(rawBody: string, signature: string | null): Promise<boolean> {
   if (!WEBHOOK_SECRET) {
@@ -403,10 +379,6 @@ export async function POST(req: NextRequest) {
       console.log(`[order-webhook] Order ${order.id} already processing or processed — skipping`);
       return NextResponse.json({ ok: true, skipped: "already_processed" });
     }
-
-    // Delete the Shopify cart (fire-and-forget) so the frontend clears on next load
-    const cartIdAttr = (order.note_attributes ?? []).find(a => a.name === "cartId");
-    if (cartIdAttr?.value) deleteShopifyCart(cartIdAttr.value);
 
     const productIds = [...new Set(order.line_items.map(i => i.product_id))];
     const productMap = await getProductInfo(productIds, adminToken);

@@ -93,16 +93,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     };
 
     const registerGkListener = () => {
-      w.gokwikSdk?.on('modal_closed', (data) => {
-        if (data && (data.order_id ?? data.orderId ?? data.gk_order_id)) {
-          clearCart();
-        } else {
-          // Delay flag removal: GoKwik fires modal_closed (no order data) right before
-          // redirecting after an order — the redirect happens within milliseconds, so
-          // by 2s if we're still on this page it's a genuine abandon (not a redirect).
-          // This prevents premature flag removal that would block cart clear on next load.
-          setTimeout(() => localStorage.removeItem("bh_checkout_started"), 2000);
-        }
+      w.gokwikSdk?.on('modal_closed', () => {
+        // GoKwik's modal_closed fires with no arguments — no order data ever.
+        // Only act if checkout was actually triggered.
+        if (!localStorage.getItem("bh_checkout_started")) return;
+        const currentCartId = cartIdRef.current;
+        if (!currentCartId) return;
+
+        // GoKwik creates Shopify orders via Admin API and writes cartId to
+        // note_attributes. Check if an order exists for this cart — if yes,
+        // it was a real purchase; if no, user abandoned.
+        setTimeout(async () => {
+          try {
+            const res = await fetch(`/api/check-cart-ordered?cartId=${encodeURIComponent(currentCartId)}`);
+            const { ordered } = await res.json() as { ordered: boolean };
+            if (ordered) clearCart();
+          } catch { /* silently ignore — bfcache/mount handlers are backup */ }
+          finally { localStorage.removeItem("bh_checkout_started"); }
+        }, 2000);
       });
     };
 
