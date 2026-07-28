@@ -96,6 +96,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       w.gokwikSdk?.on('modal_closed', (data) => {
         if (data && (data.order_id ?? data.orderId ?? data.gk_order_id)) {
           clearCart();
+        } else {
+          // User closed GoKwik without paying — clear stale flag so it doesn't
+          // accidentally trigger cart clear on next bfcache restore or refresh
+          localStorage.removeItem("bh_checkout_started");
         }
       });
     };
@@ -109,23 +113,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [clearCart]);
 
   // Clear cart when user returns via back button after GoKwik checkout.
-  // On bfcache restore (iPhone swipe back), re-ask Shopify if the cart is still
-  // valid. If GoKwik placed an order, Shopify returns null → clear the display.
-  // This is more reliable than flag-based approaches because it trusts Shopify
-  // as source of truth rather than guessing from local state.
+  // GoKwik creates orders via Admin API directly — it does NOT invalidate the
+  // Shopify cart, so asking Shopify is useless. The flag + bfcache restore
+  // (persisted=true) is reliable proof the user went through GoKwik and came
+  // back — clear unconditionally.
   useEffect(() => {
-    const onPageShow = async (e: PageTransitionEvent) => {
+    const onPageShow = (e: PageTransitionEvent) => {
       if (!e.persisted) return;
       if (!localStorage.getItem("bh_checkout_started")) return;
       localStorage.removeItem("bh_checkout_started");
-      const storedId = localStorage.getItem(CART_ID_KEY);
-      if (!storedId) { clearCart(); return; }
-      try {
-        const c = await cartApi('get', { cartId: storedId });
-        if (!c || (c.totalQuantity ?? 0) === 0) clearCart();
-      } catch {
-        clearCart();
-      }
+      clearCart();
     };
     window.addEventListener('pageshow', onPageShow);
     return () => window.removeEventListener('pageshow', onPageShow);
