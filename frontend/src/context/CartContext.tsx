@@ -86,40 +86,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setCartReady(true));
   }, []);
 
-  // Clear cart when GoKwik order is placed successfully (modal-based flow)
+  // Clear cart when GoKwik order is placed successfully.
+  // GoKwik fires Order_Placed_GK via window.postMessage (their Web Pixels / custom
+  // storefront integration doc). This is the direct, reliable signal — no polling needed.
   useEffect(() => {
-    const w = window as Window & {
-      gokwikSdk?: { on: (event: string, cb: (data?: Record<string, unknown>) => void) => void };
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as { type?: string; customData?: { tag?: string } };
+      if (data?.type === "gokwik_events" && data?.customData?.tag === "Order_Placed_GK") {
+        clearCart();
+      }
     };
-
-    const registerGkListener = () => {
-      w.gokwikSdk?.on('modal_closed', () => {
-        // GoKwik's modal_closed fires with no arguments — no order data ever.
-        // Only act if checkout was actually triggered.
-        if (!localStorage.getItem("bh_checkout_started")) return;
-        const currentCartId = cartIdRef.current;
-        if (!currentCartId) return;
-
-        // GoKwik creates Shopify orders via Admin API and writes cartId to
-        // note_attributes. Check if an order exists for this cart — if yes,
-        // it was a real purchase; if no, user abandoned.
-        setTimeout(async () => {
-          try {
-            const res = await fetch(`/api/check-cart-ordered?cartId=${encodeURIComponent(currentCartId)}`);
-            const { ordered } = await res.json() as { ordered: boolean };
-            if (ordered) clearCart();
-          } catch { /* silently ignore — bfcache/mount handlers are backup */ }
-          finally { localStorage.removeItem("bh_checkout_started"); }
-        }, 2000);
-      });
-    };
-
-    if (w.gokwikSdk) {
-      registerGkListener();
-    } else {
-      window.addEventListener('gokwikLoaded', registerGkListener, { once: true });
-      return () => window.removeEventListener('gokwikLoaded', registerGkListener);
-    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
   }, [clearCart]);
 
   // Clear cart when user returns via back button after GoKwik checkout.
