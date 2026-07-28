@@ -97,9 +97,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         if (data && (data.order_id ?? data.orderId ?? data.gk_order_id)) {
           clearCart();
         } else {
-          // User closed GoKwik without paying — clear stale flag so it doesn't
-          // accidentally trigger cart clear on next bfcache restore or refresh
-          localStorage.removeItem("bh_checkout_started");
+          // Delay flag removal: GoKwik fires modal_closed (no order data) right before
+          // redirecting after an order — the redirect happens within milliseconds, so
+          // by 2s if we're still on this page it's a genuine abandon (not a redirect).
+          // This prevents premature flag removal that would block cart clear on next load.
+          setTimeout(() => localStorage.removeItem("bh_checkout_started"), 2000);
         }
       });
     };
@@ -206,30 +208,32 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (!currentCartId) return;
     setIsLoading(true);
 
-    // Fix 4: retry UTM write up to 3 times before giving up — a single network blip
-    // would otherwise silently drop influencer attribution from the order
+    // Always write source + cartId; add UTMs on top if present.
+    // cartId lets the order webhook delete this Shopify cart after order creation,
+    // so the next BetterHalf load sees a null cart and clears localStorage automatically.
     const utms = getStoredUTMs();
-    if (utms) {
-      let written = false;
-      for (let attempt = 0; attempt < 3 && !written; attempt++) {
-        try {
-          if (attempt > 0) await new Promise(r => setTimeout(r, 500));
-          await cartApi('attributes', {
-            cartId: currentCartId,
-            attributes: [
-              { key: "source",       value: "betterhalf" },
-              { key: "utmSource",    value: utms.utmSource },
-              { key: "utmMedium",    value: utms.utmMedium },
-              { key: "utmCampaign",  value: utms.utmCampaign },
-              { key: "ref",          value: utms.ref },
-              { key: "dmId",         value: utms.dmId },
-              { key: "influencerId", value: utms.influencerId },
-            ],
-          });
-          written = true;
-        } catch {
-          console.warn(`[checkout] UTM write attempt ${attempt + 1} failed`);
-        }
+    const baseAttrs = [
+      { key: "source",  value: "betterhalf" },
+      { key: "cartId",  value: currentCartId },
+    ];
+    const allAttrs = utms ? [
+      ...baseAttrs,
+      { key: "utmSource",    value: utms.utmSource },
+      { key: "utmMedium",    value: utms.utmMedium },
+      { key: "utmCampaign",  value: utms.utmCampaign },
+      { key: "ref",          value: utms.ref },
+      { key: "dmId",         value: utms.dmId },
+      { key: "influencerId", value: utms.influencerId },
+    ] : baseAttrs;
+
+    let written = false;
+    for (let attempt = 0; attempt < 3 && !written; attempt++) {
+      try {
+        if (attempt > 0) await new Promise(r => setTimeout(r, 500));
+        await cartApi('attributes', { cartId: currentCartId, attributes: allAttrs });
+        written = true;
+      } catch {
+        console.warn(`[checkout] attribute write attempt ${attempt + 1} failed`);
       }
     }
 
