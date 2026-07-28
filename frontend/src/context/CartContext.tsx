@@ -109,14 +109,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [clearCart]);
 
   // Clear cart when user returns via back button after GoKwik checkout.
-  // GoKwik redirects the page away, so React unloads and modal_closed never fires.
-  // We set bh_checkout_started before handing off to GoKwik — if that flag exists
-  // on pageshow (bfcache restore), the user came back after checkout → clear cart.
+  // On bfcache restore (iPhone swipe back), re-ask Shopify if the cart is still
+  // valid. If GoKwik placed an order, Shopify returns null → clear the display.
+  // This is more reliable than flag-based approaches because it trusts Shopify
+  // as source of truth rather than guessing from local state.
   useEffect(() => {
-    const onPageShow = (e: PageTransitionEvent) => {
+    const onPageShow = async (e: PageTransitionEvent) => {
       if (!e.persisted) return;
-      if (localStorage.getItem("bh_checkout_started")) {
-        localStorage.removeItem("bh_checkout_started");
+      if (!localStorage.getItem("bh_checkout_started")) return;
+      localStorage.removeItem("bh_checkout_started");
+      const storedId = localStorage.getItem(CART_ID_KEY);
+      if (!storedId) { clearCart(); return; }
+      try {
+        const c = await cartApi('get', { cartId: storedId });
+        if (!c || (c.totalQuantity ?? 0) === 0) clearCart();
+      } catch {
         clearCart();
       }
     };
