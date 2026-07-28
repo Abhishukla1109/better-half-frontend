@@ -1,12 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 
 type Stage = "loading" | "error";
 
 export default function CheckoutPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-surface flex flex-col items-center justify-center gap-5">
+        <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        <p className="text-body text-on-surface-variant">Preparing your checkout…</p>
+      </div>
+    }>
+      <CheckoutInner />
+    </Suspense>
+  );
+}
+
+function CheckoutInner() {
   const params        = useSearchParams();
   const { checkout }  = useCart();
   const [stage, setStage] = useState<Stage>("loading");
