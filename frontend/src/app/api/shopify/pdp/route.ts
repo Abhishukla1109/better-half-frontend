@@ -112,9 +112,9 @@ export async function GET(req: NextRequest) {
     const rawMrp = matchedVariant?.node?.compareAtPriceV2?.amount ?? allVariants[0]?.node?.compareAtPriceV2?.amount;
     const mrp = rawMrp ? Math.round(parseFloat(rawMrp)) : undefined;
 
-    // Use stored MM url_key for correct brand API rating fetch
-    const mmUrlKey = text(mf, "bh_mm_url_key") ?? "";
-    const rating = await fetchBrandRating(p.vendor ?? "", mmUrlKey);
+    // MM has numeric Shopify handles so needs bh_mm_url_key; BW/LJ handles work directly
+    const urlKey = text(mf, "bh_mm_url_key") || handle;
+    const rating = await fetchBrandRating(p.vendor ?? "", urlKey);
 
     const enriched: EnrichedPDP = {
       slug:            handle,
