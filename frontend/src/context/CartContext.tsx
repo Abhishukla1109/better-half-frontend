@@ -74,10 +74,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     cartIdRef.current = stored;
     cartApi('get', { cartId: stored })
       .then(c => {
-        if (c) {
+        if (c && c.totalQuantity > 0) {
           setCart(c);
         } else {
-          // Cart expired on Shopify — clear so next addItem creates a fresh one
+          // Cart null, expired, or emptied by order webhook — clear local state
           localStorage.removeItem(CART_ID_KEY);
           cartIdRef.current = null;
         }
@@ -190,27 +190,47 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const checkout = useCallback(async () => {
     // Fix 5: use cartIdRef (updated synchronously by addItem) instead of cart state
     // so Buy Now works on a fresh session where cart state hasn't re-rendered yet
-    const currentCartId = cartIdRef.current;
+    const currentCartId = cartIdRef.current ?? localStorage.getItem(CART_ID_KEY);
     if (!currentCartId) return;
+    if (!cartIdRef.current) cartIdRef.current = currentCartId;
     setIsLoading(true);
 
     // Always write source + cartId; add UTMs on top if present.
     // cartId lets the order webhook delete this Shopify cart after order creation,
     // so the next BetterHalf load sees a null cart and clears localStorage automatically.
+    // Fetch existing cart attributes (may include UTMs Affluence wrote when creating the cart)
+    // then merge with ours so nothing gets overwritten
+    let existingAttrs: Array<{ key: string; value: string }> = [];
+    try {
+      const existingCart = await cartApi('get', { cartId: currentCartId });
+      existingAttrs = (existingCart as unknown as { attributes?: Array<{ key: string; value: string }> })?.attributes ?? [];
+    } catch {
+      // non-fatal — proceed without existing attrs
+    }
+
     const utms = getStoredUTMs();
-    const baseAttrs = [
-      { key: "source",  value: "betterhalf" },
-      { key: "cartId",  value: currentCartId },
-    ];
-    const allAttrs = utms ? [
-      ...baseAttrs,
-      { key: "utmSource",    value: utms.utmSource },
-      { key: "utmMedium",    value: utms.utmMedium },
-      { key: "utmCampaign",  value: utms.utmCampaign },
-      { key: "ref",          value: utms.ref },
-      { key: "dmId",         value: utms.dmId },
-      { key: "influencerId", value: utms.influencerId },
-    ] : baseAttrs;
+    const affCartId = localStorage.getItem("bh_aff_cart_id");
+
+    // Our attrs override existing ones where keys match; everything else from existing is preserved
+    const ourAttrs: Record<string, string> = {
+      source:  "betterhalf",
+      cartId:  currentCartId,
+      ...(affCartId ? { affCartId } : {}),
+      ...(utms ? {
+        utmSource:   utms.utmSource,
+        utmMedium:   utms.utmMedium,
+        utmCampaign: utms.utmCampaign,
+        ref:         utms.ref,
+        dmId:        utms.dmId,
+        influencerId: utms.influencerId,
+      } : {}),
+    };
+
+    const merged = new Map<string, string>();
+    for (const a of existingAttrs) merged.set(a.key, a.value);   // existing first
+    for (const [k, v] of Object.entries(ourAttrs)) if (v) merged.set(k, v); // ours override
+
+    const allAttrs = Array.from(merged.entries()).map(([key, value]) => ({ key, value }));
 
     let written = false;
     for (let attempt = 0; attempt < 3 && !written; attempt++) {
@@ -233,6 +253,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       merchantInfo?: { mid: string; environment: string; type: string; storeId: number; cart?: { id: string } };
       triggerGokwikCustomCheckout?: () => void;
     };
+
+    // GoKwik loads asynchronously — poll until it's ready (up to 15s)
+    await new Promise<void>((resolve) => {
+      if (w.triggerGokwikCustomCheckout) { resolve(); return; }
+      const iv = setInterval(() => {
+        if (w.triggerGokwikCustomCheckout) { clearInterval(iv); resolve(); }
+      }, 150);
+      setTimeout(() => { clearInterval(iv); resolve(); }, 15000);
+    });
+
     if (w.triggerGokwikCustomCheckout && w.merchantInfo) {
       w.merchantInfo.cart = { id: currentCartId };
       localStorage.setItem("bh_checkout_started", "1");

@@ -60,25 +60,10 @@ function CheckoutInner() {
           return;
         }
 
-        // 2. Write source + UTMs as cart attributes so our webhook reads them correctly
-        const attributes = [
-          { key: "source",       value: source },
-          { key: "utmSource",    value: utmSource },
-          { key: "utmMedium",    value: utmMedium },
-          { key: "utmCampaign",  value: utmCampaign },
-          { key: "ref",          value: ref },
-          { key: "dmId",         value: dmId },
-          { key: "influencerId", value: influencerId },
-        ].filter(a => a.value);
-
-        await fetch("/api/cart", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "attributes", cartId, attributes }),
-        });
-
-        // 3. Store cartId so CartContext can trigger GoKwik
+        // 2. Store cartId so CartContext can trigger GoKwik and merge attributes correctly
+        // checkout() will read existing cart attributes (Affluence's UTMs) and merge with ours — don't write separately here
         localStorage.setItem("bh_cart_id", cartId!);
+        localStorage.setItem("bh_aff_cart_id", cartId!);
 
         // 4. Trigger GoKwik checkout
         checkout();

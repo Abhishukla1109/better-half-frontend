@@ -296,7 +296,7 @@ function ProductCard({
   const matchPill = matchPct !== undefined && matchPct >= 75 ? `${matchPct}% match` : null;
 
   return (
-    <div className="flex flex-col bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant/10 hover:border-primary-container/30 hover:shadow-md transition-all duration-200 group">
+    <div className="flex flex-col h-full bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant/10 hover:border-primary-container/30 hover:shadow-md transition-all duration-200 group">
       {/* Image — swipeable on mobile */}
       <div
         onClick={handleImageClick}
@@ -1061,7 +1061,7 @@ function ExplorePageContent() {
               </div>
               <div className="px-3 pb-3 grid grid-cols-2 lg:grid-cols-3 gap-3">
                 {pinnedPicks.map((p, idx) => (
-                  <motion.div key={p.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: idx * 0.07, ease: "easeOut" }}>
+                  <motion.div key={p.id} className="h-full" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: idx * 0.07, ease: "easeOut" }}>
                     <ProductCard product={p} isTopPick={true} />
                   </motion.div>
                 ))}
@@ -1084,7 +1084,7 @@ function ExplorePageContent() {
                     </div>
                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                       {group.products.map((p, idx) => (
-                        <motion.div key={p.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: idx * 0.07, ease: "easeOut" }}>
+                        <motion.div key={p.id} className="h-full" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: idx * 0.07, ease: "easeOut" }}>
                           <ProductCard product={p} matchPct={(p as MatchedProduct).matchScore} />
                         </motion.div>
                       ))}
@@ -1104,6 +1104,7 @@ function ExplorePageContent() {
                   {products.map((p, idx) => (
                     <motion.div
                       key={p.id}
+                      className="h-full"
                       initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: idx * 0.07, ease: "easeOut" }}

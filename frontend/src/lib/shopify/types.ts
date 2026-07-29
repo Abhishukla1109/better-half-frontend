@@ -86,6 +86,7 @@ export interface ShopifyCart {
   id: string;
   checkoutUrl: string;
   totalQuantity: number;
+  attributes: Array<{ key: string; value: string }>;
   lines: { nodes: ShopifyCartLine[] };
   cost: {
     subtotalAmount: ShopifyPrice;
@@ -127,6 +128,7 @@ export interface Cart {
   id: string;
   checkoutUrl: string;
   totalQuantity: number;
+  attributes: Array<{ key: string; value: string }>;
   items: CartItem[];
   subtotal: ShopifyPrice;
 }

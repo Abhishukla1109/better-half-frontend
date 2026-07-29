@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
+import { clearShopifyCart } from "@/lib/shopify/api";
 
 const MOSAIC_SECRET       = process.env.MOSAIC_SERVICE_SECRET ?? "fce45aff64536ec8ecea7ab6ce80";
 const AFFLUENCE_URL       = process.env.AFFLUENCE_EARNINGS_URL ?? "https://stg.api.myaffluence.app/affluence/social/earnings/";
@@ -20,12 +21,13 @@ const CLIENT_SECRET = process.env.SHOPIFY_ADMIN_CLIENT_SECRET ?? "";
 // ── Types ────────────────────────────────────────────────────
 
 interface ShopifyLineItem {
-  product_id: number;
-  variant_id: number;
-  quantity:   number;
-  price:      string;
-  sku:        string | null;
-  title:      string;
+  product_id:           number;
+  variant_id:           number;
+  quantity:             number;
+  price:                string;
+  sku:                  string | null;
+  title:                string;
+  discount_allocations: Array<{ amount: string; discount_application_index: number }>;
 }
 
 interface ShopifyAddress {
@@ -60,6 +62,7 @@ interface AffluenceUTMs {
   ref:          string;
   dmId:         string;
   influencerId: string;
+  affCartId:    string;
 }
 
 interface ProductInfo {
@@ -130,7 +133,7 @@ async function acquireProcessingLock(orderId: number, adminToken: string): Promi
       headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
       body: JSON.stringify({
         query: `mutation($mf: [MetafieldsSetInput!]!) { metafieldsSet(metafields: $mf) { metafields { key } userErrors { message } } }`,
-        variables: { mf: [{ ownerId: gid, namespace: "custom", key: "mosaic_orders", type: "json", value: JSON.stringify({ processing: true }) }] },
+        variables: { mf: [{ ownerId: gid, namespace: "custom", key: "mosaic_orders", type: "json", value: JSON.stringify({ processing: true, locked_at: new Date().toISOString() }) }] },
       }),
     });
     return true; // lock acquired
@@ -215,18 +218,22 @@ function buildOrderPayload(order: ShopifyOrder, items: ShopifyLineItem[], produc
     last_name:      shipping.last_name  || order.last_name,
     email:          order.email,
     address_1:      shipping.address1,
-    address_2:      shipping.address2 ?? shipping.address1,
+    address_2:      shipping.address2 ?? "",
     street:         shipping.address1,
     city:           shipping.city,
     state:          normalizeStateCode(shipping.province_code),
     postcode:       shipping.zip,
     payment_method: derivePaymentMethod(order),
     source,
-    order: items.map(item => ({
-      product_id: productMap[item.product_id]?.handle ?? item.sku ?? String(item.product_id),
-      quantity:   item.quantity,
-      price:      parseFloat(item.price),
-    })),
+    order: items.map(item => {
+      const lineDiscount = (item.discount_allocations ?? []).reduce((d, a) => d + parseFloat(a.amount), 0);
+      const paidPerUnit  = (parseFloat(item.price) * item.quantity - lineDiscount) / item.quantity;
+      return {
+        product_id: productMap[item.product_id]?.handle ?? item.sku ?? String(item.product_id),
+        quantity:   item.quantity,
+        price:      Math.round(paidPerUnit * 100) / 100,
+      };
+    }),
   };
 }
 
@@ -265,18 +272,27 @@ function getUTMsFromOrder(order: ShopifyOrder): AffluenceUTMs | null {
     }
     return "";
   };
-  const utmSource = pick("utm_source", "utmSource", "affluence_last_utm_source");
-  if (!utmSource || utmSource === "direct") return null;
+
+  const affCartId   = pick("affCartId");
+  const utmSource   = pick("utm_source", "utmSource", "affluence_last_utm_source");
   const influencerId = pick("influencerId");
-  const ref = pick("ref");
-  if (!influencerId && !ref) return null;
+  const ref         = pick("ref");
+
+  // Detect Affluence orders either by UTM attribution OR by affluence_checkout_started_at
+  // (present when user came via Affluence's direct checkout flow)
+  const isAffluenceCheckout = !!attrs.find(a => a.name === "affluence_checkout_started_at")?.value;
+  const isUTMAttributed = utmSource && utmSource !== "direct" && (influencerId || ref);
+
+  if (!isAffluenceCheckout && !isUTMAttributed) return null;
+
   return {
-    utmSource,
+    utmSource:    utmSource || "affluence",
     utmMedium:    pick("utm_medium",   "utmMedium",   "affluence_last_utm_medium"),
     utmCampaign:  pick("utm_campaign", "utmCampaign", "affluence_last_utm_campaign"),
     ref,
     dmId:         pick("dmId"),
     influencerId,
+    affCartId,
   };
 }
 
@@ -304,7 +320,12 @@ async function callAffluenceEarnings(
   utms: AffluenceUTMs,
   customerType: "NEW" | "REPEAT",
 ): Promise<void> {
-  const total = items.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
+  const subTotal = items.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
+  const grandTotal = items.reduce((sum, item) => {
+    const discountOnLine = (item.discount_allocations ?? []).reduce((d, a) => d + parseFloat(a.amount), 0);
+    return sum + (parseFloat(item.price) * item.quantity - discountOnLine);
+  }, 0);
+  const netTotal = grandTotal / 1.18;
   const payload = {
     utmSource:    utms.utmSource,
     utmMedium:    utms.utmMedium,
@@ -312,19 +333,20 @@ async function callAffluenceEarnings(
     ref:          utms.ref,
     dmId:         utms.dmId,
     influencerId: utms.influencerId,
+    cartId:       utms.affCartId || undefined,
     metaData: { paymentMode: derivePaymentMethod(order) },
     order: {
       status:        "confirmed",
-      netTotal:      total,
+      subTotal:      Math.round(subTotal * 100) / 100,
+      grandTotal:    Math.round(grandTotal * 100) / 100,
+      netTotal:      Math.round(netTotal * 100) / 100,
       orderId:       mosaicOrderId,
-      grandTotal:    total,
-      subTotal:      total,
       isSimpleOrder: false,
       coupons:       [],
     },
     user: {
       type:   customerType,
-      userId: String(order.customer_id ?? order.id),
+      userId: String(order.customer_id ?? normalizePhone(order.shipping_address?.phone ?? order.phone) ?? order.id),
       brand:  BRAND_CODE[brand] ?? brand,
       phone:  normalizePhone(order.shipping_address?.phone ?? order.phone),
       email:  order.email,
@@ -442,6 +464,16 @@ export async function POST(req: NextRequest) {
         results
           .filter(r => r.mosaicOrderId)
           .map(r => callAffluenceEarnings(order, r.brand, byBrand[r.brand], r.mosaicOrderId!, utms, customerType))
+      );
+    }
+
+    // Clear the Shopify cart so any frontend (BetterHalf, Affluence) fetching it
+    // on next load sees an empty cart and can clear their UI state automatically.
+    const cartIdAttr = (order.note_attributes ?? []).find(a => a.name === "cartId")?.value
+      ?? (order.note_attributes ?? []).find(a => a.name === "affCartId")?.value;
+    if (cartIdAttr) {
+      clearShopifyCart(cartIdAttr).catch(e =>
+        console.warn("[order-webhook] cart clear failed:", e instanceof Error ? e.message : e)
       );
     }
 

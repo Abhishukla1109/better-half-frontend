@@ -66,6 +66,7 @@ export function normalizeCart(c: ShopifyCart): Cart {
     id: c.id,
     checkoutUrl: c.checkoutUrl,
     totalQuantity: c.totalQuantity,
+    attributes: c.attributes ?? [],
     items,
     subtotal: c.cost.subtotalAmount,
   };
@@ -179,6 +180,16 @@ export async function updateCartAttributes(cartId: string, attributes: Array<{ k
 export async function getCart(cartId: string): Promise<Cart | null> {
   const data = await shopifyFetch<{ cart: ShopifyCart | null }>(GET_CART, { cartId });
   return data.cart ? normalizeCart(data.cart) : null;
+}
+
+export async function clearShopifyCart(cartId: string): Promise<void> {
+  const cart = await getCart(cartId);
+  if (!cart || cart.items.length === 0) return;
+  const lineIds = cart.items.map(i => i.lineId);
+  await shopifyFetch<{ cartLinesRemove: { userErrors: { message: string }[] } }>(
+    REMOVE_FROM_CART,
+    { cartId, lineIds },
+  );
 }
 
 // ── Formatting ───────────────────────────────────────────────
