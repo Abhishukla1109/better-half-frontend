@@ -49,6 +49,20 @@ import { useShopifyPDP } from "@/hooks/useShopifyPDP";
 import { track } from "@/lib/mixpanel";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 
+function stripHtml(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 /* ── Icon resolver: maps string names from JSON config to Lucide components ── */
 const iconMap: Record<string, LucideIcon> = {
   dumbbell: Dumbbell,
@@ -967,7 +981,7 @@ function NewProductPDP({
                   <div className="p-3">
                     <p className="text-label font-bold text-on-surface leading-snug mb-1">{b.title}</p>
                     {b.description && !/^[-\s]+$/.test(b.description) && (
-                      <p className="text-label text-on-surface-variant leading-relaxed">{b.description}</p>
+                      <p className="text-label text-on-surface-variant leading-relaxed">{stripHtml(b.description)}</p>
                     )}
                   </div>
                 </div>
@@ -1045,7 +1059,7 @@ function NewProductPDP({
                               </div>
                               <div className="flex-1 min-w-0 pt-0.5">
                                 {b.title && <p className="text-body font-bold text-on-dark leading-snug mb-1">{b.title}</p>}
-                                <p className={`leading-relaxed ${b.title ? "text-label text-gray-500" : "text-body text-on-dark"}`}>{b.body}</p>
+                                <p className={`leading-relaxed ${b.title ? "text-label text-gray-500" : "text-body text-on-dark"}`}>{stripHtml(b.body)}</p>
                               </div>
                             </div>
                           );
@@ -1254,7 +1268,7 @@ function NewProductPDP({
                         <span className="inline-block text-icon font-bold text-primary-container bg-primary-container/10 px-2 py-0.5 rounded-full mb-1.5 leading-none">{heading}</span>
                       ) : null}
                       {step.description?.trim() && !/^[-\s]+$/.test(step.description.trim()) && (
-                        <p className="text-label text-on-surface-variant leading-relaxed">{step.description.trim()}</p>
+                        <p className="text-label text-on-surface-variant leading-relaxed">{stripHtml(step.description.trim())}</p>
                       )}
                     </div>
                   </div>
@@ -1450,7 +1464,7 @@ function NewProductPDP({
                   )}
                   <div>
                     <p className="text-sm font-semibold text-on-surface">{d.title}</p>
-                    <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">{d.description}</p>
+                    <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">{stripHtml(d.description)}</p>
                   </div>
                 </div>
               ))}
