@@ -83,12 +83,12 @@ function CheckoutInner() {
         <span className="text-4xl">⚠️</span>
         <p className="text-title-sm font-bold text-on-surface">Something went wrong</p>
         <p className="text-body text-on-surface-variant">{errMsg}</p>
-        <button
-          onClick={() => history.back()}
+        <a
+          href="https://shop.myaffluence.app"
           className="mt-2 px-6 py-3 rounded-full bg-primary text-white text-body font-semibold"
         >
-          Go back
-        </button>
+          Back to Affluence
+        </a>
       </div>
     );
   }
@@ -97,6 +97,12 @@ function CheckoutInner() {
     <div className="min-h-screen bg-surface flex flex-col items-center justify-center gap-5">
       <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
       <p className="text-body text-on-surface-variant">Preparing your checkout…</p>
+      <a
+        href="https://shop.myaffluence.app"
+        className="text-body text-on-surface-variant underline underline-offset-2"
+      >
+        ← Back to Affluence
+      </a>
     </div>
   );
 }

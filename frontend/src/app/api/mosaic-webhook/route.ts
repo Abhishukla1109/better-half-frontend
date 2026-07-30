@@ -48,6 +48,7 @@ interface FoundOrder {
   gid:              string;       // gid://shopify/Order/...
   metafieldValue:   Record<string, unknown> | null;
   fulfillmentOrders: Array<{ id: string; status: string }>;
+  fulfillments:     Array<{ id: string; status: string }>;
 }
 
 async function findOrderByTag(tag: string, adminToken: string): Promise<FoundOrder | null> {
@@ -60,6 +61,7 @@ async function findOrderByTag(tag: string, adminToken: string): Promise<FoundOrd
             legacyResourceId: string;
             metafield?: { value: string } | null;
             fulfillmentOrders: { nodes: Array<{ id: string; status: string }> };
+            fulfillments:      { nodes: Array<{ id: string; status: string }> };
           }
         }>
       }
@@ -73,6 +75,9 @@ async function findOrderByTag(tag: string, adminToken: string): Promise<FoundOrd
             legacyResourceId
             metafield(namespace: "custom", key: "mosaic_orders") { value }
             fulfillmentOrders(first: 5) {
+              nodes { id status }
+            }
+            fulfillments(first: 5) {
               nodes { id status }
             }
           }
@@ -92,6 +97,7 @@ async function findOrderByTag(tag: string, adminToken: string): Promise<FoundOrd
     gid:              node.id,
     metafieldValue,
     fulfillmentOrders: node.fulfillmentOrders.nodes,
+    fulfillments:      node.fulfillments.nodes,
   };
 }
 
@@ -148,6 +154,26 @@ async function createFulfillment(
   const errs = data?.data?.fulfillmentCreate?.userErrors ?? [];
   if (errs.length > 0) console.error("[mosaic-webhook] fulfillmentCreate errors:", errs);
   else console.log("[mosaic-webhook] fulfillment created:", data?.data?.fulfillmentCreate?.fulfillment?.id);
+}
+
+async function createFulfillmentEvent(fulfillmentId: string, status: string, adminToken: string): Promise<void> {
+  const data = await adminGql<{
+    data?: { fulfillmentEventCreate?: { fulfillmentEvent?: { status: string }; userErrors?: Array<{ message: string }> } }
+  }>(adminToken, `
+    mutation fulfillmentEventCreate($fulfillmentId: ID!, $status: FulfillmentEventStatus!) {
+      fulfillmentEventCreate(fulfillmentEvent: {
+        fulfillmentId: $fulfillmentId
+        status: $status
+      }) {
+        fulfillmentEvent { status }
+        userErrors { field message }
+      }
+    }
+  `, { fulfillmentId, status });
+
+  const errs = data?.data?.fulfillmentEventCreate?.userErrors ?? [];
+  if (errs.length > 0) console.error("[mosaic-webhook] fulfillmentEventCreate errors:", errs);
+  else console.log("[mosaic-webhook] fulfillment event created:", status, "for", fulfillmentId);
 }
 
 async function cancelFulfillment(fulfillmentId: string, adminToken: string): Promise<void> {
@@ -216,6 +242,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    if (status === "delivered") {
+      const activeFulfillment = order.fulfillments.find(f => f.status === "SUCCESS");
+      if (activeFulfillment) {
+        await createFulfillmentEvent(activeFulfillment.id, "DELIVERED", adminToken);
+      } else {
+        console.log("[mosaic-webhook] No active fulfillment found to mark delivered");
+      }
+    }
+
     if (status === "cancelled") {
       // Cancel any open/in-progress fulfillments
       for (const fo of order.fulfillmentOrders) {
@@ -225,7 +260,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // delivered + refunded: Shopify has no native status for these — metafield only
+    // refunded: Shopify has no native status for this — metafield only
 
     // ── Update metafield ───────────────────────────────────
 
