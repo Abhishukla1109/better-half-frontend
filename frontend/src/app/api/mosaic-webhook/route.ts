@@ -44,11 +44,9 @@ async function adminGql<T>(adminToken: string, query: string, variables?: Record
 }
 
 interface FoundOrder {
-  id:               number;       // legacy numeric ID
-  gid:              string;       // gid://shopify/Order/...
-  metafieldValue:   Record<string, unknown> | null;
-  fulfillmentOrders: Array<{ id: string; status: string }>;
-  fulfillments:     Array<{ id: string; status: string }>;
+  id:   number;
+  gid:  string;
+  metafieldValue: Record<string, unknown> | null;
 }
 
 async function findOrderByTag(tag: string, adminToken: string): Promise<FoundOrder | null> {
@@ -60,8 +58,6 @@ async function findOrderByTag(tag: string, adminToken: string): Promise<FoundOrd
             id: string;
             legacyResourceId: string;
             metafield?: { value: string } | null;
-            fulfillmentOrders: { nodes: Array<{ id: string; status: string }> };
-            fulfillments:      Array<{ id: string; status: string }>;
           }
         }>
       }
@@ -74,12 +70,6 @@ async function findOrderByTag(tag: string, adminToken: string): Promise<FoundOrd
             id
             legacyResourceId
             metafield(namespace: "custom", key: "mosaic_orders") { value }
-            fulfillmentOrders(first: 5) {
-              nodes { id status }
-            }
-            fulfillments {
-              id status
-            }
           }
         }
       }
@@ -95,13 +85,35 @@ async function findOrderByTag(tag: string, adminToken: string): Promise<FoundOrd
   let metafieldValue: Record<string, unknown> | null = null;
   try { metafieldValue = node.metafield?.value ? JSON.parse(node.metafield.value) : null; } catch {}
 
-  return {
-    id:               parseInt(node.legacyResourceId),
-    gid:              node.id,
-    metafieldValue,
-    fulfillmentOrders: node.fulfillmentOrders.nodes,
-    fulfillments:      node.fulfillments,
-  };
+  return { id: parseInt(node.legacyResourceId), gid: node.id, metafieldValue };
+}
+
+async function fetchFulfillmentOrders(orderGid: string, adminToken: string): Promise<Array<{ id: string; status: string }>> {
+  const data = await adminGql<{
+    data?: { order?: { fulfillmentOrders: { nodes: Array<{ id: string; status: string }> } } }
+  }>(adminToken, `
+    query($id: ID!) {
+      order(id: $id) {
+        fulfillmentOrders(first: 5) {
+          nodes { id status }
+        }
+      }
+    }
+  `, { id: orderGid });
+  return data?.data?.order?.fulfillmentOrders?.nodes ?? [];
+}
+
+async function fetchFulfillments(orderGid: string, adminToken: string): Promise<Array<{ id: string; status: string }>> {
+  const data = await adminGql<{
+    data?: { order?: { fulfillments: Array<{ id: string; status: string }> } }
+  }>(adminToken, `
+    query($id: ID!) {
+      order(id: $id) {
+        fulfillments { id status }
+      }
+    }
+  `, { id: orderGid });
+  return data?.data?.order?.fulfillments ?? [];
 }
 
 async function writeOrderMetafield(orderId: number, value: string, adminToken: string): Promise<void> {
@@ -236,8 +248,8 @@ export async function POST(req: NextRequest) {
     // ── Update Shopify fulfillment status ──────────────────
 
     if (status === "shipped") {
-      // Only create fulfillment if there's an open fulfillment order (not already fulfilled)
-      const openFO = order.fulfillmentOrders.find(fo => fo.status === "OPEN" || fo.status === "IN_PROGRESS");
+      const fulfillmentOrders = await fetchFulfillmentOrders(order.gid, adminToken);
+      const openFO = fulfillmentOrders.find(fo => fo.status === "OPEN" || fo.status === "IN_PROGRESS");
       if (openFO) {
         await createFulfillment(openFO.id, tracking_number, tracking_url, adminToken);
       } else {
@@ -246,7 +258,8 @@ export async function POST(req: NextRequest) {
     }
 
     if (status === "delivered") {
-      const activeFulfillment = order.fulfillments.find(f => f.status === "SUCCESS");
+      const fulfillments = await fetchFulfillments(order.gid, adminToken);
+      const activeFulfillment = fulfillments.find(f => f.status === "SUCCESS");
       if (activeFulfillment) {
         await createFulfillmentEvent(activeFulfillment.id, "DELIVERED", adminToken);
       } else {
@@ -255,8 +268,8 @@ export async function POST(req: NextRequest) {
     }
 
     if (status === "cancelled") {
-      // Cancel any open/in-progress fulfillments
-      for (const fo of order.fulfillmentOrders) {
+      const fulfillmentOrders = await fetchFulfillmentOrders(order.gid, adminToken);
+      for (const fo of fulfillmentOrders) {
         if (fo.status === "IN_PROGRESS") {
           await cancelFulfillment(fo.id, adminToken);
         }
