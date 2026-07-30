@@ -10,9 +10,9 @@ const BRAND_CODE: Record<string, string> = { "Man Matters": "MM", "Be Bodywise":
 type OrderStatus = "shipped" | "delivered" | "cancelled" | "refunded";
 
 interface MosaicWebhookPayload {
-  brand:           string;
-  mosaic_order_id: string;
-  status:          OrderStatus;
+  brand:            string;
+  mosaic_order_id:  string;
+  status:           OrderStatus;
   tracking_number?: string;
   tracking_url?:    string;
   reason?:          string;
@@ -34,74 +34,137 @@ async function getAdminToken(): Promise<string | null> {
   }
 }
 
-async function findOrderByTag(
-  tag: string,
-  adminToken: string,
-): Promise<{ id: number; metafieldValue: Record<string, unknown> | null } | null> {
+async function adminGql<T>(adminToken: string, query: string, variables?: Record<string, unknown>): Promise<T> {
   const res = await fetch(`https://${SHOP}/admin/api/2024-01/graphql.json`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
-    body: JSON.stringify({
-      query: `
-        query($query: String!) {
-          orders(first: 1, query: $query) {
-            edges {
-              node {
-                legacyResourceId
-                metafield(namespace: "custom", key: "mosaic_orders") { value }
-              }
-            }
-          }
-        }
-      `,
-      variables: { query: `tag:${tag}` },
-    }),
+    body: JSON.stringify({ query, variables }),
   });
-  const data = await res.json() as {
+  return res.json() as Promise<T>;
+}
+
+interface FoundOrder {
+  id:               number;       // legacy numeric ID
+  gid:              string;       // gid://shopify/Order/...
+  metafieldValue:   Record<string, unknown> | null;
+  fulfillmentOrders: Array<{ id: string; status: string }>;
+}
+
+async function findOrderByTag(tag: string, adminToken: string): Promise<FoundOrder | null> {
+  const data = await adminGql<{
     data?: {
       orders?: {
         edges?: Array<{
-          node: { legacyResourceId: string; metafield?: { value: string } | null }
+          node: {
+            id: string;
+            legacyResourceId: string;
+            metafield?: { value: string } | null;
+            fulfillmentOrders: { nodes: Array<{ id: string; status: string }> };
+          }
         }>
       }
     }
-  };
+  }>(adminToken, `
+    query($query: String!) {
+      orders(first: 1, query: $query) {
+        edges {
+          node {
+            id
+            legacyResourceId
+            metafield(namespace: "custom", key: "mosaic_orders") { value }
+            fulfillmentOrders(first: 5) {
+              nodes { id status }
+            }
+          }
+        }
+      }
+    }
+  `, { query: `tag:${tag}` });
+
   const node = data?.data?.orders?.edges?.[0]?.node;
   if (!node) return null;
+
   let metafieldValue: Record<string, unknown> | null = null;
   try { metafieldValue = node.metafield?.value ? JSON.parse(node.metafield.value) : null; } catch {}
-  return { id: parseInt(node.legacyResourceId), metafieldValue };
+
+  return {
+    id:               parseInt(node.legacyResourceId),
+    gid:              node.id,
+    metafieldValue,
+    fulfillmentOrders: node.fulfillmentOrders.nodes,
+  };
 }
 
 async function writeOrderMetafield(orderId: number, value: string, adminToken: string): Promise<void> {
-  const gid = `gid://shopify/Order/${orderId}`;
-  const res = await fetch(`https://${SHOP}/admin/api/2024-01/graphql.json`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
-    body: JSON.stringify({
-      query: `
-        mutation($metafields: [MetafieldsSetInput!]!) {
-          metafieldsSet(metafields: $metafields) {
-            metafields { key }
-            userErrors { field message }
-          }
-        }
-      `,
-      variables: {
-        metafields: [{
-          ownerId:   gid,
-          namespace: "custom",
-          key:       "mosaic_orders",
-          type:      "json",
-          value,
-        }],
-      },
-    }),
+  const data = await adminGql<{
+    data?: { metafieldsSet?: { userErrors?: Array<{ message: string }> } }
+  }>(adminToken, `
+    mutation($metafields: [MetafieldsSetInput!]!) {
+      metafieldsSet(metafields: $metafields) {
+        metafields { key }
+        userErrors { field message }
+      }
+    }
+  `, {
+    metafields: [{
+      ownerId:   `gid://shopify/Order/${orderId}`,
+      namespace: "custom",
+      key:       "mosaic_orders",
+      type:      "json",
+      value,
+    }],
   });
-  const data = await res.json() as { data?: { metafieldsSet?: { userErrors?: Array<{ message: string }> } } };
   const errs = data?.data?.metafieldsSet?.userErrors ?? [];
   if (errs.length > 0) console.error("[mosaic-webhook] metafield write errors:", errs);
-  else console.log("[mosaic-webhook] metafield updated for order", orderId);
+}
+
+async function createFulfillment(
+  fulfillmentOrderId: string,
+  tracking_number: string | undefined,
+  tracking_url: string | undefined,
+  adminToken: string,
+): Promise<void> {
+  const trackingInfo = tracking_number
+    ? { number: tracking_number, ...(tracking_url ? { url: tracking_url } : {}) }
+    : undefined;
+
+  const data = await adminGql<{
+    data?: { fulfillmentCreate?: { userErrors?: Array<{ message: string }>; fulfillment?: { id: string; status: string } } }
+  }>(adminToken, `
+    mutation fulfillmentCreate($fulfillment: FulfillmentInput!) {
+      fulfillmentCreate(fulfillment: $fulfillment) {
+        fulfillment { id status }
+        userErrors { field message }
+      }
+    }
+  `, {
+    fulfillment: {
+      lineItemsByFulfillmentOrder: [{ fulfillmentOrderId }],
+      ...(trackingInfo ? { trackingInfo } : {}),
+      notifyCustomer: false,
+    },
+  });
+
+  const errs = data?.data?.fulfillmentCreate?.userErrors ?? [];
+  if (errs.length > 0) console.error("[mosaic-webhook] fulfillmentCreate errors:", errs);
+  else console.log("[mosaic-webhook] fulfillment created:", data?.data?.fulfillmentCreate?.fulfillment?.id);
+}
+
+async function cancelFulfillment(fulfillmentId: string, adminToken: string): Promise<void> {
+  const data = await adminGql<{
+    data?: { fulfillmentCancel?: { userErrors?: Array<{ message: string }> } }
+  }>(adminToken, `
+    mutation fulfillmentCancel($id: ID!) {
+      fulfillmentCancel(id: $id) {
+        fulfillment { id status }
+        userErrors { field message }
+      }
+    }
+  `, { id: fulfillmentId });
+
+  const errs = data?.data?.fulfillmentCancel?.userErrors ?? [];
+  if (errs.length > 0) console.error("[mosaic-webhook] fulfillmentCancel errors:", errs);
+  else console.log("[mosaic-webhook] fulfillment cancelled:", fulfillmentId);
 }
 
 // ── Route ────────────────────────────────────────────────────
@@ -109,7 +172,6 @@ async function writeOrderMetafield(orderId: number, value: string, adminToken: s
 export async function POST(req: NextRequest) {
   console.log("[mosaic-webhook] received POST");
 
-  // Verify secret
   const secret = req.headers.get("x-mosaic-secret");
   if (!MOSAIC_WEBHOOK_SECRET || secret !== MOSAIC_WEBHOOK_SECRET) {
     console.error("[mosaic-webhook] Invalid or missing secret");
@@ -142,7 +204,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // Update the matching brand entry in the metafield
+    // ── Update Shopify fulfillment status ──────────────────
+
+    if (status === "shipped") {
+      // Only create fulfillment if there's an open fulfillment order (not already fulfilled)
+      const openFO = order.fulfillmentOrders.find(fo => fo.status === "OPEN" || fo.status === "IN_PROGRESS");
+      if (openFO) {
+        await createFulfillment(openFO.id, tracking_number, tracking_url, adminToken);
+      } else {
+        console.log("[mosaic-webhook] No open fulfillment order — already fulfilled or nothing to fulfil");
+      }
+    }
+
+    if (status === "cancelled") {
+      // Cancel any open/in-progress fulfillments
+      for (const fo of order.fulfillmentOrders) {
+        if (fo.status === "IN_PROGRESS") {
+          await cancelFulfillment(fo.id, adminToken);
+        }
+      }
+    }
+
+    // delivered + refunded: Shopify has no native status for these — metafield only
+
+    // ── Update metafield ───────────────────────────────────
+
     const metafield = order.metafieldValue ?? { mosaicOrders: [], items: [] };
     const mosaicOrders = (metafield.mosaicOrders as Array<Record<string, unknown>>) ?? [];
 
@@ -157,8 +243,6 @@ export async function POST(req: NextRequest) {
     await writeOrderMetafield(order.id, JSON.stringify(metafield), adminToken);
 
     console.log(`[mosaic-webhook] Order ${order.id} — ${brand} ${mosaic_order_id} → ${status}`);
-
-    // TODO: notify Affluence on cancellation/refund once Affluence shares their update API
 
     return NextResponse.json({ ok: true });
   } catch (err) {
