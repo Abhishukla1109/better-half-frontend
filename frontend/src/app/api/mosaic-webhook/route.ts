@@ -100,6 +100,7 @@ async function fetchFulfillmentOrders(orderGid: string, adminToken: string): Pro
       }
     }
   `, { id: orderGid });
+  console.error("[mosaic-webhook] fetchFulfillmentOrders raw:", JSON.stringify(data));
   return data?.data?.order?.fulfillmentOrders?.nodes ?? [];
 }
 
