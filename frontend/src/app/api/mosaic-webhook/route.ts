@@ -87,7 +87,10 @@ async function findOrderByTag(tag: string, adminToken: string): Promise<FoundOrd
   `, { query: `tag:${tag}` });
 
   const node = data?.data?.orders?.edges?.[0]?.node;
-  if (!node) return null;
+  if (!node) {
+    console.error("[mosaic-webhook] findOrderByTag raw response:", JSON.stringify(data));
+    return null;
+  }
 
   let metafieldValue: Record<string, unknown> | null = null;
   try { metafieldValue = node.metafield?.value ? JSON.parse(node.metafield.value) : null; } catch {}
