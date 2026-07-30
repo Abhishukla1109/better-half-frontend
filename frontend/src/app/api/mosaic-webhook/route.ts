@@ -61,7 +61,7 @@ async function findOrderByTag(tag: string, adminToken: string): Promise<FoundOrd
             legacyResourceId: string;
             metafield?: { value: string } | null;
             fulfillmentOrders: { nodes: Array<{ id: string; status: string }> };
-            fulfillments:      { nodes: Array<{ id: string; status: string }> };
+            fulfillments:      Array<{ id: string; status: string }>;
           }
         }>
       }
@@ -77,8 +77,8 @@ async function findOrderByTag(tag: string, adminToken: string): Promise<FoundOrd
             fulfillmentOrders(first: 5) {
               nodes { id status }
             }
-            fulfillments(first: 5) {
-              nodes { id status }
+            fulfillments {
+              id status
             }
           }
         }
@@ -100,7 +100,7 @@ async function findOrderByTag(tag: string, adminToken: string): Promise<FoundOrd
     gid:              node.id,
     metafieldValue,
     fulfillmentOrders: node.fulfillmentOrders.nodes,
-    fulfillments:      node.fulfillments.nodes,
+    fulfillments:      node.fulfillments,
   };
 }
 
