@@ -77,10 +77,7 @@ async function findOrderByTag(tag: string, adminToken: string): Promise<FoundOrd
   `, { query: `tag:${tag}` });
 
   const node = data?.data?.orders?.edges?.[0]?.node;
-  if (!node) {
-    console.error("[mosaic-webhook] findOrderByTag raw response:", JSON.stringify(data));
-    return null;
-  }
+  if (!node) return null;
 
   let metafieldValue: Record<string, unknown> | null = null;
   try { metafieldValue = node.metafield?.value ? JSON.parse(node.metafield.value) : null; } catch {}
@@ -100,7 +97,6 @@ async function fetchFulfillmentOrders(orderGid: string, adminToken: string): Pro
       }
     }
   `, { id: orderGid });
-  console.error("[mosaic-webhook] fetchFulfillmentOrders raw:", JSON.stringify(data));
   return data?.data?.order?.fulfillmentOrders?.nodes ?? [];
 }
 
