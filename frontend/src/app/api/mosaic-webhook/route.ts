@@ -205,6 +205,96 @@ async function cancelFulfillment(fulfillmentId: string, adminToken: string): Pro
   else console.log("[mosaic-webhook] fulfillment cancelled:", fulfillmentId);
 }
 
+async function cancelShopifyOrder(orderId: number, reason: string | undefined, adminToken: string): Promise<void> {
+  const res = await fetch(`https://${SHOP}/admin/api/2024-01/orders/${orderId}/cancel.json`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
+    body: JSON.stringify({ reason: reason ?? "other", email: false }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("[mosaic-webhook] order cancel failed:", res.status, text);
+  } else {
+    console.log("[mosaic-webhook] Shopify order cancelled:", orderId);
+  }
+}
+
+async function refundShopifyOrder(
+  orderId: number,
+  brandItems: Array<{ sku: string | null; title: string }>,
+  adminToken: string,
+): Promise<void> {
+  const orderRes = await fetch(
+    `https://${SHOP}/admin/api/2024-01/orders/${orderId}.json?fields=id,financial_status,line_items,transactions`,
+    { headers: { "X-Shopify-Access-Token": adminToken } },
+  );
+  const { order: shopifyOrder } = await orderRes.json() as {
+    order: {
+      financial_status: string;
+      line_items: Array<{ id: number; sku: string | null; title: string; price: string; quantity: number; discount_allocations: Array<{ amount: string }> }>;
+      transactions: Array<{ id: number; kind: string; status: string; gateway: string }>;
+    }
+  };
+
+  if (!["paid", "partially_paid"].includes(shopifyOrder?.financial_status ?? "")) {
+    console.log(`[mosaic-webhook] Order ${orderId} is ${shopifyOrder?.financial_status} (COD/unpaid) — no Shopify refund needed`);
+    return;
+  }
+
+  const brandSkus    = new Set(brandItems.map(i => i.sku).filter(Boolean));
+  const brandTitles  = new Set(brandItems.map(i => i.title));
+  const matchingItems = (shopifyOrder.line_items ?? []).filter(
+    item => (item.sku && brandSkus.has(item.sku)) || brandTitles.has(item.title),
+  );
+
+  if (matchingItems.length === 0) {
+    console.log(`[mosaic-webhook] No matching line items to refund on order ${orderId}`);
+    return;
+  }
+
+  const refundLineItems = matchingItems.map(item => ({
+    line_item_id: item.id,
+    quantity:     item.quantity,
+    restock_type: "no_restock",
+  }));
+
+  const refundAmount = matchingItems.reduce((sum, item) => {
+    const discount = (item.discount_allocations ?? []).reduce((d, a) => d + parseFloat(a.amount), 0);
+    return sum + parseFloat(item.price) * item.quantity - discount;
+  }, 0);
+
+  const paymentTx = (shopifyOrder.transactions ?? []).find(t => t.kind === "sale" && t.status === "success");
+
+  const refundPayload = {
+    refund: {
+      note:               "Refunded by Mosaic",
+      notify:             false,
+      refund_line_items:  refundLineItems,
+      ...(paymentTx ? {
+        transactions: [{
+          parent_id: paymentTx.id,
+          amount:    (Math.round(refundAmount * 100) / 100).toFixed(2),
+          kind:      "refund",
+          gateway:   paymentTx.gateway,
+        }],
+      } : {}),
+    },
+  };
+
+  const refundRes = await fetch(`https://${SHOP}/admin/api/2024-01/orders/${orderId}/refunds.json`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
+    body: JSON.stringify(refundPayload),
+  });
+
+  if (!refundRes.ok) {
+    const text = await refundRes.text();
+    console.error(`[mosaic-webhook] refund create failed for order ${orderId}:`, refundRes.status, text);
+  } else {
+    console.log(`[mosaic-webhook] Shopify refund created for order ${orderId}, amount: ₹${refundAmount.toFixed(2)}`);
+  }
+}
+
 // ── Route ────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -265,15 +355,23 @@ export async function POST(req: NextRequest) {
     }
 
     if (status === "cancelled") {
+      // Cancel any in-progress fulfillments first, then cancel the order itself
       const fulfillmentOrders = await fetchFulfillmentOrders(order.gid, adminToken);
       for (const fo of fulfillmentOrders) {
         if (fo.status === "IN_PROGRESS") {
           await cancelFulfillment(fo.id, adminToken);
         }
       }
+      await cancelShopifyOrder(order.id, reason, adminToken);
     }
 
-    // refunded: Shopify has no native status for this — metafield only
+    if (status === "refunded") {
+      const mosaicOrders = (order.metafieldValue?.mosaicOrders ?? []) as Array<{ brand: string; order_id: string; items: Array<{ sku: string | null; title: string }> }>;
+      const brandEntry   = mosaicOrders.find(o => o.order_id === mosaic_order_id);
+      await refundShopifyOrder(order.id, brandEntry?.items ?? [], adminToken);
+    }
+
+    // refunded also updates metafield below — Shopify refund handles the financial status
 
     // ── Update metafield ───────────────────────────────────
 

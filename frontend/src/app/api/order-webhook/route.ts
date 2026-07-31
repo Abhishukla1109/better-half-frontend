@@ -109,13 +109,24 @@ async function getProductInfo(productIds: number[], adminToken: string): Promise
   return map;
 }
 
-// Idempotency: check AND set a processing lock in one step to prevent race conditions.
-// We write a "processing" marker immediately — before calling Mosaic — so any concurrent
-// retry sees it and exits. The marker is overwritten with real data on success.
-async function acquireProcessingLock(orderId: number, adminToken: string): Promise<boolean> {
+interface ExistingMosaicOrder {
+  brand:    string;
+  code:     string;
+  order_id: string;
+  items:    Array<{ sku: string | null; title: string }>;
+}
+
+interface LockResult {
+  acquired:              boolean;
+  existingMosaicOrders:  ExistingMosaicOrder[];
+}
+
+// Idempotency: write a processing lock on first attempt so concurrent Shopify retries skip.
+// On subsequent retries (when some brands already succeeded), return existing orders so we
+// only call Mosaic for the brands that still failed — preventing partial-failure data loss.
+async function acquireProcessingLock(orderId: number, adminToken: string): Promise<LockResult> {
   const gid = `gid://shopify/Order/${orderId}`;
   try {
-    // First check if already fully processed or locked
     const checkRes = await fetch(`https://${SHOP}/admin/api/2024-01/graphql.json`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
@@ -126,15 +137,18 @@ async function acquireProcessingLock(orderId: number, adminToken: string): Promi
     });
     const checkData = await checkRes.json() as { data?: { order?: { metafield?: { value: string } | null } } };
     const existing = checkData?.data?.order?.metafield?.value;
+
     if (existing) {
       try {
         const parsed = JSON.parse(existing);
-        // Only skip if fully processed (has mosaicOrders). A stuck processing lock should be retried.
-        if (parsed?.mosaicOrders?.length > 0) return false;
-      } catch { return false; }
+        // Active processing lock from another in-flight request — skip
+        if (parsed?.processing === true) return { acquired: false, existingMosaicOrders: [] };
+        // Partially or fully processed — return existing orders so we retry only missing brands
+        if (parsed?.mosaicOrders) return { acquired: true, existingMosaicOrders: parsed.mosaicOrders as ExistingMosaicOrder[] };
+      } catch { return { acquired: false, existingMosaicOrders: [] }; }
     }
 
-    // Write lock marker immediately
+    // Nothing yet — write processing lock and proceed
     await fetch(`https://${SHOP}/admin/api/2024-01/graphql.json`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
@@ -143,9 +157,23 @@ async function acquireProcessingLock(orderId: number, adminToken: string): Promi
         variables: { mf: [{ ownerId: gid, namespace: "custom", key: "mosaic_orders", type: "json", value: JSON.stringify({ processing: true, locked_at: new Date().toISOString() }) }] },
       }),
     });
-    return true; // lock acquired
+    return { acquired: true, existingMosaicOrders: [] };
   } catch {
-    return false;
+    return { acquired: false, existingMosaicOrders: [] };
+  }
+}
+
+async function cancelShopifyOrder(orderId: number, adminToken: string): Promise<void> {
+  const res = await fetch(`https://${SHOP}/admin/api/2024-01/orders/${orderId}/cancel.json`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": adminToken },
+    body: JSON.stringify({ reason: "other", email: true }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    console.error(`[order-webhook] Failed to cancel Shopify order ${orderId}:`, res.status, text);
+  } else {
+    console.log(`[order-webhook] Shopify order ${orderId} auto-cancelled — Mosaic rejected`);
   }
 }
 
@@ -204,8 +232,12 @@ function normalizePhone(raw: string | null): string {
   return raw.replace(/\D/g, "").slice(-10);
 }
 
+// Shopify uses ISO 3166-2 codes; Mosaic's pincode DB uses different codes for 2 states
+const STATE_CODE_MAP: Record<string, string> = { "UK": "UT", "TS": "TG" };
+
 function normalizeStateCode(provinceCode: string): string {
-  return provinceCode.replace(/^IN-/, "");
+  const code = provinceCode.replace(/^IN-/, "");
+  return STATE_CODE_MAP[code] ?? code;
 }
 
 // Fix 1: Derive payment method dynamically from the order instead of hardcoding "juspay"
@@ -402,10 +434,11 @@ export async function POST(req: NextRequest) {
     const adminToken = await getAdminToken();
     if (!adminToken) throw new Error("Could not get Shopify admin token");
 
-    // Acquire processing lock before calling Mosaic — prevents duplicate orders on Shopify webhook retries
-    const locked = await acquireProcessingLock(order.id, adminToken);
-    if (!locked) {
-      console.log(`[order-webhook] Order ${order.id} already processing or processed — skipping`);
+    // Acquire processing lock — prevents duplicate Mosaic orders on Shopify webhook retries.
+    // Returns any brands already successfully placed so we only retry the ones that failed.
+    const { acquired, existingMosaicOrders } = await acquireProcessingLock(order.id, adminToken);
+    if (!acquired) {
+      console.log(`[order-webhook] Order ${order.id} already processing — skipping`);
       return NextResponse.json({ ok: true, skipped: "already_processed" });
     }
 
@@ -423,19 +456,20 @@ export async function POST(req: NextRequest) {
       byBrand[vendor].push(item);
     }
 
-    console.log(`[order-webhook] Shopify order ${order.id} — brands: ${Object.keys(byBrand).join(", ")}`);
+    const alreadyPlaced = new Set(existingMosaicOrders.map(o => o.brand));
+    const brandsToCall  = Object.keys(byBrand).filter(b => !alreadyPlaced.has(b));
+    console.log(`[order-webhook] Shopify order ${order.id} — brands: ${Object.keys(byBrand).join(", ")} | retrying: ${brandsToCall.join(", ") || "none"}`);
 
-    // Call each brand API in parallel
-    const brandCalls = Object.entries(byBrand).map(async ([brand, items]) => {
-      const payload = buildOrderPayload(order, items, productMap, source);
-      const mosaicOrderId = await callMosaicBrand(brand, payload);
-      return { brand, mosaicOrderId };
-    });
+    // Call Mosaic only for brands not yet placed
+    const newResults = await Promise.all(
+      brandsToCall.map(async brand => {
+        const payload = buildOrderPayload(order, byBrand[brand], productMap, source);
+        const mosaicOrderId = await callMosaicBrand(brand, payload);
+        return { brand, mosaicOrderId };
+      })
+    );
 
-    const results = await Promise.all(brandCalls);
-
-    // Write Mosaic order IDs back to Shopify as metafield
-    const mosaicOrders = results
+    const newlyPlaced = newResults
       .filter(r => r.mosaicOrderId)
       .map(r => ({
         brand:    r.brand,
@@ -444,13 +478,17 @@ export async function POST(req: NextRequest) {
         items:    (byBrand[r.brand] ?? []).map(i => ({ sku: i.sku ?? null, title: i.title })),
       }));
 
-    if (mosaicOrders.length > 0) {
-      // Tag order with mosaic IDs so mosaic-webhook can find it later (e.g. mosaic-MM-050021153)
-      const tags = mosaicOrders.map(r => `mosaic-${r.code}-${r.order_id}`);
-      await addOrderTags(order.id, tags, adminToken);
+    const allMosaicOrders = [...existingMosaicOrders, ...newlyPlaced];
+
+    if (allMosaicOrders.length > 0) {
+      // Tag only newly placed brands (existing tags are already on the order)
+      if (newlyPlaced.length > 0) {
+        const newTags = newlyPlaced.map(r => `mosaic-${r.code}-${r.order_id}`);
+        await addOrderTags(order.id, newTags, adminToken);
+      }
 
       const metafieldValue = {
-        mosaicOrders,
+        mosaicOrders: allMosaicOrders,
         items: order.line_items.map(i => ({
           sku:       i.sku ?? null,
           title:     i.title,
@@ -462,15 +500,26 @@ export async function POST(req: NextRequest) {
       await writeOrderMetafield(order.id, JSON.stringify(metafieldValue), adminToken);
     }
 
-    // Notify Affluence for influencer-attributed orders
+    // If any brand failed to place with Mosaic, log the failure to the metafield, cancel the order
+    const failedBrands = brandsToCall.filter(b => !newlyPlaced.find(r => r.brand === b));
+    if (failedBrands.length > 0) {
+      console.error(`[order-webhook] Mosaic rejected brands: ${failedBrands.join(", ")} — cancelling Shopify order ${order.id}`);
+      await writeOrderMetafield(order.id, JSON.stringify({
+        failed: true,
+        failedBrands,
+        failedAt: new Date().toISOString(),
+        mosaicOrders: newlyPlaced,
+      }), adminToken);
+      await cancelShopifyOrder(order.id, adminToken);
+      return NextResponse.json({ ok: true, cancelled: true, failedBrands });
+    }
+
+    // Notify Affluence only for newly placed brands (don't double-notify on retry)
     const utms = getUTMsFromOrder(order);
-    if (utms) {
-      // Fix 3: Resolve customer type once, reuse across all brand calls
+    if (utms && newlyPlaced.length > 0) {
       const customerType = await resolveCustomerType(order.customer_id, adminToken);
       await Promise.all(
-        results
-          .filter(r => r.mosaicOrderId)
-          .map(r => callAffluenceEarnings(order, r.brand, byBrand[r.brand], r.mosaicOrderId!, utms, customerType))
+        newlyPlaced.map(r => callAffluenceEarnings(order, r.brand, byBrand[r.brand], r.order_id, utms, customerType))
       );
     }
 
@@ -484,8 +533,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log(`[order-webhook] Done for Shopify order ${order.id}:`, results);
-    return NextResponse.json({ ok: true, results });
+    console.log(`[order-webhook] Done for Shopify order ${order.id}:`, newResults);
+    return NextResponse.json({ ok: true, results: newResults });
 
   } catch (err) {
     console.error("[order-webhook] Error:", err);
