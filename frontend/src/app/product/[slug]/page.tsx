@@ -403,6 +403,7 @@ function NewProductPDP({
   const [cartState, setCartState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [activeImage, setActiveImage] = useState(initialIndex);
   const [selectedPack, setSelectedPack] = useState(0);
+  const [selectedVariantIdx, setSelectedVariantIdx] = useState(0);
   const [routineCartState, setRoutineCartState] = useState<"idle" | "loading" | "done" | "error">("idle");
 
   const [pairedItems, setPairedItems] = useState<Array<{ slug: string; reason: string; enriched: EnrichedPDP }>>([]);
@@ -523,9 +524,13 @@ function NewProductPDP({
     setDeliveryMsg(`Delivery available to ${pincode} · Usually ships in 2–3 days`);
   };
 
+  const selectedShopifyVariant = enriched?.shopifyVariants?.[selectedVariantIdx];
+  const displayPrice = selectedShopifyVariant?.price ?? product.price;
+  const displayMrp   = selectedShopifyVariant?.mrp   ?? product.mrp;
+
   const discountPct =
-    product.mrp > product.price
-      ? Math.round((1 - product.price / product.mrp) * 100)
+    displayMrp > displayPrice
+      ? Math.round((1 - displayPrice / displayMrp) * 100)
       : 0;
 
   const brandColor = BRAND_COLOR[product.brand] ?? "#00897B";
@@ -545,7 +550,7 @@ function NewProductPDP({
     if (cartState !== "idle") return;
     setCartState("loading");
     try {
-      const variantId = await resolveVariantId(product.id);
+      const variantId = selectedShopifyVariant?.id ?? await resolveVariantId(product.id);
       if (!variantId) throw new Error("not found");
       const source = (() => {
         try {
@@ -558,7 +563,7 @@ function NewProductPDP({
       await addItem(variantId, 1, {
         product_name: product.name,
         brand: product.brand,
-        price: product.price,
+        price: displayPrice,
         concern: product.concern?.[0],
         source,
       });
@@ -568,14 +573,14 @@ function NewProductPDP({
     } finally {
       setTimeout(() => setCartState("idle"), 2500);
     }
-  }, [addItem, cartState, product.id, product.name, product.brand, product.price, product.concern, router]);
+  }, [addItem, cartState, selectedShopifyVariant, product.id, product.name, product.brand, displayPrice, product.concern, router]);
 
   const handleBuyNow = useCallback(async () => {
     try { if (!localStorage.getItem("bh_auth")) { router.push("/"); return; } } catch {}
     if (cartState !== "idle") return;
     setCartState("loading");
     try {
-      const variantId = await resolveVariantId(product.id);
+      const variantId = selectedShopifyVariant?.id ?? await resolveVariantId(product.id);
       if (!variantId) throw new Error("not found");
       const source = (() => {
         try {
@@ -588,7 +593,7 @@ function NewProductPDP({
       await addItem(variantId, 1, {
         product_name: product.name,
         brand: product.brand,
-        price: product.price,
+        price: displayPrice,
         concern: product.concern?.[0],
         source,
       });
@@ -830,17 +835,39 @@ function NewProductPDP({
 
           {/* Price */}
           <div className="flex items-baseline gap-3 mt-3">
-            <span className="text-3xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">&#8377;{product.price}</span>
-            {product.mrp > product.price && (
+            <span className="text-3xl font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">&#8377;{displayPrice}</span>
+            {displayMrp > displayPrice && (
               <>
-                <span className="text-base text-on-surface-variant/40 line-through">&#8377;{product.mrp}</span>
+                <span className="text-base text-on-surface-variant/40 line-through">&#8377;{displayMrp}</span>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: brandColor + "18", color: brandColor }}>{discountPct}% off</span>
               </>
             )}
           </div>
 
-          {/* Pack size pills */}
-          {packOptions.length > 0 && (
+          {/* Pack size pills — Shopify variants (functional) */}
+          {enriched?.shopifyVariants && enriched.shopifyVariants.length > 1 && (
+            <div className="mt-4">
+              <p className="text-label font-semibold uppercase tracking-wider text-on-surface-variant/50 mb-2">Pack size</p>
+              <div className="flex gap-2 flex-wrap">
+                {enriched.shopifyVariants.map((v, i) => (
+                  <button
+                    key={v.id}
+                    onClick={() => setSelectedVariantIdx(i)}
+                    className={`px-5 py-2.5 rounded-xl text-sm font-semibold border transition-all cursor-pointer active:scale-95 ${
+                      selectedVariantIdx === i
+                        ? "bg-primary-container text-white border-primary-container shadow-sm"
+                        : "bg-surface-container-low text-on-surface border-outline-variant/20 hover:border-primary-container/40"
+                    }`}
+                  >
+                    {v.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Pack size pills — legacy bh_packs cosmetic (for products without Shopify variants) */}
+          {(!enriched?.shopifyVariants || enriched.shopifyVariants.length <= 1) && packOptions.length > 0 && (
             <div className="mt-4">
               <p className="text-label font-semibold uppercase tracking-wider text-on-surface-variant/50 mb-2">📦 Pack size</p>
               <div className="flex gap-2">
@@ -1229,9 +1256,31 @@ function NewProductPDP({
                           {ing.shortDesc.replace(/^Our paediatricians say:\s*/i, "").replace(/^Doctors? say:\s*/i, "")}
                         </p>
                       )}
-                      {ing.longDesc && (
-                        <p className="text-body text-on-surface-variant leading-relaxed mt-2">{ing.longDesc}</p>
-                      )}
+                      {ing.longDesc && (() => {
+                        const bullets = ing.longDesc
+                          .split("\n")
+                          .map((l: string) => l.trim())
+                          .filter((l: string) =>
+                            l &&
+                            !/^quick facts/i.test(l) &&
+                            !/^research(es)? that prove/i.test(l) &&
+                            !/^http/i.test(l)
+                          );
+                        if (!bullets.length) return null;
+                        return (
+                          <ul className="mt-2 space-y-1">
+                            {bullets.map((line: string, li: number) => {
+                              const text = line.replace(/^[-–•]\s*/, "");
+                              return (
+                                <li key={li} className="flex gap-2 text-body text-on-surface-variant leading-relaxed">
+                                  <span className="shrink-0 mt-1 text-[10px] text-primary">●</span>
+                                  <span>{text}</span>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
@@ -1545,9 +1594,9 @@ function NewProductPDP({
         </div>
         <div className="max-w-2xl mx-auto flex items-center gap-2.5 px-4 py-3">
           <div className="min-w-0 shrink-0">
-            <p className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">&#8377;{product.price}</p>
-            {product.mrp > product.price && (
-              <p className="text-icon text-on-surface-variant/40 line-through">&#8377;{product.mrp}</p>
+            <p className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)]">&#8377;{displayPrice}</p>
+            {displayMrp > displayPrice && (
+              <p className="text-icon text-on-surface-variant/40 line-through">&#8377;{displayMrp}</p>
             )}
           </div>
           {/* Add to Cart — outlined */}

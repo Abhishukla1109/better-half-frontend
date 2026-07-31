@@ -19,7 +19,7 @@ const QUERY = `
       handle
       title
       vendor
-      variants(first: 20) { edges { node { title priceV2 { amount } compareAtPriceV2 { amount } } } }
+      variants(first: 20) { edges { node { id title priceV2 { amount } compareAtPriceV2 { amount } } } }
       images(first: 10) { nodes { url } }
       metafields(identifiers: [
         { namespace: "custom", key: "bh_subtitle" }
@@ -148,6 +148,14 @@ export async function GET(req: NextRequest) {
       siblings:        json(mf, "bh_siblings")        ?? undefined,
       recommendation:  text(mf, "bh_recommendation") ?? undefined,
       pairings:        json(mf, "bh_pairings")        ?? undefined,
+      shopifyVariants: allVariants.length > 1
+        ? allVariants.map((e: { node: { id: string; title: string; priceV2: { amount: string }; compareAtPriceV2?: { amount: string } | null } }) => ({
+            id:    e.node.id,
+            title: e.node.title,
+            price: Math.round(parseFloat(e.node.priceV2.amount)),
+            mrp:   e.node.compareAtPriceV2?.amount ? Math.round(parseFloat(e.node.compareAtPriceV2.amount)) : null,
+          }))
+        : undefined,
     };
 
     return NextResponse.json(enriched);

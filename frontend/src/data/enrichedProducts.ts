@@ -69,4 +69,5 @@ export type EnrichedPDP = {
   variantId?: number;
   siblings?: Array<{ slug: string; label: string }>;
   pairings?: Array<{ slug: string; reason: string }>;
+  shopifyVariants?: Array<{ id: string; title: string; price: number; mrp: number | null }>;
 };
