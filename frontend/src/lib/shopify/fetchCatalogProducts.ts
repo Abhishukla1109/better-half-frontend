@@ -103,7 +103,8 @@ const CONCERN_OVERRIDES: Record<string, string[]> = {
   "endure-long-last-spray-20ml":                                    ["hormones"],
   "tostero-120-capsules":                                           ["energy", "hormones"],
   "tostero-capsules-60n":                                           ["energy", "hormones"],
-  "shilajit-gummies":                                               ["hormones", "energy", "weight"],
+  "2024397":                                                        ["hormones", "energy", "weight"],
+  "2024468":                                                        ["hormones", "energy", "weight"],
   "shilajit-gummies-60n":                                           ["hormones", "energy", "weight", "hair"],
   "complete-endurance-kit-1x-endure-spray-1x-tostero-capsules":    ["energy", "hormones"],
 
