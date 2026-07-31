@@ -125,7 +125,14 @@ async function acquireProcessingLock(orderId: number, adminToken: string): Promi
       }),
     });
     const checkData = await checkRes.json() as { data?: { order?: { metafield?: { value: string } | null } } };
-    if (checkData?.data?.order?.metafield?.value) return false; // already processed or locked
+    const existing = checkData?.data?.order?.metafield?.value;
+    if (existing) {
+      try {
+        const parsed = JSON.parse(existing);
+        // Only skip if fully processed (has mosaicOrders). A stuck processing lock should be retried.
+        if (parsed?.mosaicOrders?.length > 0) return false;
+      } catch { return false; }
+    }
 
     // Write lock marker immediately
     await fetch(`https://${SHOP}/admin/api/2024-01/graphql.json`, {
