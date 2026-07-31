@@ -6,6 +6,7 @@ const MOSAIC_SECRET       = process.env.MOSAIC_SERVICE_SECRET ?? "fce45aff64536e
 const AFFLUENCE_URL       = process.env.AFFLUENCE_EARNINGS_URL ?? "https://stg.api.myaffluence.app/affluence/social/earnings/";
 const AFFLUENCE_TOKEN     = process.env.AFFLUENCE_BEARER_TOKEN ?? "Gb6uz7fTFUUi624l";
 const WEBHOOK_SECRET      = process.env.SHOPIFY_WEBHOOK_SECRET ?? "";
+const SLACK_ORDER_WEBHOOK = process.env.SLACK_ORDER_WEBHOOK_URL ?? "";
 const BRAND_CODE: Record<string, string> = { "Man Matters": "MM", "Be Bodywise": "BW", "Little Joys": "LJ" };
 
 const BRAND_ORDER_URL: Record<string, string> = {
@@ -404,6 +405,46 @@ async function callAffluenceEarnings(
   }
 }
 
+// ── Slack ────────────────────────────────────────────────────
+
+async function notifySlack(order: ShopifyOrder, mosaicOrders: ExistingMosaicOrder[]): Promise<void> {
+  if (!SLACK_ORDER_WEBHOOK) return;
+  const name = `${order.first_name} ${order.last_name}`.trim();
+  const phone = normalizePhone(order.shipping_address?.phone ?? order.phone);
+  const paymentMethod = derivePaymentMethod(order);
+  const total = order.line_items.reduce((sum, i) => {
+    const disc = (i.discount_allocations ?? []).reduce((d, a) => d + parseFloat(a.amount), 0);
+    return sum + parseFloat(i.price) * i.quantity - disc;
+  }, 0);
+
+  const itemLines = order.line_items
+    .map(i => `• ${i.title} × ${i.quantity} — ₹${(parseFloat(i.price) * i.quantity).toFixed(0)}`)
+    .join("\n");
+
+  const mosaicLines = mosaicOrders
+    .map(o => `${o.brand}: ${o.order_id}`)
+    .join(" | ");
+
+  const text = [
+    `*New Order* 🛍️`,
+    `*Customer:* ${name} | +91 ${phone}`,
+    `*Payment:* ${paymentMethod.toUpperCase()} | *Total:* ₹${total.toFixed(0)}`,
+    `*Items:*\n${itemLines}`,
+    `*Mosaic:* ${mosaicLines}`,
+    `*Shopify #:* ${order.id}`,
+  ].join("\n");
+
+  try {
+    await fetch(SLACK_ORDER_WEBHOOK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+  } catch (e) {
+    console.warn("[order-webhook] Slack notify failed:", e instanceof Error ? e.message : e);
+  }
+}
+
 // ── Route ────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -513,6 +554,9 @@ export async function POST(req: NextRequest) {
       await cancelShopifyOrder(order.id, adminToken);
       return NextResponse.json({ ok: true, cancelled: true, failedBrands });
     }
+
+    // Notify Slack on every successful order
+    notifySlack(order, allMosaicOrders).catch(() => {});
 
     // Notify Affluence only for newly placed brands (don't double-notify on retry)
     const utms = getUTMsFromOrder(order);
