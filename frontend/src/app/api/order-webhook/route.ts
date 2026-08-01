@@ -243,10 +243,10 @@ function normalizeStateCode(provinceCode: string): string {
 
 // Fix 1: Derive payment method dynamically from the order instead of hardcoding "juspay"
 function derivePaymentMethod(order: ShopifyOrder): string {
-  if (order.financial_status === "pending") return "cod";
+  if (order.financial_status === "pending") return "checkmo";
   // GoKwik/Juspay handles all prepaid — gateway name may vary but intent is prepaid
   const gateway = (order.payment_gateway ?? "").toLowerCase();
-  if (gateway.includes("cod") || gateway.includes("cash")) return "cod";
+  if (gateway.includes("cod") || gateway.includes("cash")) return "checkmo";
   return "prepaid";
 }
 
