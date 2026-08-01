@@ -409,7 +409,7 @@ async function callAffluenceEarnings(
 
 async function notifySlack(order: ShopifyOrder, mosaicOrders: ExistingMosaicOrder[]): Promise<void> {
   if (!SLACK_ORDER_WEBHOOK) return;
-  const name = `${order.first_name} ${order.last_name}`.trim();
+  const name = `${order.shipping_address?.first_name || order.first_name || ""} ${order.shipping_address?.last_name || order.last_name || ""}`.trim();
   const phone = normalizePhone(order.shipping_address?.phone ?? order.phone);
   const paymentMethod = derivePaymentMethod(order);
   const total = order.line_items.reduce((sum, i) => {
