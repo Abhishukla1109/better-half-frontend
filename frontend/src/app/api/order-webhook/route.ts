@@ -283,6 +283,7 @@ async function callMosaicBrand(brand: string, payload: object): Promise<string |
     console.warn(`[order-webhook] No API URL configured for brand: ${brand}`);
     return null;
   }
+  console.log(`[order-webhook] ${brand} request payload:`, JSON.stringify(payload));
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", "servicesecret": MOSAIC_SECRET },
