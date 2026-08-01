@@ -7,7 +7,7 @@ const CLIENT_SECRET = process.env.SHOPIFY_ADMIN_CLIENT_SECRET ?? "";
 
 const BRAND_CODE: Record<string, string> = { "Man Matters": "MM", "Be Bodywise": "BW", "Little Joys": "LJ" };
 
-type OrderStatus = "shipped" | "delivered" | "cancelled" | "refunded";
+type OrderStatus = "shipped" | "delivered" | "cancelled" | "refunded" | "order_rto";
 
 interface MosaicWebhookPayload {
   brand:            string;
@@ -354,7 +354,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (status === "cancelled") {
+    if (status === "cancelled" || status === "order_rto") {
       // Cancel any in-progress fulfillments first, then cancel the order itself
       const fulfillmentOrders = await fetchFulfillmentOrders(order.gid, adminToken);
       for (const fo of fulfillmentOrders) {
@@ -362,7 +362,7 @@ export async function POST(req: NextRequest) {
           await cancelFulfillment(fo.id, adminToken);
         }
       }
-      await cancelShopifyOrder(order.id, reason, adminToken);
+      await cancelShopifyOrder(order.id, reason ?? (status === "order_rto" ? "customer" : undefined), adminToken);
     }
 
     if (status === "refunded") {
