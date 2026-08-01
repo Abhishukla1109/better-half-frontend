@@ -247,7 +247,7 @@ function derivePaymentMethod(order: ShopifyOrder): string {
   // GoKwik/Juspay handles all prepaid — gateway name may vary but intent is prepaid
   const gateway = (order.payment_gateway ?? "").toLowerCase();
   if (gateway.includes("cod") || gateway.includes("cash")) return "checkmo";
-  return "prepaid";
+  return "juspay";
 }
 
 function buildOrderPayload(order: ShopifyOrder, items: ShopifyLineItem[], productMap: Record<number, ProductInfo>, source: string) {
