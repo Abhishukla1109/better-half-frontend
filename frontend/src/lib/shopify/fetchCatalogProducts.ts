@@ -163,6 +163,7 @@ export async function fetchCatalogProducts(): Promise<Product[]> {
 
       const isLJ     = p.vendor === "Little Joys";
       const price     = Math.round(parseFloat(p.priceRangeV2.minVariantPrice.amount));
+      if (price < 200) continue;
       const compareAt = Math.round(parseFloat(p.compareAtPriceRange?.maxVariantCompareAtPrice?.amount ?? "0"));
       const siblings  = getMetaJson<Array<{ slug: string; label: string }>>(nodes, "bh_siblings") ?? undefined;
 
