@@ -815,8 +815,8 @@ function NewProductPDP({
 
           {/* Rating — catalog value or enriched fallback */}
           {(() => {
-            const r = product.rating ?? enriched?.rating?.average ?? null;
-            const cnt = product.reviewCount ?? enriched?.rating?.count ?? null;
+            const r = enriched?.rating?.average ?? product.rating ?? null;
+            const cnt = enriched?.rating?.count ?? product.reviewCount ?? null;
             if (!r) return null;
             return (
             <div className="flex items-center gap-1.5 mt-2.5">
