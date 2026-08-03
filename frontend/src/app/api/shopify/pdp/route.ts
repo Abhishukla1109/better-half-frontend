@@ -43,6 +43,7 @@ const QUERY = `
         { namespace: "custom", key: "bh_recommendation" }
         { namespace: "custom", key: "bh_pairings" }
         { namespace: "custom", key: "bh_mm_url_key" }
+        { namespace: "custom", key: "bh_rating" }
       ]) { key value }
     }
   }
@@ -112,9 +113,10 @@ export async function GET(req: NextRequest) {
     const rawMrp = matchedVariant?.node?.compareAtPriceV2?.amount ?? allVariants[0]?.node?.compareAtPriceV2?.amount;
     const mrp = rawMrp ? Math.round(parseFloat(rawMrp)) : undefined;
 
-    // MM has numeric Shopify handles so needs bh_mm_url_key; BW/LJ handles work directly
+    // Use stored bh_rating metafield if available; fall back to live brand API call
+    const storedRating = json<{ average: number | null; count: number | null }>(mf, "bh_rating");
     const urlKey = text(mf, "bh_mm_url_key") || handle;
-    const rating = await fetchBrandRating(p.vendor ?? "", urlKey);
+    const rating = storedRating ?? await fetchBrandRating(p.vendor ?? "", urlKey);
 
     const enriched: EnrichedPDP = {
       slug:            handle,
