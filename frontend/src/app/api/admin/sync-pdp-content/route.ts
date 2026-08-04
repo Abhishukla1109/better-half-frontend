@@ -159,8 +159,8 @@ function extractMM(apiData: any): Widget[] {
   }
 
   // key_ingredients
-  const kiCards = (w("key-ingredients-cards")?.widgetData?.items ?? []) as Array<{ name: string; description?: string; desc?: string; icon?: string }>;
-  if (kiCards.length) push(result, "key_ingredients", { cards: kiCards.map(c => ({ name: c.name, description: c.description ?? c.desc ?? "", icon: c.icon ?? null })) });
+  const kiCards = (w("key-ingredients-cards")?.widgetData?.items ?? []) as Array<{ name: string; description?: string; desc?: string; largeDescription?: string; icon?: string }>;
+  if (kiCards.length) push(result, "key_ingredients", { cards: kiCards.map(c => ({ name: c.name, description: c.description ?? c.desc ?? "", longDescription: c.largeDescription ?? null, icon: c.icon ?? null })) });
 
   // full_ingredients — from key-ingredients-accordion "Full list of ingredients" item
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -247,8 +247,8 @@ function extractBW(apiData: any): Widget[] {
   // key_ingredients
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const kiWidget = wt("FEATURE_CARD_SLIDER_WITH_TEXT") ?? wt("KEY_INGREDIENTS") ?? widgets.find((ww: any) => ww.id?.includes("key-ingredient"));
-  const kiCards = (kiWidget?.widgetData?.items ?? []) as Array<{ name?: string; description?: string; desc?: string; icon?: string }>;
-  if (kiCards.length) push(result, "key_ingredients", { cards: kiCards.map(c => ({ name: c.name, description: c.description ?? c.desc ?? "", icon: c.icon ?? null })) });
+  const kiCards = (kiWidget?.widgetData?.items ?? []) as Array<{ name?: string; description?: string; desc?: string; largeDescription?: string; icon?: string }>;
+  if (kiCards.length) push(result, "key_ingredients", { cards: kiCards.map(c => ({ name: c.name, description: c.description ?? c.desc ?? "", longDescription: c.largeDescription ?? null, icon: c.icon ?? null })) });
 
   // full_ingredients — BW: look in accordion lists for ingredient item
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -1240,7 +1240,7 @@ function NewProductPDP({
 
         {/* ── Key Ingredients (pdpContent preferred) ── */}
         {(() => {
-          type KICard = { name?: string; description?: string; icon?: string | null };
+          type KICard = { name?: string; description?: string; longDescription?: string | null; icon?: string | null };
           const pdpKi = pdp<{ cards: KICard[] }>("key_ingredients");
           if (pdpKi?.cards?.length) {
             return (
@@ -1249,9 +1249,14 @@ function NewProductPDP({
                 <div className="px-5 space-y-2">
                   {pdpKi.cards.map((c, i) => {
                     const bgColors = ["bg-green-50","bg-amber-50","bg-blue-50","bg-purple-50","bg-rose-50"];
+                    const isOpen = expandedIngredient === i;
+                    const hasMore = !!c.longDescription;
                     return (
                       <div key={i} className="rounded-2xl bg-surface border border-outline-variant/10 overflow-hidden">
-                        <div className="flex items-center gap-3.5 px-4 py-3.5">
+                        <button
+                          onClick={() => hasMore ? setExpandedIngredient(isOpen ? null : i) : undefined}
+                          className={`w-full flex items-center gap-3.5 px-4 py-3.5 text-left ${hasMore ? "cursor-pointer" : ""}`}
+                        >
                           <div className={`shrink-0 w-12 h-12 rounded-xl ${bgColors[i % bgColors.length]} flex items-center justify-center overflow-hidden`}>
                             {c.icon
                               ? /* eslint-disable-next-line @next/next/no-img-element */
@@ -1261,9 +1266,19 @@ function NewProductPDP({
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-on-surface leading-snug">{c.name}</p>
-                            {c.description && <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed line-clamp-2">{stripHtml(c.description)}</p>}
+                            {c.description && <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">{stripHtml(c.description)}</p>}
                           </div>
-                        </div>
+                          {hasMore && (isOpen
+                            ? <ChevronUp className="w-4 h-4 text-on-surface-variant/50 shrink-0" />
+                            : <ChevronDown className="w-4 h-4 text-on-surface-variant/50 shrink-0" />
+                          )}
+                        </button>
+                        {isOpen && c.longDescription && (
+                          <div className="px-4 pb-4">
+                            <div className="h-px bg-outline-variant/10 mb-3" />
+                            <p className="text-xs text-on-surface-variant leading-relaxed">{stripHtml(c.longDescription)}</p>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -1271,7 +1286,7 @@ function NewProductPDP({
               </div>
             );
           }
-          return null; // old enriched.ingredients section below handles the fallback
+          return null;
         })()}
 
         {/* ── Safe & Effective badges grid ── */}
