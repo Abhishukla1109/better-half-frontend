@@ -342,7 +342,8 @@ export async function GET(req: NextRequest) {
       ];
       const results: Record<string, unknown> = {};
       for (const def of defs) {
-        const res = await fetch(ADMIN_API, {
+        // Try update first; if definition doesn't exist, create it
+        const updateRes = await fetch(ADMIN_API, {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": token },
           body: JSON.stringify({
@@ -353,18 +354,34 @@ export async function GET(req: NextRequest) {
               }
             }`,
             variables: {
-              def: {
-                name:      def.name,
-                namespace: "custom",
-                key:       def.key,
-                ownerType: "PRODUCT",
-                access:    { storefront: "PUBLIC_READ" },
-              },
+              def: { name: def.name, namespace: "custom", key: def.key, ownerType: "PRODUCT", access: { storefront: "PUBLIC_READ" } },
             },
           }),
         });
-        const json = await res.json();
-        results[def.key] = json.data?.metafieldDefinitionUpdate ?? json;
+        const updateJson = await updateRes.json();
+        const updateResult = updateJson.data?.metafieldDefinitionUpdate;
+        const notFound = updateResult?.userErrors?.some((e: { message: string }) => e.message.includes("not found"));
+        if (notFound) {
+          const createRes = await fetch(ADMIN_API, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": token },
+            body: JSON.stringify({
+              query: `mutation($def: MetafieldDefinitionInput!) {
+                metafieldDefinitionCreate(definition: $def) {
+                  createdDefinition { id name }
+                  userErrors { field message }
+                }
+              }`,
+              variables: {
+                def: { name: def.name, namespace: "custom", key: def.key, type: def.type, ownerType: "PRODUCT", access: { storefront: "PUBLIC_READ" } },
+              },
+            }),
+          });
+          const createJson = await createRes.json();
+          results[def.key] = { created: true, ...(createJson.data?.metafieldDefinitionCreate ?? createJson) };
+        } else {
+          results[def.key] = updateResult;
+        }
       }
       return NextResponse.json(results);
     }
