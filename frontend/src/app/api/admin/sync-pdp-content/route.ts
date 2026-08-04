@@ -318,9 +318,38 @@ function extractLJ(apiData: any): Widget[] {
 
 export async function GET(req: NextRequest) {
   const handle = req.nextUrl.searchParams.get("handle");
-  if (!handle) return NextResponse.json({ error: "handle required" }, { status: 400 });
+  const setup  = req.nextUrl.searchParams.get("setup");
+
   try {
     const token = await getAdminToken();
+
+    // ?setup=1 creates the metafield definition so it shows in Shopify admin
+    if (setup === "1") {
+      const res = await fetch(ADMIN_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": token },
+        body: JSON.stringify({
+          query: `mutation {
+            metafieldDefinitionCreate(definition: {
+              name: "PDP Content"
+              namespace: "custom"
+              key: "pdp_content"
+              type: "json"
+              ownerType: PRODUCT
+              description: "Structured PDP content extracted from brand API"
+            }) {
+              createdDefinition { id name }
+              userErrors { field message }
+            }
+          }`,
+        }),
+      });
+      const json = await res.json();
+      return NextResponse.json(json.data?.metafieldDefinitionCreate ?? json);
+    }
+
+    if (!handle) return NextResponse.json({ error: "handle or setup=1 required" }, { status: 400 });
+
     const res = await fetch(ADMIN_API, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": token },
