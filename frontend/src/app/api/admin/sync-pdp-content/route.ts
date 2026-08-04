@@ -203,7 +203,9 @@ function extractMM(apiData: any): Widget[] {
   if (faqList.length) push(result, "faqs", { list: faqList.map(f => ({ q: f.title, a: f.content })) });
 
   // product_info — PRODUCT_DETAILS_TILE + ACCORDION_HEADER additional-information
-  const prodInfoItems = (w("product-contains-details")?.widgetData?.items ?? []) as Array<{ leftText: string; rightText: string }>;
+  // Filter out "Price" row — Shopify is the source of truth for pricing
+  const prodInfoItems = (w("product-contains-details")?.widgetData?.items ?? [])
+    .filter((i: { leftText: string; rightText: string }) => i.leftText?.toLowerCase() !== "price") as Array<{ leftText: string; rightText: string }>;
   const addInfoItems  = (w("additional-information")?.widgetData?.items ?? []) as Array<{ title: string; content: string }>;
   if (prodInfoItems.length || addInfoItems.length) {
     push(result, "product_info", {
