@@ -375,7 +375,22 @@ async function callAffluenceEarnings(
     dmId:         utms.dmId,
     influencerId: utms.influencerId,
     cartId:       utms.affCartId || undefined,
-    metaData: { paymentMode: derivePaymentMethod(order) },
+    metaData: {
+      paymentMode: derivePaymentMethod(order),
+      attribution: (() => {
+        const attrs = order.note_attributes ?? [];
+        const pick = (k: string) => attrs.find(a => a.name === k)?.value ?? null;
+        const mixpanelDistinctId = pick("affluence_mixpanel_distinct_id");
+        const mixpanelDeviceId   = pick("affluence_mixpanel_device_id");
+        const clevertapId        = pick("affluence_clevertap_id");
+        if (!mixpanelDistinctId && !mixpanelDeviceId && !clevertapId) return undefined;
+        return {
+          ...(mixpanelDistinctId && { affluence_mixpanel_distinct_id: mixpanelDistinctId }),
+          ...(mixpanelDeviceId   && { affluence_mixpanel_device_id:   mixpanelDeviceId }),
+          ...(clevertapId        && { affluence_clevertap_id:          clevertapId }),
+        };
+      })(),
+    },
     order: {
       status:        "confirmed",
       subTotal:      Math.round(subTotal * 100) / 100,
