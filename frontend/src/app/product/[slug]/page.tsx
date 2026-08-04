@@ -1053,7 +1053,7 @@ function NewProductPDP({
         })()}
 
         {/* ── Product Details / How to Use tabs ── */}
-        {enriched && !hasPdpContent && (
+        {enriched && (
           <div className="mt-6">
             {/* Tab bar */}
             <div className="flex border-b-2 border-border-light px-5">
@@ -1075,7 +1075,10 @@ function NewProductPDP({
             <div className="px-5 pt-5 pb-2">
               {activeTab === "details" ? (
                 <div>
-                  {enriched.productDetails.description.length > 0 && (() => {
+                  {hasPdpContent && pdp<{ html: string }>("description")?.html
+                    ? <div dangerouslySetInnerHTML={{ __html: pdp<{ html: string }>("description")!.html }} className="text-body text-on-dark leading-relaxed" />
+                    : null}
+                  {!hasPdpContent && enriched.productDetails?.description?.length > 0 && (() => {
                     const DISCLAIMER_RE = /medical advice|physician|dietician|nutritionist|consult a/i;
                     const iconFor = (text: string): LucideIcon => {
                       const t = text.toLowerCase();
