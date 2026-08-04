@@ -386,6 +386,12 @@ function NewProductPDP({
     return score >= 80 ? score : null;
   }, [activeMember, product]);
 
+  // Helper to pull a typed section from pdpContent
+  function pdp<T>(type: string): T | null {
+    const s = enriched?.pdpContent?.find(sec => sec.type === type);
+    return s ? s.data as T : null;
+  }
+
   const images = enriched?.images?.length ? enriched.images : product.image ? [product.image] : [];
   const initialIndex = 0;
 
@@ -988,6 +994,30 @@ function NewProductPDP({
 
         {/* ── Key Benefits ── */}
         {(() => {
+          type KBItem = { icon?: string; text?: string; title?: string; description?: string };
+          const pdpBenefits = pdp<{ items: KBItem[] }>("key_benefits");
+          if (pdpBenefits?.items?.length) {
+            return (
+              <div className="mt-6">
+                <h2 className="text-xl font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] px-5 mb-3">✨ Key Benefits</h2>
+                <div className="flex gap-3 px-5 overflow-x-auto scrollbar-hide pb-1">
+                  {pdpBenefits.items.map((b, i) => (
+                    <div key={i} className="shrink-0 w-[160px] rounded-2xl bg-surface-container-lowest border border-outline-variant/8 overflow-hidden">
+                      {b.icon ? (
+                        <div className="w-full aspect-square overflow-hidden bg-gray-50 flex items-center justify-center p-3">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={b.icon} alt={b.text ?? ""} className="w-full h-full object-contain" />
+                        </div>
+                      ) : null}
+                      <div className="p-3">
+                        <p className="text-label font-bold text-on-surface leading-snug">{b.text ?? b.title ?? ""}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          }
           const APP_PROMO = /\bapp\b|download|daily reminder|\breward|order usin|install|\bwallet\b|play.?store|app.?store|cashback|google play|apple store/i;
           const cleanBenefits = (enriched?.benefits ?? []).filter(
             b => !APP_PROMO.test(b.title ?? "") && !APP_PROMO.test(b.description ?? "")
@@ -1105,6 +1135,26 @@ function NewProductPDP({
                 /* How to Use */
                 <div>
                   {(() => {
+                    type HTUStep = { title?: string; description?: string; image?: string | null };
+                    const pdpHtu = pdp<{ steps?: HTUStep[]; html?: string }>("how_to_use");
+                    if (pdpHtu?.steps?.length) {
+                      return pdpHtu.steps.filter(s => s.description?.trim()).map((s, i) => (
+                        <div key={i} className={`flex items-start gap-3.5 py-4 ${i < (pdpHtu.steps!.length - 1) ? "border-b border-[#eff4f4]" : ""}`}>
+                          {s.image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={s.image} alt={s.description ?? ""} className="shrink-0 w-14 h-14 rounded-xl object-contain bg-gray-50" />
+                          ) : (
+                            <div className="shrink-0 w-8 h-8 rounded-full bg-brand/8 flex items-center justify-center mt-0.5">
+                              <span className="text-body font-bold text-brand">{i + 1}</span>
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0 pt-0.5">
+                            {s.title && <p className="text-body font-bold text-on-dark leading-snug mb-1">{s.title}</p>}
+                            <p className={`leading-relaxed ${s.title ? "text-label text-gray-500" : "text-body text-on-dark"}`}>{stripHtml(s.description ?? "")}</p>
+                          </div>
+                        </div>
+                      ));
+                    }
                     const raw = enriched.howToUse || "Take as directed. Consistent daily use recommended for best results.";
 
                     const cleaned = raw
@@ -1184,6 +1234,42 @@ function NewProductPDP({
           </div>
         )}
 
+        {/* ── Key Ingredients (pdpContent preferred) ── */}
+        {(() => {
+          type KICard = { name?: string; description?: string; icon?: string | null };
+          const pdpKi = pdp<{ cards: KICard[] }>("key_ingredients");
+          if (pdpKi?.cards?.length) {
+            return (
+              <div className="mt-8 bg-surface-container-lowest py-6">
+                <h2 className="text-xl font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] px-5 mb-4">🌿 Key Ingredients</h2>
+                <div className="px-5 space-y-2">
+                  {pdpKi.cards.map((c, i) => {
+                    const bgColors = ["bg-green-50","bg-amber-50","bg-blue-50","bg-purple-50","bg-rose-50"];
+                    return (
+                      <div key={i} className="rounded-2xl bg-surface border border-outline-variant/10 overflow-hidden">
+                        <div className="flex items-center gap-3.5 px-4 py-3.5">
+                          <div className={`shrink-0 w-12 h-12 rounded-xl ${bgColors[i % bgColors.length]} flex items-center justify-center overflow-hidden`}>
+                            {c.icon
+                              ? /* eslint-disable-next-line @next/next/no-img-element */
+                                <img src={c.icon} alt={c.name ?? ""} className="w-9 h-9 object-contain" />
+                              : <span className="text-2xl">🌿</span>
+                            }
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-on-surface leading-snug">{c.name}</p>
+                            {c.description && <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed line-clamp-2">{stripHtml(c.description)}</p>}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          }
+          return null; // old enriched.ingredients section below handles the fallback
+        })()}
+
         {/* ── Safe & Effective badges grid ── */}
         {enriched?.badges && enriched.badges.length > 0 && (
           <div className="mt-6 px-5">
@@ -1201,7 +1287,7 @@ function NewProductPDP({
         )}
 
         {/* ── Key ingredients ── */}
-        {enriched?.ingredients && enriched.ingredients.length > 0 && (
+        {enriched?.ingredients && enriched.ingredients.length > 0 && !pdp("key_ingredients") && (
           <div className="mt-8 bg-surface-container-lowest py-6">
             <h2 className="text-xl font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] px-5 mb-4">
               🌿 Key Ingredients
@@ -1499,53 +1585,86 @@ function NewProductPDP({
         )}
 
         {/* ── Things to note ── */}
-        {enriched?.disclaimers && enriched.disclaimers.length > 0 && (
-          <div className="mt-8 px-5">
-            <h2 className="text-base font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] mb-3">⚠️ Things to note</h2>
-            <div className="space-y-3">
-              {enriched.disclaimers.map((d, i) => (
-                <div key={i} className="flex gap-3 p-4 rounded-2xl bg-surface-container-low border border-outline-variant/8">
-                  {d.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={d.image} alt={d.title} className="w-10 h-10 object-contain shrink-0" />
-                  ) : (
-                    <AlertCircle className="w-5 h-5 text-on-surface-variant/40 shrink-0 mt-0.5" strokeWidth={1.5} />
-                  )}
-                  <div>
-                    <p className="text-sm font-semibold text-on-surface">{d.title}</p>
-                    <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">{stripHtml(d.description)}</p>
-                  </div>
+        {(() => {
+          type TTNItem = { icon?: string | null; text?: string };
+          const pdpTtn = pdp<{ items: TTNItem[] }>("things_to_note");
+          if (pdpTtn?.items?.length) {
+            return (
+              <div className="mt-8 px-5">
+                <h2 className="text-base font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] mb-3">⚠️ Good to Know</h2>
+                <div className="space-y-3">
+                  {pdpTtn.items.map((d, i) => (
+                    <div key={i} className="flex gap-3 p-4 rounded-2xl bg-surface-container-low border border-outline-variant/8">
+                      {d.icon ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={d.icon} alt={d.text ?? ""} className="w-10 h-10 object-contain shrink-0" />
+                      ) : (
+                        <AlertCircle className="w-5 h-5 text-on-surface-variant/40 shrink-0 mt-0.5" strokeWidth={1.5} />
+                      )}
+                      <p className="text-xs text-on-surface-variant leading-relaxed">{stripHtml(d.text ?? "")}</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+            );
+          }
+          if (!enriched?.disclaimers?.length) return null;
+          return (
+            <div className="mt-8 px-5">
+              <h2 className="text-base font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] mb-3">⚠️ Things to note</h2>
+              <div className="space-y-3">
+                {enriched.disclaimers.map((d, i) => (
+                  <div key={i} className="flex gap-3 p-4 rounded-2xl bg-surface-container-low border border-outline-variant/8">
+                    {d.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={d.image} alt={d.title} className="w-10 h-10 object-contain shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-5 h-5 text-on-surface-variant/40 shrink-0 mt-0.5" strokeWidth={1.5} />
+                    )}
+                    <div>
+                      <p className="text-sm font-semibold text-on-surface">{d.title}</p>
+                      <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">{stripHtml(d.description)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ── FAQs ── */}
-        {enriched?.faqs && enriched.faqs.length > 0 && (
-          <div className="mt-8 px-5">
-            <h2 className="text-xl font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] mb-4">💬 Got Questions?</h2>
-            <div className="space-y-2">
-              {enriched.faqs.map((faq, i) => (
-                <div key={i} className="rounded-2xl border border-outline-variant/10 overflow-hidden bg-surface-container-lowest">
-                  <button onClick={() => setExpandedFaq(expandedFaq === i ? null : i)} className="w-full flex items-start justify-between gap-3 px-4 py-4 cursor-pointer text-left">
-                    <span className="text-sm font-semibold text-on-surface leading-snug">{faq.question}</span>
-                    {expandedFaq === i
-                      ? <ChevronUp className="w-4 h-4 text-on-surface-variant/50 shrink-0 mt-0.5" />
-                      : <ChevronDown className="w-4 h-4 text-on-surface-variant/50 shrink-0 mt-0.5" />
-                    }
-                  </button>
-                  {expandedFaq === i && (
-                    <div className="px-4 pb-4">
-                      <div className="h-px bg-outline-variant/10 mb-3" />
-                      <p className="text-sm text-on-surface-variant leading-relaxed">{faq.answer}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
+        {(() => {
+          type FAQItem = { q: string; a: string };
+          const pdpFaqs = pdp<{ list: FAQItem[] }>("faqs");
+          const faqList = pdpFaqs?.list?.length
+            ? pdpFaqs.list.map(f => ({ question: f.q, answer: f.a }))
+            : (enriched?.faqs ?? []).map(f => ({ question: f.question, answer: f.answer }));
+          if (!faqList.length) return null;
+          return (
+            <div className="mt-8 px-5">
+              <h2 className="text-xl font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] mb-4">💬 Got Questions?</h2>
+              <div className="space-y-2">
+                {faqList.map((faq, i) => (
+                  <div key={i} className="rounded-2xl border border-outline-variant/10 overflow-hidden bg-surface-container-lowest">
+                    <button onClick={() => setExpandedFaq(expandedFaq === i ? null : i)} className="w-full flex items-start justify-between gap-3 px-4 py-4 cursor-pointer text-left">
+                      <span className="text-sm font-semibold text-on-surface leading-snug">{faq.question}</span>
+                      {expandedFaq === i
+                        ? <ChevronUp className="w-4 h-4 text-on-surface-variant/50 shrink-0 mt-0.5" />
+                        : <ChevronDown className="w-4 h-4 text-on-surface-variant/50 shrink-0 mt-0.5" />
+                      }
+                    </button>
+                    {expandedFaq === i && (
+                      <div className="px-4 pb-4">
+                        <div className="h-px bg-outline-variant/10 mb-3" />
+                        <p className="text-sm text-on-surface-variant leading-relaxed">{faq.answer}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ── Little Joys: Medical advisory notice ── */}
         {product.brand === "Little Joys" && (enriched?.productType === "kids" || enriched?.ageGroup) && (
@@ -1560,21 +1679,44 @@ function NewProductPDP({
           </div>
         )}
 
-        {/* ── Additional information ── */}
-        {enriched?.additionalInfo && enriched.additionalInfo.length > 0 && (
-          <div className="mt-6 px-5">
-            <ExpandableSection title="📋 Additional Information">
-              <div className="rounded-2xl border border-outline-variant/10 overflow-hidden bg-surface-container-lowest divide-y divide-outline-variant/8">
-                {enriched.additionalInfo.map((row, i) => (
-                  <div key={i} className="flex items-start gap-3 px-4 py-3">
-                    <span className="text-label font-semibold text-on-surface-variant/55 uppercase tracking-wide shrink-0 w-28 leading-relaxed pt-0.5">{row.title}</span>
-                    <span className="text-xs text-on-surface leading-relaxed flex-1">{row.content}</span>
+        {/* ── Product Information (pdpContent preferred) ── */}
+        {(() => {
+          type PIRow = { label: string; value: string };
+          const pdpPi = pdp<{ details: PIRow[]; additional: PIRow[] }>("product_info");
+          if (pdpPi) {
+            const allRows = [...(pdpPi.details ?? []), ...(pdpPi.additional ?? [])].filter(r => r.label && r.value);
+            if (!allRows.length) return null;
+            return (
+              <div className="mt-6 px-5">
+                <ExpandableSection title="📋 Product Information">
+                  <div className="rounded-2xl border border-outline-variant/10 overflow-hidden bg-surface-container-lowest divide-y divide-outline-variant/8">
+                    {allRows.map((row, i) => (
+                      <div key={i} className="flex items-start gap-3 px-4 py-3">
+                        <span className="text-label font-semibold text-on-surface-variant/55 uppercase tracking-wide shrink-0 w-28 leading-relaxed pt-0.5">{row.label}</span>
+                        <span className="text-xs text-on-surface leading-relaxed flex-1">{row.value}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </ExpandableSection>
               </div>
-            </ExpandableSection>
-          </div>
-        )}
+            );
+          }
+          if (!enriched?.additionalInfo?.length) return null;
+          return (
+            <div className="mt-6 px-5">
+              <ExpandableSection title="📋 Additional Information">
+                <div className="rounded-2xl border border-outline-variant/10 overflow-hidden bg-surface-container-lowest divide-y divide-outline-variant/8">
+                  {enriched.additionalInfo.map((row, i) => (
+                    <div key={i} className="flex items-start gap-3 px-4 py-3">
+                      <span className="text-label font-semibold text-on-surface-variant/55 uppercase tracking-wide shrink-0 w-28 leading-relaxed pt-0.5">{row.title}</span>
+                      <span className="text-xs text-on-surface leading-relaxed flex-1">{row.content}</span>
+                    </div>
+                  ))}
+                </div>
+              </ExpandableSection>
+            </div>
+          );
+        })()}
 
 
       </div>

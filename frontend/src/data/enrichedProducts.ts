@@ -70,4 +70,5 @@ export type EnrichedPDP = {
   siblings?: Array<{ slug: string; label: string }>;
   pairings?: Array<{ slug: string; reason: string }>;
   shopifyVariants?: Array<{ id: string; title: string; price: number; mrp: number | null }>;
+  pdpContent?: Array<{ type: string; heading: string | null; data: unknown }>;
 };

@@ -44,6 +44,7 @@ const QUERY = `
         { namespace: "custom", key: "bh_pairings" }
         { namespace: "custom", key: "bh_mm_url_key" }
         { namespace: "custom", key: "bh_rating" }
+        { namespace: "custom", key: "pdp_content" }
       ]) { key value }
     }
   }
@@ -150,6 +151,7 @@ export async function GET(req: NextRequest) {
       siblings:        json(mf, "bh_siblings")        ?? undefined,
       recommendation:  text(mf, "bh_recommendation") ?? undefined,
       pairings:        json(mf, "bh_pairings")        ?? undefined,
+      pdpContent:      json(mf, "pdp_content")        ?? undefined,
       shopifyVariants: allVariants.length > 1
         ? allVariants.map((e: { node: { id: string; title: string; priceV2: { amount: string }; compareAtPriceV2?: { amount: string } | null } }) => ({
             id:    e.node.id,
