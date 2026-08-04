@@ -3,9 +3,51 @@ import type { EnrichedPDP } from "@/data/enrichedProducts";
 
 export const revalidate = 3600;
 
-const SHOP = (process.env.NEXT_PUBLIC_SHOPIFY_STORE_URL ?? "").replace(/\/$/, "").replace("https://", "");
-const SF_TOKEN = process.env.SHOPIFY_STOREFRONT_PRIVATE_TOKEN ?? "";
+const SHOP        = (process.env.NEXT_PUBLIC_SHOPIFY_STORE_URL ?? "").replace(/\/$/, "").replace("https://", "");
+const SF_TOKEN    = process.env.SHOPIFY_STOREFRONT_PRIVATE_TOKEN ?? "";
 const SF_ENDPOINT = `https://${SHOP}/api/2024-01/graphql.json`;
+const CLIENT_ID   = process.env.SHOPIFY_ADMIN_CLIENT_ID ?? "";
+const CLIENT_SECRET = process.env.SHOPIFY_ADMIN_CLIENT_SECRET ?? "";
+const ADMIN_API   = `https://${SHOP}/admin/api/2024-01/graphql.json`;
+
+let _adminToken: string | null = null;
+let _adminTokenExpiry = 0;
+
+async function getAdminToken(): Promise<string> {
+  if (_adminToken && Date.now() < _adminTokenExpiry) return _adminToken;
+  const res = await fetch(`https://${SHOP}/admin/oauth/access_token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET, grant_type: "client_credentials" }),
+  });
+  const data = await res.json();
+  _adminToken = data.access_token;
+  _adminTokenExpiry = Date.now() + 23 * 60 * 60 * 1000;
+  return _adminToken!;
+}
+
+async function fetchPdpContent(handle: string): Promise<unknown[] | null> {
+  try {
+    const token = await getAdminToken();
+    const res = await fetch(ADMIN_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": token },
+      body: JSON.stringify({
+        query: `query($handle: String!) {
+          productByHandle(handle: $handle) {
+            metafield(namespace: "custom", key: "pdp_content") { value }
+          }
+        }`,
+        variables: { handle },
+      }),
+    });
+    const json = await res.json();
+    const val = json.data?.productByHandle?.metafield?.value;
+    return val ? JSON.parse(val) : null;
+  } catch {
+    return null;
+  }
+}
 
 const BRAND_API: Record<string, string> = {
   "Man Matters":  "https://api.manmatters.com/portal/page/mwsc/widgetised/product",
@@ -88,7 +130,7 @@ export async function GET(req: NextRequest) {
   if (!handle) return NextResponse.json(null, { status: 400 });
 
   try {
-    const [shopifyRes, ] = await Promise.all([
+    const [shopifyRes, pdpContent] = await Promise.all([
       fetch(SF_ENDPOINT, {
         method: "POST",
         headers: {
@@ -97,6 +139,7 @@ export async function GET(req: NextRequest) {
         },
         body: JSON.stringify({ query: QUERY, variables: { handle } }),
       }),
+      fetchPdpContent(handle),
     ]);
 
     const data = await shopifyRes.json();
@@ -151,7 +194,7 @@ export async function GET(req: NextRequest) {
       siblings:        json(mf, "bh_siblings")        ?? undefined,
       recommendation:  text(mf, "bh_recommendation") ?? undefined,
       pairings:        json(mf, "bh_pairings")        ?? undefined,
-      pdpContent:      json(mf, "pdp_content")        ?? undefined,
+      pdpContent:      (pdpContent as Array<{ type: string; heading: string | null; data: unknown }> | null) ?? undefined,
       shopifyVariants: allVariants.length > 1
         ? allVariants.map((e: { node: { id: string; title: string; priceV2: { amount: string }; compareAtPriceV2?: { amount: string } | null } }) => ({
             id:    e.node.id,
