@@ -334,29 +334,39 @@ export async function GET(req: NextRequest) {
   try {
     const token = await getAdminToken();
 
-    // ?setup=1 creates/updates the metafield definition with storefront access
+    // ?setup=1 creates/updates metafield definitions with storefront access
     if (setup === "1") {
-      // First try to update existing definition to add storefront access
-      const updateRes = await fetch(ADMIN_API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": token },
-        body: JSON.stringify({
-          query: `mutation {
-            metafieldDefinitionUpdate(definition: {
-              name: "PDP Content"
-              namespace: "custom"
-              key: "pdp_content"
-              ownerType: PRODUCT
-              access: { storefront: PUBLIC_READ }
-            }) {
-              updatedDefinition { id name }
-              userErrors { field message }
-            }
-          }`,
-        }),
-      });
-      const json = await updateRes.json();
-      return NextResponse.json(json.data?.metafieldDefinitionUpdate ?? json);
+      const defs = [
+        { name: "PDP Content", key: "pdp_content", type: "json" },
+        { name: "BH Rating",   key: "bh_rating",   type: "json" },
+      ];
+      const results: Record<string, unknown> = {};
+      for (const def of defs) {
+        const res = await fetch(ADMIN_API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": token },
+          body: JSON.stringify({
+            query: `mutation($def: MetafieldDefinitionUpdateInput!) {
+              metafieldDefinitionUpdate(definition: $def) {
+                updatedDefinition { id name }
+                userErrors { field message }
+              }
+            }`,
+            variables: {
+              def: {
+                name:      def.name,
+                namespace: "custom",
+                key:       def.key,
+                ownerType: "PRODUCT",
+                access:    { storefront: "PUBLIC_READ" },
+              },
+            },
+          }),
+        });
+        const json = await res.json();
+        results[def.key] = json.data?.metafieldDefinitionUpdate ?? json;
+      }
+      return NextResponse.json(results);
     }
 
     if (!handle) return NextResponse.json({ error: "handle or setup=1 required" }, { status: 400 });
