@@ -316,6 +316,32 @@ function extractLJ(apiData: any): Widget[] {
 
 // ─── Route handler ─────────────────────────────────────────────────────────────
 
+export async function GET(req: NextRequest) {
+  const handle = req.nextUrl.searchParams.get("handle");
+  if (!handle) return NextResponse.json({ error: "handle required" }, { status: 400 });
+  try {
+    const token = await getAdminToken();
+    const res = await fetch(ADMIN_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": token },
+      body: JSON.stringify({
+        query: `query($handle: String!) {
+          productByHandle(handle: $handle) {
+            metafield(namespace: "custom", key: "pdp_content") { value updatedAt }
+          }
+        }`,
+        variables: { handle },
+      }),
+    });
+    const json = await res.json();
+    const mf = json.data?.productByHandle?.metafield;
+    if (!mf) return NextResponse.json({ found: false });
+    return NextResponse.json({ found: true, updatedAt: mf.updatedAt, value: JSON.parse(mf.value) });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const handle = body.handle as string | undefined;
