@@ -1075,10 +1075,9 @@ function NewProductPDP({
             <div className="px-5 pt-5 pb-2">
               {activeTab === "details" ? (
                 <div>
-                  {hasPdpContent && pdp<{ html: string }>("description")?.html
-                    ? <div dangerouslySetInnerHTML={{ __html: pdp<{ html: string }>("description")!.html }} className="text-body text-on-dark leading-relaxed" />
-                    : null}
-                  {!hasPdpContent && enriched.productDetails?.description?.length > 0 && (() => {
+                  {hasPdpContent
+                    ? <div dangerouslySetInnerHTML={{ __html: pdp<{ html: string }>("description")?.html ?? "" }} className="text-body text-on-dark leading-relaxed" />
+                    : enriched.productDetails?.description?.length > 0 && (() => {
                     const DISCLAIMER_RE = /medical advice|physician|dietician|nutritionist|consult a/i;
                     const iconFor = (text: string): LucideIcon => {
                       const t = text.toLowerCase();
@@ -1144,7 +1143,7 @@ function NewProductPDP({
                   {(() => {
                     type HTUStep = { title?: string; description?: string; image?: string | null };
                     const pdpHtu = pdp<{ steps?: HTUStep[]; html?: string }>("how_to_use");
-                    if (pdpHtu?.steps?.length) {
+                    if (hasPdpContent && pdpHtu?.steps?.length) {
                       return pdpHtu.steps.filter(s => s.description?.trim()).map((s, i) => (
                         <div key={i} className={`flex items-start gap-3.5 py-4 ${i < (pdpHtu.steps!.length - 1) ? "border-b border-[#eff4f4]" : ""}`}>
                           {s.image ? (
@@ -1162,6 +1161,7 @@ function NewProductPDP({
                         </div>
                       ));
                     }
+                    if (hasPdpContent) return null;
                     const raw = enriched.howToUse || "Take as directed. Consistent daily use recommended for best results.";
 
                     const cleaned = raw
