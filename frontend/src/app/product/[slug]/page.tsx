@@ -1606,6 +1606,32 @@ function NewProductPDP({
           </div>
         )}
 
+        {/* ── Works Best With (pdpContent only) ── */}
+        {(() => {
+          type WBWItem = { icon?: string | null; title: string; description: string };
+          const pdpWbw = pdp<{ items: WBWItem[] }>("works_best_with");
+          if (!pdpWbw?.items?.length) return null;
+          return (
+            <div className="mt-8 px-5">
+              <h2 className="text-base font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] mb-3">🤝 What it Works Best With</h2>
+              <div className="space-y-3">
+                {pdpWbw.items.map((item, i) => (
+                  <div key={i} className="flex gap-4 p-4 rounded-2xl bg-surface-container-low border border-outline-variant/8">
+                    {item.icon && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={item.icon} alt={item.title} className="w-12 h-12 object-contain shrink-0" />
+                    )}
+                    <div>
+                      <p className="text-sm font-semibold text-on-surface leading-snug">{item.title}</p>
+                      <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">{item.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* ── Things to note ── */}
         {(() => {
           type TTNItem = { icon?: string | null; text?: string };

@@ -21,18 +21,23 @@ const BRAND_API: Record<string, string> = {
 };
 
 const HEADINGS: Record<string, string | null> = {
-  description:     null,
-  how_to_use:      "How to Use",
-  key_ingredients: "Key Ingredients",
-  full_ingredients:"Full Ingredients",
-  how_it_works:    "How it Works",
-  key_benefits:    "Key Benefits",
-  things_to_note:  "Good to Know",
-  faqs:            "FAQs",
-  consumer_study:  "What Users Say",
-  clinical_proof:  "Clinically Tested",
-  product_info:    "Product Information",
+  description:      null,
+  how_to_use:       "How to Use",
+  key_ingredients:  "Key Ingredients",
+  full_ingredients: "Full Ingredients",
+  how_it_works:     "How it Works",
+  key_benefits:     "Key Benefits",
+  works_best_with:  "What it Works Best With",
+  things_to_note:   "Good to Know",
+  faqs:             "FAQs",
+  consumer_study:   "What Users Say",
+  clinical_proof:   "Clinically Tested",
+  product_info:     "Product Information",
 };
+
+function stripLinks(html: string): string {
+  return html.replace(/<a\b[^>]*>([\s\S]*?)<\/a>/gi, "$1");
+}
 
 // ─── Admin API token ──────────────────────────────────────────────────────────
 
@@ -136,7 +141,7 @@ function extractMM(apiData: any): Widget[] {
   const detailsTab = (w("product-description")?.widgetData?.items ?? [])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .find((i: any) => i.title === "Details");
-  if (detailsTab?.text) push(result, "description", { html: detailsTab.text });
+  if (detailsTab?.text) push(result, "description", { html: stripLinks(detailsTab.text) });
 
   // key_benefits — outside widgets, in description.details.boosts.icons
   const boosts = (desc.details?.boosts?.icons ?? []) as Array<{ icon: string; text: string }>;
@@ -174,6 +179,10 @@ function extractMM(apiData: any): Widget[] {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const hitwItems = (hitwWidget?.widgetData?.items ?? hitwWidget?.widgetData?.list ?? []) as any[];
   if (hitwItems.length) push(result, "how_it_works", { items: hitwItems });
+
+  // works_best_with
+  const wbwItems = (w("what-it-works-best-with")?.widgetData?.items ?? []) as Array<{ icon?: string; textContentTitle?: { text: string }; textContentDescription?: { text: string }; desc?: string }>;
+  if (wbwItems.length) push(result, "works_best_with", { items: wbwItems.map(i => ({ icon: i.icon ?? null, title: i.textContentTitle?.text ?? "", description: i.textContentDescription?.text ?? i.desc ?? "" })) });
 
   // things_to_note
   const ttnItems = (w("things-to-note")?.widgetData?.items ?? []) as Array<{ icon?: string; desc?: string; title?: string }>;
@@ -223,7 +232,7 @@ function extractBW(apiData: any): Widget[] {
   const detailsTab = (infoTabs?.widgetData?.items ?? [])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .find((i: any) => i.title === "Details" || i.title === "Description");
-  if (detailsTab?.text) push(result, "description", { html: detailsTab.text });
+  if (detailsTab?.text) push(result, "description", { html: stripLinks(detailsTab.text) });
 
   // key_benefits — BW has BENEFITS_HIGHLIGHTS widget
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
