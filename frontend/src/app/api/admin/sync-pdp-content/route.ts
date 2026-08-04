@@ -386,6 +386,35 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(results);
     }
 
+    // ?orders=1 — inspect recent orders for source/affluence attributes
+    if (req.nextUrl.searchParams.get("orders") === "1") {
+      const res = await fetch(`https://${SHOP}/admin/api/2024-01/orders.json?status=any&limit=20&fields=id,order_number,created_at,note_attributes,tags,source_name`, {
+        headers: { "X-Shopify-Access-Token": token },
+      });
+      const json = await res.json();
+      const orders = (json.orders ?? []).map((o: { id: number; order_number: number; created_at: string; note_attributes: Array<{name: string; value: string}>; tags: string; source_name: string }) => {
+        const attrs = o.note_attributes ?? [];
+        const pick = (key: string) => attrs.find(a => a.name === key)?.value ?? null;
+        return {
+          order_number: o.order_number,
+          created_at:   o.created_at,
+          source_name:  o.source_name,
+          source:       pick("source"),
+          utm_source:   pick("utm_source") ?? pick("affluence_last_utm_source"),
+          utm_medium:   pick("utm_medium") ?? pick("affluence_last_utm_medium"),
+          utm_campaign: pick("utm_campaign") ?? pick("affluence_last_utm_campaign"),
+          influencerId: pick("influencerId"),
+          ref:          pick("ref"),
+          dmId:         pick("dmId"),
+          affCartId:    pick("affCartId"),
+          cartId:       pick("cartId"),
+          affluence_checkout: pick("affluence_checkout_started_at"),
+          tags:         o.tags,
+        };
+      });
+      return NextResponse.json(orders);
+    }
+
     if (!handle) return NextResponse.json({ error: "handle or setup=1 required" }, { status: 400 });
 
     const res = await fetch(ADMIN_API, {
