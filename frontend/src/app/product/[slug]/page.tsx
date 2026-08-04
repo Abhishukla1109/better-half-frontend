@@ -392,6 +392,9 @@ function NewProductPDP({
     return s ? s.data as T : null;
   }
 
+  // If pdpContent exists, old metafield sections are suppressed entirely
+  const hasPdpContent = !!enriched?.pdpContent?.length;
+
   const images = enriched?.images?.length ? enriched.images : product.image ? [product.image] : [];
   const initialIndex = 0;
 
@@ -1019,6 +1022,7 @@ function NewProductPDP({
             );
           }
           const APP_PROMO = /\bapp\b|download|daily reminder|\breward|order usin|install|\bwallet\b|play.?store|app.?store|cashback|google play|apple store/i;
+          if (hasPdpContent) return null;
           const cleanBenefits = (enriched?.benefits ?? []).filter(
             b => !APP_PROMO.test(b.title ?? "") && !APP_PROMO.test(b.description ?? "")
           );
@@ -1049,7 +1053,7 @@ function NewProductPDP({
         })()}
 
         {/* ── Product Details / How to Use tabs ── */}
-        {enriched && (
+        {enriched && !hasPdpContent && (
           <div className="mt-6">
             {/* Tab bar */}
             <div className="flex border-b-2 border-border-light px-5">
@@ -1271,7 +1275,7 @@ function NewProductPDP({
         })()}
 
         {/* ── Safe & Effective badges grid ── */}
-        {enriched?.badges && enriched.badges.length > 0 && (
+        {!hasPdpContent && enriched?.badges && enriched.badges.length > 0 && (
           <div className="mt-6 px-5">
             <h2 className="text-xl font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] mb-3">🛡️ Safe &amp; Effective</h2>
             <div className="grid grid-cols-3 gap-3">
@@ -1287,7 +1291,7 @@ function NewProductPDP({
         )}
 
         {/* ── Key ingredients ── */}
-        {enriched?.ingredients && enriched.ingredients.length > 0 && !pdp("key_ingredients") && (
+        {!hasPdpContent && enriched?.ingredients && enriched.ingredients.length > 0 && (
           <div className="mt-8 bg-surface-container-lowest py-6">
             <h2 className="text-xl font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] px-5 mb-4">
               🌿 Key Ingredients
@@ -1377,7 +1381,7 @@ function NewProductPDP({
         )}
 
         {/* ── What to expect (timeline only — week/month progression) ── */}
-        {enriched?.timeline && enriched.timeline.length > 0 && (
+        {!hasPdpContent && enriched?.timeline && enriched.timeline.length > 0 && (
           <div className="mt-8 bg-surface-container-lowest py-6">
             <h2 className="text-xl font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] px-5 mb-4">
               📅 What to expect
@@ -1608,7 +1612,7 @@ function NewProductPDP({
               </div>
             );
           }
-          if (!enriched?.disclaimers?.length) return null;
+          if (hasPdpContent || !enriched?.disclaimers?.length) return null;
           return (
             <div className="mt-8 px-5">
               <h2 className="text-base font-extrabold text-on-surface tracking-tight font-[family-name:var(--font-manrope)] mb-3">⚠️ Things to note</h2>
@@ -1638,7 +1642,7 @@ function NewProductPDP({
           const pdpFaqs = pdp<{ list: FAQItem[] }>("faqs");
           const faqList = pdpFaqs?.list?.length
             ? pdpFaqs.list.map(f => ({ question: f.q, answer: f.a }))
-            : (enriched?.faqs ?? []).map(f => ({ question: f.question, answer: f.answer }));
+            : hasPdpContent ? [] : (enriched?.faqs ?? []).map(f => ({ question: f.question, answer: f.answer }));
           if (!faqList.length) return null;
           return (
             <div className="mt-8 px-5">
@@ -1701,7 +1705,7 @@ function NewProductPDP({
               </div>
             );
           }
-          if (!enriched?.additionalInfo?.length) return null;
+          if (hasPdpContent || !enriched?.additionalInfo?.length) return null;
           return (
             <div className="mt-6 px-5">
               <ExpandableSection title="📋 Additional Information">
