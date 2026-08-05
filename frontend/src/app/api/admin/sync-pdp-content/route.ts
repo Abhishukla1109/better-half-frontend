@@ -39,6 +39,17 @@ function stripLinks(html: string): string {
   return html.replace(/<a\b[^>]*>([\s\S]*?)<\/a>/gi, "$1");
 }
 
+// Returns false for product-feature cards disguised as ingredients (e.g. "Easy to Use", "Alcohol free")
+function isIngredientCard(name: string): boolean {
+  const n = (name ?? "").toLowerCase().trim();
+  if (!n) return false;
+  if (n.includes(" to ")) return false;
+  if (n.includes(" and ")) return false;
+  if (n.endsWith(" free")) return false;
+  if (n.startsWith("no ")) return false;
+  return true;
+}
+
 // ─── Admin API token ──────────────────────────────────────────────────────────
 
 let _token: string | null = null;
@@ -144,8 +155,16 @@ function extractMM(apiData: any): Widget[] {
   if (detailsTab?.text) push(result, "description", { html: stripLinks(detailsTab.text) });
 
   // key_benefits — outside widgets, in description.details.boosts.icons
+  // Filter out stage-progression images (Stage 1/2/3/4), empty entries, and app-promo items
   const boosts = (desc.details?.boosts?.icons ?? []) as Array<{ icon: string; text: string }>;
-  if (boosts.length) push(result, "key_benefits", { items: boosts.map(b => ({ icon: b.icon, text: b.text })) });
+  const benefitBoosts = boosts.filter(b => {
+    const t = (b.text ?? "").trim();
+    if (!t) return false;
+    if (/^Stage\s+\d+$/i.test(t)) return false;
+    if (/^(Download the App|Use Habit Tracker)$/i.test(t)) return false;
+    return true;
+  });
+  if (benefitBoosts.length) push(result, "key_benefits", { items: benefitBoosts.map(b => ({ icon: b.icon, text: b.text })) });
 
   // how_to_use — prefer visual INFO_TILE_CARD steps; fallback to HTML
   const howUsedSteps = (w("how-its-used")?.widgetData?.items ?? []) as Array<{ title: string; description: string; stepImage?: string; image?: string }>;
@@ -163,8 +182,9 @@ function extractMM(apiData: any): Widget[] {
     if (html) push(result, "how_to_use", { html });
   }
 
-  // key_ingredients
-  const kiCards = (w("key-ingredients-cards")?.widgetData?.items ?? []) as Array<{ name: string; description?: string; desc?: string; largeDescription?: string; icon?: string }>;
+  // key_ingredients — filter out feature cards mixed in (e.g. "Easy to Use", "Alcohol free")
+  const kiCardsRaw = (w("key-ingredients-cards")?.widgetData?.items ?? []) as Array<{ name: string; description?: string; desc?: string; largeDescription?: string; icon?: string }>;
+  const kiCards = kiCardsRaw.filter(c => isIngredientCard(c.name));
   if (kiCards.length) push(result, "key_ingredients", { cards: kiCards.map(c => ({ name: c.name, description: c.description ?? c.desc ?? "", longDescription: c.largeDescription ?? null, icon: c.icon ?? null })) });
 
   // full_ingredients — from key-ingredients-accordion "Full list of ingredients" item
@@ -260,10 +280,11 @@ function extractBW(apiData: any): Widget[] {
     push(result, "how_to_use", { html: howToUseTab.text });
   }
 
-  // key_ingredients
+  // key_ingredients — filter out feature cards mixed in
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const kiWidget = wt("FEATURE_CARD_SLIDER_WITH_TEXT") ?? wt("KEY_INGREDIENTS") ?? widgets.find((ww: any) => ww.id?.includes("key-ingredient"));
-  const kiCards = (kiWidget?.widgetData?.items ?? []) as Array<{ name?: string; description?: string; desc?: string; largeDescription?: string; icon?: string }>;
+  const kiCardsRaw = (kiWidget?.widgetData?.items ?? []) as Array<{ name?: string; description?: string; desc?: string; largeDescription?: string; icon?: string }>;
+  const kiCards = kiCardsRaw.filter(c => isIngredientCard(c.name ?? ""));
   if (kiCards.length) push(result, "key_ingredients", { cards: kiCards.map(c => ({ name: c.name, description: c.description ?? c.desc ?? "", longDescription: c.largeDescription ?? null, icon: c.icon ?? null })) });
 
   // full_ingredients — BW: look in accordion lists for ingredient item
