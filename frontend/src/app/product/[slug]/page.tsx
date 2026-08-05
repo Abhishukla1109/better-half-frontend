@@ -1164,7 +1164,7 @@ function NewProductPDP({
                     if (hasPdpContent && pdpHtu?.html) {
                       return <div dangerouslySetInnerHTML={{ __html: pdpHtu.html }} className="text-body text-on-dark leading-relaxed px-1" />;
                     }
-                    if (hasPdpContent) return null;
+                    if (hasPdpContent && !enriched?.howToUse) return null;
                     const raw = enriched.howToUse || "Take as directed. Consistent daily use recommended for best results.";
 
                     const cleaned = raw
@@ -1764,7 +1764,7 @@ function NewProductPDP({
           const pdpFaqs = pdp<{ list: FAQItem[] }>("faqs");
           const faqList = pdpFaqs?.list?.length
             ? pdpFaqs.list.map(f => ({ question: f.q, answer: f.a }))
-            : hasPdpContent ? [] : (enriched?.faqs ?? []).map(f => ({ question: f.question, answer: f.answer }));
+            : (enriched?.faqs ?? []).map(f => ({ question: f.question, answer: f.answer }));
           if (!faqList.length) return null;
           return (
             <div className="mt-8 px-5">
