@@ -148,11 +148,19 @@ function extractMM(apiData: any): Widget[] {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const w = (id: string) => widgets.find((ww: any) => ww.id === id);
 
-  // description
-  const detailsTab = (w("product-description")?.widgetData?.items ?? [])
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .find((i: any) => i.title === "Details");
-  if (detailsTab?.text) push(result, "description", { html: stripLinks(detailsTab.text) });
+  // description — some MM products embed a "How to use?" section inside the Details tab;
+  // strip it when a separate "How to Use ?" tab exists
+  const descItems = (w("product-description")?.widgetData?.items ?? []) as Array<{ title: string; text?: string }>;
+  const detailsTab = descItems.find((i) => i.title === "Details");
+  if (detailsTab?.text) {
+    const hasHowToUseTab = descItems.some((i) => i.title?.toLowerCase().includes("how to use"));
+    let descHtml = detailsTab.text;
+    if (hasHowToUseTab) {
+      const idx = descHtml.search(/\s*<[^>]+>(?:📌\s*)?How\s+to\s+use/i);
+      if (idx >= 0) descHtml = descHtml.slice(0, idx);
+    }
+    if (descHtml.trim()) push(result, "description", { html: stripLinks(descHtml.trim()) });
+  }
 
   // key_benefits — outside widgets, in description.details.boosts.icons
   // Filter out stage-progression images (Stage 1/2/3/4), empty entries, and app-promo items
@@ -166,16 +174,14 @@ function extractMM(apiData: any): Widget[] {
   });
   if (benefitBoosts.length) push(result, "key_benefits", { items: benefitBoosts.map(b => ({ icon: b.icon, text: b.text })) });
 
-  // how_to_use — prefer visual INFO_TILE_CARD steps; fallback to HTML
+  // how_to_use — prefer visual INFO_TILE_CARD steps; fallback to "How to Use ?" tab or accordion
   const howUsedSteps = (w("how-its-used")?.widgetData?.items ?? []) as Array<{ title: string; description: string; stepImage?: string; image?: string }>;
   if (howUsedSteps.length) {
     push(result, "how_to_use", {
       steps: howUsedSteps.map(s => ({ title: s.title ?? "", description: s.description ?? "", image: s.stepImage ?? s.image ?? null }))
     });
   } else {
-    const infoHowTo = (w("product-description")?.widgetData?.items ?? [])
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .find((i: any) => i.title?.toLowerCase().includes("how to use"));
+    const infoHowTo = descItems.find((i) => i.title?.toLowerCase().includes("how to use"));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const accHowTo = (w("key-ingredients-accordion")?.widgetData?.list ?? []).find((i: any) => i.title?.toLowerCase().includes("how to use"));
     const html = infoHowTo?.text ?? accHowTo?.content ?? null;

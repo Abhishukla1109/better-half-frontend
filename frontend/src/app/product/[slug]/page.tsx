@@ -1161,6 +1161,9 @@ function NewProductPDP({
                         </div>
                       ));
                     }
+                    if (hasPdpContent && pdpHtu?.html) {
+                      return <div dangerouslySetInnerHTML={{ __html: pdpHtu.html }} className="text-body text-on-dark leading-relaxed px-1" />;
+                    }
                     if (hasPdpContent) return null;
                     const raw = enriched.howToUse || "Take as directed. Consistent daily use recommended for best results.";
 
