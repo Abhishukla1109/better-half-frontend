@@ -1401,6 +1401,72 @@ function NewProductPDP({
           </div>
         )}
 
+        {/* ── Full Ingredients (pdpContent only) ── */}
+        {(() => {
+          const pdpFi = pdp<{ html: string }>("full_ingredients");
+          if (!pdpFi?.html) return null;
+          return (
+            <div className="mt-8 px-5">
+              <h2 className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-3">Full Ingredients</h2>
+              <div
+                dangerouslySetInnerHTML={{ __html: pdpFi.html }}
+                className="text-xs text-on-surface-variant leading-relaxed p-4 rounded-2xl bg-surface-container-low border border-outline-variant/10"
+              />
+            </div>
+          );
+        })()}
+
+        {/* ── How it Works (pdpContent only) ── */}
+        {(() => {
+          type HIWItem = { media?: { source?: string; altText?: string }; header?: string; description?: string };
+          const pdpHiw = pdp<{ items: HIWItem[] }>("how_it_works");
+          if (!pdpHiw?.items?.length) return null;
+          return (
+            <div className="mt-8">
+              <h2 className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)] px-5 mb-3">How it Works</h2>
+              <div className="-mx-0 px-5 flex gap-3 overflow-x-auto scrollbar-hide pb-1">
+                {pdpHiw.items.map((item, i) => (
+                  <div key={i} className="shrink-0 w-[220px] rounded-2xl overflow-hidden border border-outline-variant/10 bg-surface-container-lowest">
+                    {item.media?.source && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={item.media.source} alt={item.media.altText ?? ""} className="w-full aspect-square object-cover" />
+                    )}
+                    {(item.header || item.description) && (
+                      <div className="p-3">
+                        {item.header && <p className="text-xs font-bold text-on-surface leading-snug mb-1">{item.header}</p>}
+                        {item.description && <p className="text-xs text-on-surface-variant leading-relaxed">{item.description}</p>}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── Clinical Proof (pdpContent only) ── */}
+        {(() => {
+          type CPItem = { media?: { source?: string; altText?: string }; title?: string; proof?: string };
+          const pdpCp = pdp<{ items: CPItem[] }>("clinical_proof");
+          if (!pdpCp?.items?.length) return null;
+          return (
+            <div className="mt-8 px-5">
+              <h2 className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-3">Clinically Tested</h2>
+              <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-5 px-5">
+                {pdpCp.items.map((item, i) => (
+                  <div key={i} className="shrink-0 w-[160px] rounded-2xl overflow-hidden border border-outline-variant/10 bg-surface-container-lowest">
+                    {item.media?.source && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={item.media.source} alt={item.media.altText ?? item.title ?? ""} className="w-full aspect-square object-cover" />
+                    )}
+                    {item.title && <p className="text-xs font-semibold text-on-surface px-3 py-2 leading-snug">{item.title}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* ── What to expect (timeline only — week/month progression) ── */}
         {!hasPdpContent && enriched?.timeline && enriched.timeline.length > 0 && (
           <div className="mt-8 bg-surface-container-lowest py-6">
