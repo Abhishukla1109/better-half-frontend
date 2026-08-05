@@ -210,9 +210,13 @@ function extractMM(apiData: any): Widget[] {
   const wbwItems = (w("what-it-works-best-with")?.widgetData?.items ?? []) as Array<{ icon?: string; textContentTitle?: { text: string }; textContentDescription?: { text: string }; desc?: string }>;
   if (wbwItems.length) push(result, "works_best_with", { items: wbwItems.map(i => ({ icon: i.icon ?? null, title: i.textContentTitle?.text ?? "", description: i.textContentDescription?.text ?? i.desc ?? "" })) });
 
-  // things_to_note
-  const ttnItems = (w("things-to-note")?.widgetData?.items ?? []) as Array<{ icon?: string; desc?: string; title?: string }>;
-  if (ttnItems.length) push(result, "things_to_note", { items: ttnItems.map(i => ({ icon: i.icon ?? null, text: i.desc ?? i.title ?? "" })) });
+  // things_to_note — some MM products use safe-and-effective-grid (same as BW)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ttnWidget = widgets.find((ww: any) =>
+    ww.id?.includes("things-to-note") || ww.id?.includes("caution") || ww.id === "safe-and-effective-grid"
+  );
+  const ttnItems = (ttnWidget?.widgetData?.items ?? []) as Array<{ icon?: string; desc?: string; title?: string; textContentTitle?: { text: string } }>;
+  if (ttnItems.length) push(result, "things_to_note", { items: ttnItems.map(i => ({ icon: i.icon ?? null, text: i.desc || i.textContentTitle?.text || i.title || "" })) });
 
   // consumer_study
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

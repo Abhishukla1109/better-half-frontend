@@ -1446,7 +1446,7 @@ function NewProductPDP({
 
         {/* ── Clinical Proof (pdpContent only) ── */}
         {(() => {
-          type CPItem = { media?: { source?: string; altText?: string }; title?: string; proof?: string };
+          type CPItem = { icon?: string; title?: string; proof?: string; media?: { source?: string } };
           const pdpCp = pdp<{ items: CPItem[] }>("clinical_proof");
           if (!pdpCp?.items?.length) return null;
           return (
@@ -1454,13 +1454,22 @@ function NewProductPDP({
               <h2 className="text-base font-extrabold text-on-surface font-[family-name:var(--font-manrope)] mb-3">Clinically Tested</h2>
               <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-5 px-5">
                 {pdpCp.items.map((item, i) => (
-                  <div key={i} className="shrink-0 w-[160px] rounded-2xl overflow-hidden border border-outline-variant/10 bg-surface-container-lowest">
-                    {item.media?.source && (
+                  <a
+                    key={i}
+                    href={item.proof || item.media?.source}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 w-[140px] flex flex-col items-center gap-2 p-4 rounded-2xl border border-outline-variant/15 bg-surface-container-lowest active:scale-[0.97] transition-transform"
+                  >
+                    {item.icon ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={item.media.source} alt={item.media.altText ?? item.title ?? ""} className="w-full aspect-square object-cover" />
+                      <img src={item.icon} alt="" className="w-10 h-10 object-contain" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-lg">✓</div>
                     )}
-                    {item.title && <p className="text-xs font-semibold text-on-surface px-3 py-2 leading-snug">{item.title}</p>}
-                  </div>
+                    <p className="text-xs font-semibold text-on-surface text-center leading-snug">{item.title}</p>
+                    <span className="text-icon font-bold text-primary-container">View →</span>
+                  </a>
                 ))}
               </div>
             </div>
