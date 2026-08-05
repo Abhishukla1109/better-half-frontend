@@ -236,21 +236,26 @@ function extractBW(apiData: any): Widget[] {
     .find((i: any) => i.title === "Details" || i.title === "Description");
   if (detailsTab?.text) push(result, "description", { html: stripLinks(detailsTab.text) });
 
-  // key_benefits — BW has BENEFITS_HIGHLIGHTS widget
+  // key_benefits — BW/LJ has BENEFITS_HIGHLIGHTS widget (claims-grid etc.)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const benefitsWidget = wt("BENEFITS_HIGHLIGHTS") ?? widgets.find((ww: any) => ww.id?.includes("benefit") || ww.id?.includes("key-benefit"));
-  const bItems = (benefitsWidget?.widgetData?.items ?? benefitsWidget?.widgetData?.list ?? []) as Array<{ icon?: string; text?: string; title?: string; description?: string }>;
-  if (bItems.length) push(result, "key_benefits", { items: bItems.map(i => ({ icon: i.icon ?? null, text: i.text ?? i.title ?? i.description ?? "" })) });
+  const benefitsWidget = wt("BENEFITS_HIGHLIGHTS") ?? widgets.find((ww: any) => ww.id?.includes("benefit") || ww.id?.includes("key-benefit") || ww.id?.includes("claims-grid"));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const bItems = (benefitsWidget?.widgetData?.items ?? benefitsWidget?.widgetData?.list ?? []) as Array<{ icon?: string; media?: { source?: string }; text?: string; title?: string; description?: string }>;
+  if (bItems.length) push(result, "key_benefits", { items: bItems.map(i => ({ icon: i.icon ?? i.media?.source ?? null, text: i.text ?? i.title ?? i.description ?? "" })) });
 
-  // how_to_use — BW: may be in INFO_TABS OR standalone HOW_TO_USE widget
+  // how_to_use — BW/LJ: may be in INFO_TABS OR standalone widget
+  // BW/LJ use "how-it-works" (MEDIA_WITH_FOOTER_SLIDER) with header/description/media.source structure
   const howToUseTab = (infoTabs?.widgetData?.items ?? [])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .find((i: any) => i.title?.toLowerCase().includes("how to use"));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const howToUseWidget = wt("HOW_TO_USE") ?? widgets.find((ww: any) => ww.id?.includes("how-to-use") || ww.id?.includes("how-its-used"));
-  const howToUseSteps = (howToUseWidget?.widgetData?.items ?? []) as Array<{ title?: string; description?: string; stepImage?: string; image?: string }>;
+  const howToUseWidget = wt("HOW_TO_USE") ?? widgets.find((ww: any) =>
+    ww.id?.includes("how-to-use") || ww.id?.includes("how-its-used") || ww.id === "how-it-works"
+  );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const howToUseSteps = (howToUseWidget?.widgetData?.items ?? []) as Array<{ title?: string; header?: string; description?: string; stepImage?: string; image?: string; media?: { source?: string } }>;
   if (howToUseSteps.length) {
-    push(result, "how_to_use", { steps: howToUseSteps.map(s => ({ title: s.title ?? "", description: s.description ?? "", image: s.stepImage ?? s.image ?? null })) });
+    push(result, "how_to_use", { steps: howToUseSteps.map(s => ({ title: s.title ?? s.header ?? "", description: s.description ?? "", image: s.stepImage ?? s.image ?? s.media?.source ?? null })) });
   } else if (howToUseTab?.text) {
     push(result, "how_to_use", { html: howToUseTab.text });
   }
@@ -278,11 +283,14 @@ function extractBW(apiData: any): Widget[] {
   const hitwItems = (hitwWidget?.widgetData?.items ?? hitwWidget?.widgetData?.list ?? []);
   if (hitwItems.length) push(result, "how_it_works", { items: hitwItems });
 
-  // things_to_note
+  // things_to_note — BW uses "safe-and-effective-grid" (TILES_WITH_MEDIA_SECTION)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const ttnWidget = widgets.find((ww: any) => ww.id?.includes("things-to-note") || ww.id?.includes("caution"));
-  const ttnItems = (ttnWidget?.widgetData?.items ?? []) as Array<{ icon?: string; desc?: string; title?: string }>;
-  if (ttnItems.length) push(result, "things_to_note", { items: ttnItems.map(i => ({ icon: i.icon ?? null, text: i.desc ?? i.title ?? "" })) });
+  const ttnWidget = widgets.find((ww: any) =>
+    ww.id?.includes("things-to-note") || ww.id?.includes("caution") || ww.id === "safe-and-effective-grid"
+  );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ttnItems = (ttnWidget?.widgetData?.items ?? []) as Array<{ icon?: string; desc?: string; title?: string; textContentTitle?: { text: string } }>;
+  if (ttnItems.length) push(result, "things_to_note", { items: ttnItems.map(i => ({ icon: i.icon ?? null, text: i.desc || i.textContentTitle?.text || i.title || "" })) });
 
   // consumer_study
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
