@@ -139,7 +139,7 @@ function getLJCategory(handle: string): string {
 
 // Campaign/deal/influencer duplicate handles — same product under a different URL for marketing.
 // These should not appear in catalog browse/search; they're only used for landing pages.
-const CAMPAIGN_RE = /-(deal|xp\d*|x\d+|free|b2g|new|offer|sale|promo|influencer)(-|$)/i;
+const CAMPAIGN_RE = /-(deal|xp\d+|x\d+|free|b2g|new|offer|sale|promo|influencer)(-|$)/i;
 
 export async function fetchCatalogProducts(): Promise<Product[]> {
   const token = await getAdminToken();

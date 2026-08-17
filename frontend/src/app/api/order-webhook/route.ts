@@ -9,6 +9,12 @@ const WEBHOOK_SECRET      = process.env.SHOPIFY_WEBHOOK_SECRET ?? "";
 const SLACK_ORDER_WEBHOOK = process.env.SLACK_ORDER_WEBHOOK_URL ?? "";
 const BRAND_CODE: Record<string, string> = { "Man Matters": "MM", "Be Bodywise": "BW", "Little Joys": "LJ" };
 
+const BRAND_API_URL: Record<string, string> = {
+  "Man Matters": "https://api.manmatters.com/portal/page/mwsc/widgetised/product",
+  "Be Bodywise": "https://api.bebodywise.com/portal/page/mwsc/widgetised/product",
+  "Little Joys": "https://api.ourlittlejoys.com/portal/page/mwsc/widgetised/product",
+};
+
 const BRAND_ORDER_URL: Record<string, string> = {
   "Man Matters": process.env.MOSAIC_MM_ORDER_URL ?? "https://stg.api.manmatters.com/portal/utility/create-simple-order",
   "Be Bodywise": process.env.MOSAIC_BB_ORDER_URL ?? "https://stg.api.bebodywise.com/portal/utility/create-simple-order",
@@ -250,9 +256,65 @@ function derivePaymentMethod(order: ShopifyOrder): string {
   return "gokwik";
 }
 
-function buildOrderPayload(order: ShopifyOrder, items: ShopifyLineItem[], productMap: Record<number, ProductInfo>, source: string) {
+interface KitComponent { handle: string; quantity: number; price: number; }
+
+async function resolveKitComponents(handle: string, brand: string): Promise<KitComponent[] | null> {
+  const base = BRAND_API_URL[brand];
+  if (!base) return null;
+  try {
+    const res = await fetch(`${base}/${handle}`);
+    if (!res.ok) return null;
+    const pi = (await res.json() as { data?: { productInfo?: Record<string, unknown> } })?.data?.productInfo;
+    if (!pi?.is_kit || !Array.isArray(pi.kit_contents_ids) || !(pi.kit_contents_ids as unknown[]).length) return null;
+    const ids  = pi.kit_contents_ids as string[];
+    const qtys = Array.isArray(pi.kit_contents_quantity) ? (pi.kit_contents_quantity as number[]) : ids.map(() => 1);
+
+    const components = await Promise.all(ids.map(async (id, i) => {
+      try {
+        const cr  = await fetch(`${base}/${id}`);
+        if (!cr.ok) return { handle: id, quantity: qtys[i] ?? 1, price: 0 };
+        const cpi = (await cr.json() as { data?: { productInfo?: Record<string, unknown> } })?.data?.productInfo;
+        return { handle: id, quantity: qtys[i] ?? 1, price: Number(cpi?.price ?? cpi?.discountedPrice ?? 0) };
+      } catch {
+        return { handle: id, quantity: qtys[i] ?? 1, price: 0 };
+      }
+    }));
+    console.log(`[order-webhook] Kit expanded: ${handle} → ${components.map(c => `${c.handle}×${c.quantity}@₹${c.price}`).join(", ")}`);
+    return components;
+  } catch {
+    return null;
+  }
+}
+
+async function buildOrderPayload(order: ShopifyOrder, items: ShopifyLineItem[], productMap: Record<number, ProductInfo>, source: string) {
   const shipping = order.shipping_address;
-  return {
+
+  const resolvedItems: Array<{ product_id: string; quantity: number; price: number }> = [];
+  for (const item of items) {
+    const handle = productMap[item.product_id]?.handle ?? item.sku ?? String(item.product_id);
+    const brand  = productMap[item.product_id]?.vendor ?? "";
+    const lineDiscount = (item.discount_allocations ?? []).reduce((d, a) => d + parseFloat(a.amount), 0);
+
+    const components = await resolveKitComponents(handle, brand);
+    if (components) {
+      for (const comp of components) {
+        resolvedItems.push({
+          product_id: comp.handle,
+          quantity:   comp.quantity * item.quantity,
+          price:      comp.price,
+        });
+      }
+    } else {
+      const paidPerUnit = (parseFloat(item.price) * item.quantity - lineDiscount) / item.quantity;
+      resolvedItems.push({
+        product_id: handle,
+        quantity:   item.quantity,
+        price:      Math.round(paidPerUnit * 100) / 100,
+      });
+    }
+  }
+
+  const payload = {
     contact_no:     normalizePhone(shipping.phone ?? order.phone),
     first_name:     shipping.first_name || order.first_name,
     last_name:      shipping.last_name  || order.last_name,
@@ -265,16 +327,9 @@ function buildOrderPayload(order: ShopifyOrder, items: ShopifyLineItem[], produc
     postcode:       shipping.zip,
     payment_method: derivePaymentMethod(order),
     source,
-    order: items.map(item => {
-      const lineDiscount = (item.discount_allocations ?? []).reduce((d, a) => d + parseFloat(a.amount), 0);
-      const paidPerUnit  = (parseFloat(item.price) * item.quantity - lineDiscount) / item.quantity;
-      return {
-        product_id: productMap[item.product_id]?.handle ?? item.sku ?? String(item.product_id),
-        quantity:   item.quantity,
-        price:      Math.round(paidPerUnit * 100) / 100,
-      };
-    }),
+    order: resolvedItems,
   };
+  return { payload, resolvedItems };
 }
 
 async function callMosaicBrand(brand: string, payload: object): Promise<string | null> {
@@ -520,19 +575,20 @@ export async function POST(req: NextRequest) {
     // Call Mosaic only for brands not yet placed
     const newResults = await Promise.all(
       brandsToCall.map(async brand => {
-        const payload = buildOrderPayload(order, byBrand[brand], productMap, source);
+        const { payload, resolvedItems } = await buildOrderPayload(order, byBrand[brand], productMap, source);
         const mosaicOrderId = await callMosaicBrand(brand, payload);
-        return { brand, mosaicOrderId };
+        return { brand, mosaicOrderId, resolvedItems };
       })
     );
 
     const newlyPlaced = newResults
       .filter(r => r.mosaicOrderId)
       .map(r => ({
-        brand:    r.brand,
-        code:     BRAND_CODE[r.brand] ?? r.brand,
-        order_id: r.mosaicOrderId!,
-        items:    (byBrand[r.brand] ?? []).map(i => ({ sku: i.sku ?? null, title: i.title })),
+        brand:          r.brand,
+        code:           BRAND_CODE[r.brand] ?? r.brand,
+        order_id:       r.mosaicOrderId!,
+        items:          (byBrand[r.brand] ?? []).map(i => ({ sku: i.sku ?? null, title: i.title })),
+        sent_to_mosaic: r.resolvedItems,
       }));
 
     const allMosaicOrders = [...existingMosaicOrders, ...newlyPlaced];
@@ -571,8 +627,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, cancelled: true, failedBrands });
     }
 
-    // Notify Slack on every successful order
-    notifySlack(order, allMosaicOrders).catch(() => {});
+    // Notify Slack only on first successful placement (newlyPlaced guard prevents duplicate on Shopify webhook retry)
+    if (newlyPlaced.length > 0) {
+      notifySlack(order, allMosaicOrders).catch(() => {});
+    }
 
     // Notify Affluence only for newly placed brands (don't double-notify on retry)
     const utms = getUTMsFromOrder(order);
