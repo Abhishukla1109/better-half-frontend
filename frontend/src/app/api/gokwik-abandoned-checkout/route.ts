@@ -11,7 +11,7 @@ const CT_PASSCODE         = process.env.CLEVERTAP_PASSCODE ?? "";
 const CT_API              = "https://eu1.api.clevertap.com/1/upload";
 const AFFLUENCE_STOREFRONT = process.env.AFFLUENCE_STOREFRONT_ID ?? "betterhalf";
 const AFFLUENCE_STORE_ID  = process.env.AFFLUENCE_STORE_ID ?? "betterhalf";
-const CHECKOUT_BASE       = "https://affluence.betterhalfforyou.com/checkout";
+const CHECKOUT_PATH_BASE  = "/checkout";
 
 // In-memory dedup — handles GoKwik retries hitting the same warm serverless instance
 const processed = new Map<string, number>();
@@ -142,9 +142,10 @@ export async function POST(req: NextRequest) {
   const cartGid     = attrs.cartId ?? null;
   const currency    = payload.currency ?? "INR";
 
-  // GoKwik always sends checkout_url as null — build it from cartId in attributes
-  const checkoutUrl = cartGid
-    ? `${CHECKOUT_BASE}?cartId=${encodeURIComponent(cartGid)}&source=affluence`
+  // GoKwik always sends checkout_url as null — build path from cartId in attributes
+  // Base domain (https://affluence.betterhalfforyou.com) is hardcoded on CleverTap's side
+  const checkoutPath = cartGid
+    ? `${CHECKOUT_PATH_BASE}?cartId=${encodeURIComponent(cartGid)}&source=affluence`
     : null;
 
   const items: GokwikItem[] = payload.items ?? [];
@@ -164,7 +165,7 @@ export async function POST(req: NextRequest) {
 
   const missing: string[] = [];
   if (!cartGid)      missing.push("cartId (attributes)");
-  if (!checkoutUrl)  missing.push("checkout_url");
+  if (!checkoutPath)  missing.push("checkout_path");
   if (!productId)    missing.push("product_id");
   if (!productTitle) missing.push("product_title");
   if (!productPrice) missing.push("product_price");
@@ -178,7 +179,7 @@ export async function POST(req: NextRequest) {
 
   const eventData: Record<string, unknown> = {
     cart_id:          cartGid,
-    checkout_url:     checkoutUrl,
+    checkout_path:    checkoutPath,
     checkout_partner: "gokwik",
     store_id:         AFFLUENCE_STORE_ID,
     storefront:       AFFLUENCE_STOREFRONT,
