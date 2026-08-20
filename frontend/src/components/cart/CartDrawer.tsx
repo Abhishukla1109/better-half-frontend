@@ -224,7 +224,7 @@ export default function CartDrawer() {
 
             {/* Checkout CTA */}
             <button
-              onClick={checkout}
+              onClick={() => checkout()}
               disabled={isLoading}
               className="w-full flex items-center justify-center gap-2 py-4 bg-brand text-white rounded-xl font-700 text-base hover:bg-brand-hover transition-colors disabled:opacity-60"
             >

@@ -30,14 +30,7 @@ function CheckoutInner() {
     if (ran.current) return;
     ran.current = true;
 
-    const cartId      = params.get("cartId");
-    const source      = params.get("source")       ?? "external";
-    const utmSource   = params.get("utm_source")   ?? "";
-    const utmMedium   = params.get("utm_medium")   ?? "";
-    const utmCampaign = params.get("utm_campaign") ?? "";
-    const ref         = params.get("ref")          ?? "";
-    const dmId        = params.get("dmId")         ?? "";
-    const influencerId = params.get("influencerId") ?? "";
+    const cartId = params.get("cartId");
 
     if (!cartId) {
       setErrMsg("No cart found. Please go back and try again.");
@@ -45,33 +38,17 @@ function CheckoutInner() {
       return;
     }
 
-    async function run() {
-      try {
-        // 1. Verify cart is valid on Shopify
-        const res = await fetch("/api/cart", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "get", cartId }),
-        });
-        const cart = await res.json();
-        if (!cart || !cart.id || (cart.totalQuantity ?? 0) === 0) {
-          setErrMsg("This cart is no longer valid or has already been checked out.");
-          setStage("error");
-          return;
-        }
+    function run() {
+      // Store cartId so CartContext can pick it up immediately
+      localStorage.setItem("bh_cart_id", cartId!);
+      localStorage.setItem("bh_aff_cart_id", cartId!);
 
-        // 2. Store cartId so CartContext can trigger GoKwik and merge attributes correctly
-        // checkout() will read existing cart attributes (Affluence's UTMs) and merge with ours — don't write separately here
-        localStorage.setItem("bh_cart_id", cartId!);
-        localStorage.setItem("bh_aff_cart_id", cartId!);
-
-        // 4. Trigger GoKwik checkout
-        checkout();
-
-      } catch {
-        setErrMsg("Something went wrong. Please go back and try again.");
+      // checkout() fetches the cart internally (to read Affluence attrs before merging ours)
+      // so validation happens there — no separate verify call needed
+      checkout((msg) => {
+        setErrMsg(msg);
         setStage("error");
-      }
+      });
     }
 
     run();

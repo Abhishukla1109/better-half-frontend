@@ -25,7 +25,7 @@ interface CartContextValue {
   addItem: (variantId: string, quantity?: number, meta?: AddToCartMeta) => Promise<void>;
   updateItem: (lineId: string, quantity: number) => Promise<void>;
   removeItem: (lineId: string) => Promise<void>;
-  checkout: () => void;
+  checkout: (onError?: (msg: string) => void) => void;
   clearCart: () => void;
 }
 
@@ -187,22 +187,26 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const checkout = useCallback(async () => {
-    // Fix 5: use cartIdRef (updated synchronously by addItem) instead of cart state
-    // so Buy Now works on a fresh session where cart state hasn't re-rendered yet
+  const checkout = useCallback(async (onError?: (msg: string) => void) => {
     const currentCartId = cartIdRef.current ?? localStorage.getItem(CART_ID_KEY);
-    if (!currentCartId) return;
+    if (!currentCartId) {
+      onError?.("No cart found. Please go back and try again.");
+      return;
+    }
     if (!cartIdRef.current) cartIdRef.current = currentCartId;
     setIsLoading(true);
 
-    // Always write source + cartId; add UTMs on top if present.
-    // cartId lets the order webhook delete this Shopify cart after order creation,
-    // so the next BetterHalf load sees a null cart and clears localStorage automatically.
     // Fetch existing cart attributes (may include UTMs Affluence wrote when creating the cart)
-    // then merge with ours so nothing gets overwritten
+    // then merge with ours so nothing gets overwritten.
+    // Also validates the cart is still active — eliminates the separate verify GET on the checkout page.
     let existingAttrs: Array<{ key: string; value: string }> = [];
     try {
       const existingCart = await cartApi('get', { cartId: currentCartId });
+      if (!existingCart || !existingCart.id || (existingCart.totalQuantity ?? 0) === 0) {
+        onError?.("This cart is no longer valid or has already been checked out.");
+        setIsLoading(false);
+        return;
+      }
       existingAttrs = (existingCart as unknown as { attributes?: Array<{ key: string; value: string }> })?.attributes ?? [];
     } catch {
       // non-fatal — proceed without existing attrs
