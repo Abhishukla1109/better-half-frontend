@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export const maxDuration = 120;
+export const maxDuration = 300;
 
-const SHOP          = (process.env.NEXT_PUBLIC_SHOPIFY_STORE_URL ?? "").replace(/\/$/, "").replace("https://", "");
-const CLIENT_ID     = process.env.SHOPIFY_ADMIN_CLIENT_ID ?? "";
-const CLIENT_SECRET = process.env.SHOPIFY_ADMIN_CLIENT_SECRET ?? "";
-const ADMIN_API     = `https://${SHOP}/admin/api/2024-01/graphql.json`;
-const CRON_SECRET   = process.env.CRON_SECRET ?? "";
+const SHOP           = (process.env.NEXT_PUBLIC_SHOPIFY_STORE_URL ?? "").replace(/\/$/, "").replace("https://", "");
+const CLIENT_ID      = process.env.SHOPIFY_ADMIN_CLIENT_ID ?? "";
+const CLIENT_SECRET  = process.env.SHOPIFY_ADMIN_CLIENT_SECRET ?? "";
+const ADMIN_API      = `https://${SHOP}/admin/api/2024-01/graphql.json`;
+const CRON_SECRET    = process.env.CRON_SECRET ?? "";
 const SERVICE_SECRET = process.env.MOSAIC_SERVICE_SECRET ?? "";
+const LOCATION_ID    = "gid://shopify/Location/75947245664";
 
 const BRAND_API: Record<string, string> = {
   "Man Matters": "https://api.manmatters.com/portal/page/mwsc/widgetised/product",
@@ -15,7 +16,6 @@ const BRAND_API: Record<string, string> = {
   "Little Joys":  "https://api.ourlittlejoys.com/portal/page/mwsc/widgetised/product",
 };
 
-// Products whose prices are manually fixed — cron will never touch these
 const PRICE_LOCKED_HANDLES = new Set(["2024397"]);
 
 function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
@@ -31,13 +31,16 @@ async function getAdminToken(): Promise<string> {
 }
 
 interface ShopifyProduct {
-  id: string;
-  handle: string;
-  vendor: string;
-  urlKey: string;
-  variantId: string;
-  currentPrice: number;
+  id:               string;
+  handle:           string;
+  vendor:           string;
+  urlKey:           string;
+  variantId:        string;
+  inventoryItemId:  string;
+  currentPrice:     number;
   currentCompareAt: number;
+  inventoryPolicy:  string;
+  inventoryTracked: boolean;
 }
 
 async function getAllActiveProducts(token: string): Promise<ShopifyProduct[]> {
@@ -53,7 +56,12 @@ async function getAllActiveProducts(token: string): Promise<ShopifyProduct[]> {
           products(first: 250, after: $after, query: "status:active") {
             nodes {
               id handle vendor
-              variants(first: 1) { nodes { id price compareAtPrice } }
+              variants(first: 1) {
+                nodes {
+                  id price compareAtPrice inventoryPolicy
+                  inventoryItem { id tracked }
+                }
+              }
               metafields(first: 3, namespace: "custom") { nodes { key value } }
             }
             pageInfo { hasNextPage endCursor }
@@ -67,7 +75,7 @@ async function getAllActiveProducts(token: string): Promise<ShopifyProduct[]> {
         products: {
           nodes: Array<{
             id: string; handle: string; vendor: string;
-            variants: { nodes: Array<{ id: string; price: string; compareAtPrice: string | null }> };
+            variants: { nodes: Array<{ id: string; price: string; compareAtPrice: string | null; inventoryPolicy: string; inventoryItem: { id: string; tracked: boolean } }> };
             metafields: { nodes: Array<{ key: string; value: string }> };
           }>;
           pageInfo: { hasNextPage: boolean; endCursor: string };
@@ -76,15 +84,20 @@ async function getAllActiveProducts(token: string): Promise<ShopifyProduct[]> {
     };
 
     for (const p of data.data.products.nodes) {
-      const urlKey = p.metafields.nodes.find(m => m.key === "bh_mm_url_key")?.value ?? p.handle;
+      const urlKey  = p.metafields.nodes.find(m => m.key === "bh_mm_url_key")?.value ?? p.handle;
+      const variant = p.variants.nodes[0];
+      if (!variant) continue;
       products.push({
         id:               p.id,
         handle:           p.handle,
         vendor:           p.vendor,
         urlKey,
-        variantId:        p.variants.nodes[0]?.id ?? "",
-        currentPrice:     parseFloat(p.variants.nodes[0]?.price ?? "0"),
-        currentCompareAt: parseFloat(p.variants.nodes[0]?.compareAtPrice ?? "0"),
+        variantId:        variant.id,
+        inventoryItemId:  variant.inventoryItem.id,
+        currentPrice:     parseFloat(variant.price ?? "0"),
+        currentCompareAt: parseFloat(variant.compareAtPrice ?? "0"),
+        inventoryPolicy:  variant.inventoryPolicy,
+        inventoryTracked: variant.inventoryItem.tracked,
       });
     }
 
@@ -94,7 +107,7 @@ async function getAllActiveProducts(token: string): Promise<ShopifyProduct[]> {
   return products;
 }
 
-async function fetchBrandPrices(urlKey: string, vendor: string): Promise<{ mrp: number; sp: number } | null> {
+async function fetchBrandData(urlKey: string, vendor: string): Promise<{ mrp: number; sp: number; outOfStock: boolean } | null> {
   const base = BRAND_API[vendor];
   if (!base) return null;
   try {
@@ -102,9 +115,10 @@ async function fetchBrandPrices(urlKey: string, vendor: string): Promise<{ mrp: 
     if (!res.ok) return null;
     const pi = (await res.json() as { data?: { productInfo?: Record<string, unknown> } })?.data?.productInfo;
     if (!pi) return null;
-    const mrp = Number(pi.price ?? pi.actualPrice ?? 0);
-    const sp  = Number(pi.discountedPrice ?? pi.filterPrice ?? 0) || mrp;
-    return { mrp, sp };
+    const mrp        = Number(pi.price ?? pi.actualPrice ?? 0);
+    const sp         = Number(pi.discountedPrice ?? pi.filterPrice ?? 0) || mrp;
+    const outOfStock = !!(pi.out_of_stock ?? pi.outOfStock ?? false);
+    return { mrp, sp, outOfStock };
   } catch {
     return null;
   }
@@ -117,7 +131,6 @@ async function updateVariantPrices(token: string, productId: string, variantId: 
     body: JSON.stringify({
       query: `mutation($pid: ID!, $v: [ProductVariantsBulkInput!]!) {
         productVariantsBulkUpdate(productId: $pid, variants: $v) {
-          productVariants { price compareAtPrice }
           userErrors { field message }
         }
       }`,
@@ -126,16 +139,65 @@ async function updateVariantPrices(token: string, productId: string, variantId: 
   });
   const data = await res.json() as { data?: { productVariantsBulkUpdate?: { userErrors?: Array<{ message: string }> } } };
   const errors = data?.data?.productVariantsBulkUpdate?.userErrors ?? [];
-  if (errors.length) return errors[0].message;
-  return null;
+  return errors.length ? errors[0].message : null;
+}
+
+async function updateInventory(
+  token: string,
+  productId: string,
+  variantId: string,
+  inventoryItemId: string,
+  outOfStock: boolean
+): Promise<string | null> {
+  const policy   = outOfStock ? "DENY"    : "CONTINUE";
+  const quantity = outOfStock ? 0         : 999;
+
+  // Update inventory policy on the variant
+  const policyRes = await fetch(ADMIN_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": token },
+    body: JSON.stringify({
+      query: `mutation($pid: ID!, $v: [ProductVariantsBulkInput!]!) {
+        productVariantsBulkUpdate(productId: $pid, variants: $v) {
+          userErrors { field message }
+        }
+      }`,
+      variables: { pid: productId, v: [{ id: variantId, inventoryPolicy: policy }] },
+    }),
+  });
+  const policyData = await policyRes.json() as { data?: { productVariantsBulkUpdate?: { userErrors?: Array<{ message: string }> } } };
+  const policyErrors = policyData?.data?.productVariantsBulkUpdate?.userErrors ?? [];
+  if (policyErrors.length) return policyErrors[0].message;
+
+  // Set inventory quantity at our warehouse location
+  const qtyRes = await fetch(ADMIN_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": token },
+    body: JSON.stringify({
+      query: `mutation($input: InventorySetQuantitiesInput!) {
+        inventorySetQuantities(input: $input) {
+          userErrors { field message }
+        }
+      }`,
+      variables: {
+        input: {
+          reason: "correction",
+          name: "available",
+          quantities: [{ inventoryItemId, locationId: LOCATION_ID, quantity }],
+        },
+      },
+    }),
+  });
+  const qtyData = await qtyRes.json() as { data?: { inventorySetQuantities?: { userErrors?: Array<{ message: string }> } } };
+  const qtyErrors = qtyData?.data?.inventorySetQuantities?.userErrors ?? [];
+  return qtyErrors.length ? qtyErrors[0].message : null;
 }
 
 export async function GET(req: NextRequest) {
-  // Accept either Vercel's CRON_SECRET (automated) or service secret (manual)
-  const auth = req.headers.get("authorization") ?? "";
+  const auth          = req.headers.get("authorization") ?? "";
   const serviceHeader = req.headers.get("x-service-secret") ?? "";
-  const fromCron    = CRON_SECRET && auth === `Bearer ${CRON_SECRET}`;
-  const fromManual  = SERVICE_SECRET && serviceHeader === SERVICE_SECRET;
+  const fromCron      = CRON_SECRET && auth === `Bearer ${CRON_SECRET}`;
+  const fromManual    = SERVICE_SECRET && serviceHeader === SERVICE_SECRET;
 
   if (!fromCron && !fromManual) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -144,64 +206,74 @@ export async function GET(req: NextRequest) {
   try {
     const token    = await getAdminToken();
     const products = await getAllActiveProducts(token);
-    console.log(`[sync-prices] ${products.length} active products`);
+    console.log(`[sync] ${products.length} active products`);
 
     const results = {
-      updated: [] as Array<{ handle: string; sp: number; mrp: number }>,
-      skipped: [] as Array<{ handle: string; reason: string }>,
-      failed:  [] as Array<{ handle: string; reason: string }>,
+      prices:    { updated: 0, skipped: 0, failed: 0 },
+      inventory: { markedOos: 0, markedAvailable: 0, skipped: 0, failed: 0 },
+      failedItems: [] as Array<{ handle: string; reason: string }>,
     };
 
     for (const p of products) {
       await sleep(250);
 
+      const brandData = await fetchBrandData(p.urlKey, p.vendor);
+      if (!brandData) {
+        results.prices.failed++;
+        results.inventory.failed++;
+        results.failedItems.push({ handle: p.handle, reason: "no brand API data" });
+        continue;
+      }
+
+      const { mrp, sp, outOfStock } = brandData;
+
+      // --- Price sync (skip price-locked products) ---
       if (PRICE_LOCKED_HANDLES.has(p.handle) || PRICE_LOCKED_HANDLES.has(p.urlKey)) {
-        results.skipped.push({ handle: p.handle, reason: "price locked" });
-        continue;
-      }
-
-      const prices = await fetchBrandPrices(p.urlKey, p.vendor);
-      if (!prices) {
-        results.failed.push({ handle: p.handle, reason: "no brand API data" });
-        continue;
-      }
-
-      const { mrp, sp } = prices;
-
-      if (!mrp || mrp <= 0 || !sp || sp <= 0) {
-        results.failed.push({ handle: p.handle, reason: `invalid prices SP:${sp} MRP:${mrp}` });
-        continue;
-      }
-      if (sp > mrp) {
-        results.skipped.push({ handle: p.handle, reason: `SP ${sp} > MRP ${mrp}` });
-        continue;
-      }
-      if (p.currentPrice === sp && p.currentCompareAt === mrp) {
-        results.skipped.push({ handle: p.handle, reason: "already correct" });
-        continue;
-      }
-
-      const err = await updateVariantPrices(token, p.id, p.variantId, sp, mrp);
-      if (err) {
-        results.failed.push({ handle: p.handle, reason: err });
+        results.prices.skipped++;
+      } else if (!mrp || mrp <= 0 || !sp || sp <= 0) {
+        results.prices.failed++;
+        results.failedItems.push({ handle: p.handle, reason: `invalid prices SP:${sp} MRP:${mrp}` });
+      } else if (sp > mrp) {
+        results.prices.skipped++;
+      } else if (p.currentPrice === sp && p.currentCompareAt === mrp) {
+        results.prices.skipped++;
       } else {
-        console.log(`[sync-prices] ✓ ${p.handle} SP:₹${sp} MRP:₹${mrp}`);
-        results.updated.push({ handle: p.handle, sp, mrp });
+        const err = await updateVariantPrices(token, p.id, p.variantId, sp, mrp);
+        if (err) {
+          results.prices.failed++;
+          results.failedItems.push({ handle: p.handle, reason: `price: ${err}` });
+        } else {
+          console.log(`[sync] ✓ price ${p.handle} SP:₹${sp} MRP:₹${mrp}`);
+          results.prices.updated++;
+        }
+      }
+
+      // --- Inventory sync ---
+      const desiredPolicy = outOfStock ? "DENY" : "CONTINUE";
+      if (!p.inventoryTracked || p.inventoryPolicy === desiredPolicy) {
+        results.inventory.skipped++;
+      } else {
+        const err = await updateInventory(token, p.id, p.variantId, p.inventoryItemId, outOfStock);
+        if (err) {
+          results.inventory.failed++;
+          results.failedItems.push({ handle: p.handle, reason: `inventory: ${err}` });
+        } else {
+          if (outOfStock) {
+            console.log(`[sync] ✓ OOS ${p.handle}`);
+            results.inventory.markedOos++;
+          } else {
+            console.log(`[sync] ✓ back-in-stock ${p.handle}`);
+            results.inventory.markedAvailable++;
+          }
+        }
       }
     }
 
-    console.log(`[sync-prices] Done — updated:${results.updated.length} skipped:${results.skipped.length} failed:${results.failed.length}`);
-    return NextResponse.json({
-      ok: true,
-      total: products.length,
-      updated: results.updated.length,
-      skipped: results.skipped.length,
-      failed:  results.failed.length,
-      failedItems: results.failed,
-    });
+    console.log(`[sync] Done — prices:${results.prices.updated} updated | OOS:${results.inventory.markedOos} back-in-stock:${results.inventory.markedAvailable}`);
+    return NextResponse.json({ ok: true, total: products.length, ...results });
 
   } catch (err) {
-    console.error("[sync-prices]", err);
+    console.error("[sync]", err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
