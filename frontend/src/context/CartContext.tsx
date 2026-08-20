@@ -216,8 +216,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const affCartId = localStorage.getItem("bh_aff_cart_id");
 
     // Our attrs override existing ones where keys match; everything else from existing is preserved
+    const source = typeof window !== "undefined" && window.location.hostname.includes("affluence")
+      ? "affluence"
+      : "betterhalf";
     const ourAttrs: Record<string, string> = {
-      source:  "betterhalf",
+      source,
       cartId:  currentCartId,
       ...(affCartId ? { affCartId } : {}),
       ...(utms ? {
