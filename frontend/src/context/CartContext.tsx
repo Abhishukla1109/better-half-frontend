@@ -196,6 +196,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (!cartIdRef.current) cartIdRef.current = currentCartId;
     setIsLoading(true);
 
+    // Start waiting for GoKwik immediately — it loads in the background while we do the cart API calls.
+    // We await this later so GoKwik and cart work happen in parallel, not in sequence.
+    const w = window as Window & {
+      merchantInfo?: { mid: string; environment: string; type: string; storeId: number; cart?: { id: string } };
+      triggerGokwikCustomCheckout?: () => void;
+    };
+    const gokwikReady = new Promise<void>((resolve) => {
+      if (w.triggerGokwikCustomCheckout) { resolve(); return; }
+      const iv = setInterval(() => {
+        if (w.triggerGokwikCustomCheckout) { clearInterval(iv); resolve(); }
+      }, 150);
+      setTimeout(() => { clearInterval(iv); resolve(); }, 15000);
+    });
+
     // Fetch existing cart attributes (may include UTMs Affluence wrote when creating the cart)
     // then merge with ours so nothing gets overwritten.
     // Also validates the cart is still active — eliminates the separate verify GET on the checkout page.
@@ -256,19 +270,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       cart_value: parseFloat(cart?.subtotal?.amount ?? "0"),
       has_protocol: hasProtocol,
     });
-    const w = window as Window & {
-      merchantInfo?: { mid: string; environment: string; type: string; storeId: number; cart?: { id: string } };
-      triggerGokwikCustomCheckout?: () => void;
-    };
-
-    // GoKwik loads asynchronously — poll until it's ready (up to 15s)
-    await new Promise<void>((resolve) => {
-      if (w.triggerGokwikCustomCheckout) { resolve(); return; }
-      const iv = setInterval(() => {
-        if (w.triggerGokwikCustomCheckout) { clearInterval(iv); resolve(); }
-      }, 150);
-      setTimeout(() => { clearInterval(iv); resolve(); }, 15000);
-    });
+    // GoKwik wait runs in parallel with the attribute write above — both started at the same time.
+    // We only trigger after both are done, so attributes are always written before GoKwik opens.
+    await gokwikReady;
 
     if (w.triggerGokwikCustomCheckout && w.merchantInfo) {
       w.merchantInfo.cart = { id: currentCartId };
