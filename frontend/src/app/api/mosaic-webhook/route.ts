@@ -355,13 +355,22 @@ export async function POST(req: NextRequest) {
     }
 
     if (status === "cancelled" || status === "order_rto") {
-      // Cancel any in-progress fulfillments first, then cancel the order itself
+      // Cancel any in-progress fulfillments first
       const fulfillmentOrders = await fetchFulfillmentOrders(order.gid, adminToken);
       for (const fo of fulfillmentOrders) {
         if (fo.status === "IN_PROGRESS") {
           await cancelFulfillment(fo.id, adminToken);
         }
       }
+
+      // Create Shopify refund for the cancelled brand's items — this is what GoKwik's
+      // "Process Refunds from Shopify" toggle watches to trigger the real money refund.
+      // No-ops for COD/unpaid orders (refundShopifyOrder checks financial_status internally).
+      const mosaicOrders = (order.metafieldValue?.mosaicOrders ?? []) as Array<{ brand: string; order_id: string; items: Array<{ sku: string | null; title: string }> }>;
+      const brandEntry   = mosaicOrders.find(o => o.order_id === mosaic_order_id);
+      await refundShopifyOrder(order.id, brandEntry?.items ?? [], adminToken);
+
+      // Cancel the Shopify order
       await cancelShopifyOrder(order.id, reason ?? (status === "order_rto" ? "customer" : undefined), adminToken);
     }
 
