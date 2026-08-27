@@ -478,6 +478,42 @@ async function callAffluenceEarnings(
 
 // ── Slack ────────────────────────────────────────────────────
 
+async function notifySlackFailure(order: ShopifyOrder, failedBrands: string[]): Promise<void> {
+  if (!SLACK_ORDER_WEBHOOK) return;
+  const name  = `${order.shipping_address?.first_name || order.first_name || ""} ${order.shipping_address?.last_name || order.last_name || ""}`.trim();
+  const phone = normalizePhone(order.shipping_address?.phone ?? order.phone);
+  const paymentMethod = derivePaymentMethod(order);
+  const isPrepaid     = paymentMethod !== "cod";
+  const total = order.line_items.reduce((sum, i) => {
+    const disc = (i.discount_allocations ?? []).reduce((d, a) => d + parseFloat(a.amount), 0);
+    return sum + parseFloat(i.price) * i.quantity - disc;
+  }, 0);
+
+  const itemLines = order.line_items
+    .map(i => `• ${i.title} × ${i.quantity}`)
+    .join("\n");
+
+  const text = [
+    `🚨 *Mosaic Order Failed* — Shopify order auto-cancelled`,
+    `*Customer:* ${name} | +91 ${phone}`,
+    `*Payment:* ${paymentMethod.toUpperCase()} | *Total:* ₹${total.toFixed(0)}`,
+    `*Failed brands:* ${failedBrands.join(", ")}`,
+    `*Items:*\n${itemLines}`,
+    `*Shopify #:* ${order.id}`,
+    isPrepaid ? `⚠️ *Prepaid order — refund will auto-trigger via GoKwik*` : ``,
+  ].filter(Boolean).join("\n");
+
+  try {
+    await fetch(SLACK_ORDER_WEBHOOK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+  } catch (e) {
+    console.warn("[order-webhook] Slack failure-notify failed:", e instanceof Error ? e.message : e);
+  }
+}
+
 async function notifySlack(order: ShopifyOrder, mosaicOrders: ExistingMosaicOrder[]): Promise<void> {
   if (!SLACK_ORDER_WEBHOOK) return;
   const name = `${order.shipping_address?.first_name || order.first_name || ""} ${order.shipping_address?.last_name || order.last_name || ""}`.trim();
@@ -624,6 +660,7 @@ export async function POST(req: NextRequest) {
         mosaicOrders: newlyPlaced,
       }), adminToken);
       await cancelShopifyOrder(order.id, adminToken);
+      notifySlackFailure(order, failedBrands).catch(() => {});
       return NextResponse.json({ ok: true, cancelled: true, failedBrands });
     }
 
