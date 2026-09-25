@@ -44,7 +44,7 @@ async function findStuckOrders(token: string): Promise<Array<{
       headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": token },
       body: JSON.stringify({
         query: `query($after: String) {
-          orders(first: 100, after: $after, query: "fulfillment_status:unfulfilled") {
+          orders(first: 100, after: $after, query: "status:any fulfillment_status:unfulfilled") {
             nodes {
               id
               legacyResourceId
