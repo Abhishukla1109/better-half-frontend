@@ -17,8 +17,15 @@ const BRAND_API: Record<string, string> = {
 };
 
 const PRICE_LOCKED_HANDLES = new Set(["2024397"]);
+const BATCH_SIZE = 20;
 
 function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) chunks.push(items.slice(i, i + size));
+  return chunks;
+}
 
 async function getAdminToken(): Promise<string> {
   const res = await fetch(`https://${SHOP}/admin/oauth/access_token`, {
@@ -214,15 +221,13 @@ export async function GET(req: NextRequest) {
       failedItems: [] as Array<{ handle: string; reason: string }>,
     };
 
-    for (const p of products) {
-      await sleep(250);
-
+    async function syncOne(p: ShopifyProduct): Promise<void> {
       const brandData = await fetchBrandData(p.urlKey, p.vendor);
       if (!brandData) {
         results.prices.failed++;
         results.inventory.failed++;
         results.failedItems.push({ handle: p.handle, reason: "no brand API data" });
-        continue;
+        return;
       }
 
       const { mrp, sp, outOfStock } = brandData;
@@ -267,6 +272,11 @@ export async function GET(req: NextRequest) {
           }
         }
       }
+    }
+
+    for (const batch of chunk(products, BATCH_SIZE)) {
+      await Promise.all(batch.map(syncOne));
+      await sleep(200);
     }
 
     console.log(`[sync] Done — prices:${results.prices.updated} updated | OOS:${results.inventory.markedOos} back-in-stock:${results.inventory.markedAvailable}`);

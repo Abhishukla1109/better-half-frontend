@@ -350,7 +350,17 @@ export async function POST(req: NextRequest) {
       if (activeFulfillment) {
         await createFulfillmentEvent(activeFulfillment.id, "DELIVERED", adminToken);
       } else {
-        console.log("[mosaic-webhook] No active fulfillment found to mark delivered");
+        // "shipped" was missed or raced — the brand says it's delivered, so fulfill now.
+        const fulfillmentOrders = await fetchFulfillmentOrders(order.gid, adminToken);
+        const openFO = fulfillmentOrders.find(fo => fo.status === "OPEN" || fo.status === "IN_PROGRESS");
+        if (openFO) {
+          await createFulfillment(openFO.id, tracking_number, tracking_url, adminToken);
+          const newFulfillments = await fetchFulfillments(order.gid, adminToken);
+          const newActive = newFulfillments.find(f => f.status === "SUCCESS");
+          if (newActive) await createFulfillmentEvent(newActive.id, "DELIVERED", adminToken);
+        } else {
+          console.log("[mosaic-webhook] No open fulfillment order and no active fulfillment — cannot mark delivered");
+        }
       }
     }
 
