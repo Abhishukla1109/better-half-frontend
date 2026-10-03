@@ -239,8 +239,8 @@ function normalizePhone(raw: string | null): string {
   return raw.replace(/\D/g, "").slice(-10);
 }
 
-// Shopify uses ISO 3166-2 codes; Mosaic's pincode DB uses different codes for 2 states
-const STATE_CODE_MAP: Record<string, string> = { "UK": "UT", "TS": "TG" };
+// Shopify uses ISO 3166-2 codes; Mosaic's pincode DB uses different codes for 3 states
+const STATE_CODE_MAP: Record<string, string> = { "UK": "UT", "TS": "TG", "CG": "CT" };
 
 function normalizeStateCode(provinceCode: string): string {
   const code = provinceCode.replace(/^IN-/, "");
