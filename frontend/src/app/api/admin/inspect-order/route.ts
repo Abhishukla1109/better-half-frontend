@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
               }
             }
             shippingAddress { address1 city provinceCode zip phone }
-            customer { id ordersCount }
+            customer { id numberOfOrders }
           }
         }`,
         variables: { id: gid },
