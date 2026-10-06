@@ -190,6 +190,7 @@ async function updateInventory(
         input: {
           reason: "correction",
           name: "available",
+          ignoreCompareQuantity: true,
           quantities: [{ inventoryItemId, locationId: LOCATION_ID, quantity }],
         },
       },
