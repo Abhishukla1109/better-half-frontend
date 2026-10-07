@@ -594,7 +594,7 @@ export async function POST(req: NextRequest) {
     const productMap = await getProductInfo(productIds, adminToken);
 
     const sourceAttr = (order.note_attributes ?? []).find(a => a.name === "source");
-    const source = sourceAttr?.value ?? "betterhalf";
+    const source = sourceAttr?.value ?? "affluence";
 
     // Group line items by brand
     const byBrand: Record<string, ShopifyLineItem[]> = {};

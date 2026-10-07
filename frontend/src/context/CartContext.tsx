@@ -230,9 +230,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const affCartId = localStorage.getItem("bh_aff_cart_id");
 
     // Our attrs override existing ones where keys match; everything else from existing is preserved
-    const source = typeof window !== "undefined" && window.location.hostname.includes("affluence")
-      ? "affluence"
-      : "betterhalf";
+    // Mosaic's webhook routing/attribution currently only recognizes "affluence" — sending
+    // "betterhalf" breaks status callbacks, so all orders use "affluence" for now.
+    const source = "affluence";
     const ourAttrs: Record<string, string> = {
       source,
       cartId:  currentCartId,
