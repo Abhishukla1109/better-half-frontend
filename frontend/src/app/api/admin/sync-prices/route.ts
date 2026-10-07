@@ -48,6 +48,7 @@ interface ShopifyProduct {
   currentCompareAt: number;
   inventoryPolicy:  string;
   inventoryTracked: boolean;
+  availableQty:     number;
 }
 
 async function getAllActiveProducts(token: string): Promise<ShopifyProduct[]> {
@@ -66,7 +67,12 @@ async function getAllActiveProducts(token: string): Promise<ShopifyProduct[]> {
               variants(first: 1) {
                 nodes {
                   id price compareAtPrice inventoryPolicy
-                  inventoryItem { id tracked }
+                  inventoryItem {
+                    id tracked
+                    inventoryLevel(locationId: "${LOCATION_ID}") {
+                      quantities(names: ["available"]) { quantity }
+                    }
+                  }
                 }
               }
               metafields(first: 3, namespace: "custom") { nodes { key value } }
@@ -82,7 +88,10 @@ async function getAllActiveProducts(token: string): Promise<ShopifyProduct[]> {
         products: {
           nodes: Array<{
             id: string; handle: string; vendor: string;
-            variants: { nodes: Array<{ id: string; price: string; compareAtPrice: string | null; inventoryPolicy: string; inventoryItem: { id: string; tracked: boolean } }> };
+            variants: { nodes: Array<{
+              id: string; price: string; compareAtPrice: string | null; inventoryPolicy: string;
+              inventoryItem: { id: string; tracked: boolean; inventoryLevel: { quantities: Array<{ quantity: number }> } | null };
+            }> };
             metafields: { nodes: Array<{ key: string; value: string }> };
           }>;
           pageInfo: { hasNextPage: boolean; endCursor: string };
@@ -105,6 +114,7 @@ async function getAllActiveProducts(token: string): Promise<ShopifyProduct[]> {
         currentCompareAt: parseFloat(variant.compareAtPrice ?? "0"),
         inventoryPolicy:  variant.inventoryPolicy,
         inventoryTracked: variant.inventoryItem.tracked,
+        availableQty:     variant.inventoryItem.inventoryLevel?.quantities?.[0]?.quantity ?? 0,
       });
     }
 
@@ -255,8 +265,13 @@ export async function GET(req: NextRequest) {
       }
 
       // --- Inventory sync ---
+      // Don't rely on policy-match alone: a product can already show DENY while its
+      // quantity is stuck nonzero from a past failed write, which still lets it sell
+      // (DENY only blocks once available hits 0). So an OOS product with any leftover
+      // quantity still needs fixing even if the policy already looks correct.
       const desiredPolicy = outOfStock ? "DENY" : "CONTINUE";
-      if (!p.inventoryTracked || p.inventoryPolicy === desiredPolicy) {
+      const needsFix = p.inventoryTracked && (p.inventoryPolicy !== desiredPolicy || (outOfStock && p.availableQty !== 0));
+      if (!needsFix) {
         results.inventory.skipped++;
       } else {
         const err = await updateInventory(token, p.id, p.variantId, p.inventoryItemId, outOfStock);
