@@ -37,10 +37,12 @@ export async function GET(req: NextRequest) {
       body: JSON.stringify({
         query: `query($handle: String!) {
           productByHandle(handle: $handle) {
-            id title status vendor handle
+            id title status vendor handle productType descriptionHtml
+            options { name values }
             variants(first: 5) {
               nodes {
-                id sku price inventoryPolicy
+                id sku price inventoryPolicy title
+                selectedOptions { name value }
                 inventoryItem { tracked inventoryLevels(first: 3) { nodes { quantities(names: ["available","on_hand","committed"]) { name quantity } } } }
               }
             }
