@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
             }
           }
         }`,
-        variables: { q: `tag:*${q}* OR name:${q} OR ${q}` },
+        variables: { q },
       }),
     });
     const data = await res.json();
