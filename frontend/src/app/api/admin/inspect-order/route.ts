@@ -46,6 +46,7 @@ export async function GET(req: NextRequest) {
             displayFinancialStatus displayFulfillmentStatus
             tags
             note
+            customAttributes { key value }
             metafield(namespace: "custom", key: "mosaic_orders") { value }
             lineItems(first: 20) {
               nodes {
