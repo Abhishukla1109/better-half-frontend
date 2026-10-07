@@ -3,6 +3,10 @@
     {
       "path": "/api/admin/sync-prices",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/admin/sync-names",
+      "schedule": "0 3 * * 1"
     }
   ]
 }
